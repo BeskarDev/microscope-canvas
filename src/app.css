@@ -1,50 +1,155 @@
 @import 'tailwindcss';
 
+/* 
+ * Cosmic Starry Night Theme
+ * A dark, cosmic aesthetic fitting for a worldbuilding game about creating entire histories
+ */
+
 /* Theme configuration using Tailwind CSS v4 @theme directive */
 @theme {
-	--color-background: oklch(100% 0 0);
-	--color-foreground: oklch(20.8% 0.033 265.754);
-	--color-card: oklch(100% 0 0);
-	--color-card-foreground: oklch(20.8% 0.033 265.754);
-	--color-popover: oklch(100% 0 0);
-	--color-popover-foreground: oklch(20.8% 0.033 265.754);
-	--color-primary: oklch(26.5% 0.025 264.364);
-	--color-primary-foreground: oklch(97.5% 0.005 264.364);
-	--color-secondary: oklch(96.7% 0.003 264.364);
-	--color-secondary-foreground: oklch(26.5% 0.025 264.364);
-	--color-muted: oklch(96.7% 0.003 264.364);
-	--color-muted-foreground: oklch(55.2% 0.016 264.364);
-	--color-accent: oklch(96.7% 0.003 264.364);
-	--color-accent-foreground: oklch(26.5% 0.025 264.364);
-	--color-destructive: oklch(57.7% 0.245 27.325);
-	--color-destructive-foreground: oklch(97.5% 0.005 27.325);
-	--color-border: oklch(91.4% 0.008 264.364);
-	--color-input: oklch(91.4% 0.008 264.364);
-	--color-ring: oklch(20.8% 0.033 265.754);
+	/* Cosmic Dark Theme - Default */
+	/* Deep space black with hints of deep blue */
+	--color-background: oklch(8% 0.02 265);
+	/* Soft starlight white */
+	--color-foreground: oklch(95% 0.01 265);
+
+	/* Cards have a subtle dark surface */
+	--color-card: oklch(12% 0.015 265);
+	--color-card-foreground: oklch(95% 0.01 265);
+
+	/* Popovers are slightly lighter than background */
+	--color-popover: oklch(14% 0.02 265);
+	--color-popover-foreground: oklch(95% 0.01 265);
+
+	/* Primary - Cosmic accent (soft purple/blue) */
+	--color-primary: oklch(75% 0.12 280);
+	--color-primary-foreground: oklch(10% 0.02 280);
+
+	/* Secondary - Muted space grey */
+	--color-secondary: oklch(20% 0.02 265);
+	--color-secondary-foreground: oklch(90% 0.01 265);
+
+	/* Muted - Subtle dark */
+	--color-muted: oklch(18% 0.015 265);
+	--color-muted-foreground: oklch(60% 0.02 265);
+
+	/* Accent - Nebula hint (soft pink/purple) */
+	--color-accent: oklch(25% 0.04 310);
+	--color-accent-foreground: oklch(95% 0.01 265);
+
+	/* Destructive - Red warning */
+	--color-destructive: oklch(55% 0.22 25);
+	--color-destructive-foreground: oklch(98% 0.01 25);
+
+	/* Borders - Subtle dark lines */
+	--color-border: oklch(25% 0.02 265);
+	--color-input: oklch(20% 0.015 265);
+	--color-ring: oklch(70% 0.1 280);
+
 	--radius: 0.5rem;
+
+	/* Animation keyframes for dialog */
+	--animate-in: animate-in 0.2s ease-out;
+	--animate-out: animate-out 0.2s ease-in;
+
+	/* Custom star colors */
+	--color-star: oklch(98% 0.02 265);
+	--color-star-dim: oklch(70% 0.02 265);
+	--color-nebula-pink: oklch(55% 0.15 330);
+	--color-nebula-blue: oklch(50% 0.12 260);
+	--color-nebula-purple: oklch(45% 0.1 290);
 }
 
-/* Dark mode colors */
-.dark {
-	--color-background: oklch(20.8% 0.033 265.754);
-	--color-foreground: oklch(97.5% 0.005 264.364);
-	--color-card: oklch(20.8% 0.033 265.754);
-	--color-card-foreground: oklch(97.5% 0.005 264.364);
-	--color-popover: oklch(20.8% 0.033 265.754);
-	--color-popover-foreground: oklch(97.5% 0.005 264.364);
-	--color-primary: oklch(97.5% 0.005 264.364);
-	--color-primary-foreground: oklch(26.5% 0.025 264.364);
-	--color-secondary: oklch(30.3% 0.025 264.364);
-	--color-secondary-foreground: oklch(97.5% 0.005 264.364);
-	--color-muted: oklch(30.3% 0.025 264.364);
-	--color-muted-foreground: oklch(70.9% 0.014 264.364);
-	--color-accent: oklch(30.3% 0.025 264.364);
-	--color-accent-foreground: oklch(97.5% 0.005 264.364);
-	--color-destructive: oklch(42.3% 0.164 27.325);
-	--color-destructive-foreground: oklch(97.5% 0.005 27.325);
-	--color-border: oklch(30.3% 0.025 264.364);
-	--color-input: oklch(30.3% 0.025 264.364);
-	--color-ring: oklch(82.8% 0.022 264.364);
+/* Keyframes for animations */
+@keyframes animate-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes animate-out {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes fade-in-0 {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes fade-out-0 {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes zoom-in-95 {
+	from {
+		transform: translate(-50%, -50%) scale(0.95);
+	}
+	to {
+		transform: translate(-50%, -50%) scale(1);
+	}
+}
+
+@keyframes zoom-out-95 {
+	from {
+		transform: translate(-50%, -50%) scale(1);
+	}
+	to {
+		transform: translate(-50%, -50%) scale(0.95);
+	}
+}
+
+@keyframes twinkle {
+	0%,
+	100% {
+		opacity: 0.4;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+
+/* Animation utilities */
+.animate-in {
+	animation: animate-in 0.2s ease-out;
+}
+
+.animate-out {
+	animation: animate-out 0.2s ease-in;
+}
+
+[data-state='open'] {
+	&.fade-in-0 {
+		animation: fade-in-0 0.2s ease-out;
+	}
+	&.zoom-in-95 {
+		animation: zoom-in-95 0.2s ease-out;
+	}
+}
+
+[data-state='closed'] {
+	&.fade-out-0 {
+		animation: fade-out-0 0.2s ease-in;
+	}
+	&.zoom-out-95 {
+		animation: zoom-out-95 0.2s ease-in;
+	}
 }
 
 /* Base styles */
@@ -52,7 +157,36 @@
 	border-color: var(--color-border);
 }
 
+html {
+	/* Always dark theme - cosmic background */
+	color-scheme: dark;
+}
+
 body {
 	background-color: var(--color-background);
 	color: var(--color-foreground);
+	font-family:
+		system-ui,
+		-apple-system,
+		BlinkMacSystemFont,
+		'Segoe UI',
+		Roboto,
+		Oxygen,
+		Ubuntu,
+		Cantarell,
+		sans-serif;
+	min-height: 100vh;
+}
+
+/* Screen reader only utility */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border-width: 0;
 }
