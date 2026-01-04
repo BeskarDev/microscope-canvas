@@ -94,7 +94,7 @@
 		inset: 0;
 		overflow: hidden;
 		cursor: grab;
-		touch-action: pan-x pan-y;
+		touch-action: none;
 	}
 
 	.canvas-viewport.panning {
