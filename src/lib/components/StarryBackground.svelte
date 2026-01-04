@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
+	// Star positions use normalized coordinates (0-1) so they stay consistent
+	// regardless of viewport size changes
 	interface Star {
-		x: number;
-		y: number;
+		xNorm: number; // Normalized x position (0-1)
+		yNorm: number; // Normalized y position (0-1)
 		size: number;
 		opacity: number;
 		twinkleDelay: number;
@@ -12,22 +14,46 @@
 	let canvas: HTMLCanvasElement;
 	let stars: Star[] = [];
 	let animationFrame: number;
-	let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	const STAR_COUNT = 200;
 	const MIN_SIZE = 0.5;
 	const MAX_SIZE = 2;
-	const RESIZE_DEBOUNCE_MS = 150;
+	const SEED = 12345; // Fixed seed for consistent star generation
 
-	function generateStars(width: number, height: number): Star[] {
+	/**
+	 * Seeded pseudo-random number generator using the mulberry32 algorithm.
+	 * This algorithm was chosen because:
+	 * - It's fast and lightweight (single 32-bit state)
+	 * - Produces good statistical distribution
+	 * - Deterministic: same seed always produces same sequence
+	 * - Works well in browsers without needing crypto APIs
+	 * 
+	 * @param seed Initial seed value
+	 * @returns Function that returns pseudo-random numbers in [0, 1)
+	 */
+	function createSeededRandom(seed: number) {
+		return function () {
+			let t = (seed += 0x6d2b79f5);
+			t = Math.imul(t ^ (t >>> 15), t | 1);
+			t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+			return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+		};
+	}
+
+	/**
+	 * Generate stars with normalized coordinates using seeded random
+	 * Stars are generated once and their positions scale with viewport
+	 */
+	function generateStars(): Star[] {
+		const random = createSeededRandom(SEED);
 		const newStars: Star[] = [];
 		for (let i = 0; i < STAR_COUNT; i++) {
 			newStars.push({
-				x: Math.random() * width,
-				y: Math.random() * height,
-				size: MIN_SIZE + Math.random() * (MAX_SIZE - MIN_SIZE),
-				opacity: 0.3 + Math.random() * 0.7,
-				twinkleDelay: Math.random() * 4000
+				xNorm: random(),
+				yNorm: random(),
+				size: MIN_SIZE + random() * (MAX_SIZE - MIN_SIZE),
+				opacity: 0.3 + random() * 0.7,
+				twinkleDelay: random() * 4000
 			});
 		}
 		return newStars;
@@ -56,19 +82,22 @@
 		ctx.fillRect(0, 0, width, height);
 
 		// Draw stars with twinkle effect
+		// Convert normalized coordinates to actual pixels
 		stars.forEach((star) => {
+			const x = star.xNorm * width;
+			const y = star.yNorm * height;
 			const twinkle = Math.sin((time + star.twinkleDelay) / 1500) * 0.3 + 0.7;
 			const finalOpacity = star.opacity * twinkle;
 
 			ctx.beginPath();
-			ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+			ctx.arc(x, y, star.size, 0, Math.PI * 2);
 			ctx.fillStyle = `oklch(98% 0.02 265 / ${finalOpacity})`;
 			ctx.fill();
 
 			// Add a subtle glow to larger stars
 			if (star.size > 1.5) {
 				ctx.beginPath();
-				ctx.arc(star.x, star.y, star.size * 2, 0, Math.PI * 2);
+				ctx.arc(x, y, star.size * 2, 0, Math.PI * 2);
 				ctx.fillStyle = `oklch(98% 0.02 265 / ${finalOpacity * 0.2})`;
 				ctx.fill();
 			}
@@ -87,19 +116,17 @@
 		if (canvas) {
 			canvas.width = window.innerWidth;
 			canvas.height = window.innerHeight;
-			stars = generateStars(canvas.width, canvas.height);
 		}
 	}
 
 	function handleResize() {
-		// Debounce resize to avoid expensive star regeneration during resize
-		if (resizeTimeout) {
-			clearTimeout(resizeTimeout);
-		}
-		resizeTimeout = setTimeout(updateCanvasSize, RESIZE_DEBOUNCE_MS);
+		// Just update canvas size - stars use normalized coords so no regeneration needed
+		updateCanvasSize();
 	}
 
 	onMount(() => {
+		// Generate stars once on mount with consistent seeded random
+		stars = generateStars();
 		updateCanvasSize();
 		animationFrame = requestAnimationFrame(animate);
 
@@ -108,9 +135,6 @@
 		return () => {
 			cancelAnimationFrame(animationFrame);
 			window.removeEventListener('resize', handleResize);
-			if (resizeTimeout) {
-				clearTimeout(resizeTimeout);
-			}
 		};
 	});
 </script>
