@@ -105,10 +105,11 @@
 
 	function triggerAutosave() {
 		if (game) {
-			game.updatedAt = new Date().toISOString();
 			// Create a plain object copy to avoid issues with Svelte proxies in IndexedDB
 			// Use JSON round-trip to ensure we get a plain object without Svelte proxies
 			const plainGame = JSON.parse(JSON.stringify(game));
+			// Update timestamp on the plain copy
+			plainGame.updatedAt = new Date().toISOString();
 			autosave.save(plainGame);
 		}
 	}

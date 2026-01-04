@@ -43,7 +43,7 @@ jobs:
         run: npm run format:check
 
       - name: Run TypeScript type check
-        run: npm run check
+        run: npm run check -- --threshold warning
 
       - name: Run tests
         run: npm run test

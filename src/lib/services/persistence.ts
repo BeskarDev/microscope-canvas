@@ -160,18 +160,15 @@ export async function loadGame(id: string): Promise<Game | null> {
 export async function saveGame(game: Game): Promise<void> {
 	const db = await openDatabase();
 
-	// Update the timestamp
-	const updatedGame: Game = {
-		...game,
-		updatedAt: new Date().toISOString()
-	};
+	// Update the timestamp - game should already be a plain object
+	game.updatedAt = new Date().toISOString();
 
 	return new Promise((resolve, reject) => {
 		try {
 			const transaction = db.transaction([GAMES_STORE], 'readwrite');
-			const store = transaction.objectStore(GAMES_STORE);
+			const store = transaction.objectStore(GAMES_STORE');
 
-			const request = store.put(updatedGame);
+			const request = store.put(game);
 
 			request.onerror = () => {
 				db.close();
