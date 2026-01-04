@@ -18,7 +18,6 @@ test.describe('Game Save Functionality', () => {
 
 		// Wait for navigation to game page
 		await expect(page).toHaveURL(/\/game\//);
-		const gameId = page.url().split('/').pop();
 
 		// Navigate back to home
 		await page.getByRole('button', { name: 'Back' }).click();

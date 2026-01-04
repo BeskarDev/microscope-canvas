@@ -22,7 +22,7 @@ test.describe('Canvas Zoom Controls', () => {
 		await expect(page.getByText('100%')).toBeVisible();
 	});
 
-	test('zoom controls should be visible on mobile', async ({ page, viewport }) => {
+	test('zoom controls should be visible on mobile', async ({ page }) => {
 		// Set mobile viewport
 		await page.setViewportSize({ width: 375, height: 667 });
 
@@ -144,7 +144,6 @@ test.describe('Canvas Pan Functionality', () => {
 	});
 
 	test('should not pan when clicking on buttons', async ({ page }) => {
-		const canvas = page.getByRole('application', { name: 'Timeline canvas' });
 		const addButton = page.getByRole('button', { name: 'Add period here' }).first();
 
 		// Get initial state
