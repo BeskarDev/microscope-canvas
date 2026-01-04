@@ -40,6 +40,19 @@ describe('Game Types', () => {
 			expect(() => new Date(game.createdAt)).not.toThrow();
 			expect(() => new Date(game.updatedAt)).not.toThrow();
 		});
+
+		it('should trim whitespace from name', () => {
+			const game = createNewGame('  Test Game  ');
+			expect(game.name).toBe('Test Game');
+		});
+
+		it('should throw error for empty name', () => {
+			expect(() => createNewGame('')).toThrow('Game name cannot be empty');
+		});
+
+		it('should throw error for whitespace-only name', () => {
+			expect(() => createNewGame('   ')).toThrow('Game name cannot be empty');
+		});
 	});
 
 	describe('createNewPeriod', () => {

@@ -110,14 +110,17 @@
 	async function handleDeleteGame() {
 		if (!gameToDelete) return;
 
+		const gameId = gameToDelete.id;
+		const gameName = gameToDelete.name;
+
 		isDeleting = true;
 
 		try {
-			await persistDeleteGame(gameToDelete.id);
-			games = games.filter((g) => g.id !== gameToDelete!.id);
+			await persistDeleteGame(gameId);
+			games = games.filter((g) => g.id !== gameId);
 
 			toast.success('Game deleted', {
-				description: `"${gameToDelete.name}" has been permanently deleted.`
+				description: `"${gameName}" has been permanently deleted.`
 			});
 
 			deleteDialogOpen = false;

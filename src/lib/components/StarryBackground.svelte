@@ -21,8 +21,15 @@
 	const SEED = 12345; // Fixed seed for consistent star generation
 
 	/**
-	 * Seeded pseudo-random number generator (mulberry32)
-	 * Produces consistent sequence of random numbers given the same seed
+	 * Seeded pseudo-random number generator using the mulberry32 algorithm.
+	 * This algorithm was chosen because:
+	 * - It's fast and lightweight (single 32-bit state)
+	 * - Produces good statistical distribution
+	 * - Deterministic: same seed always produces same sequence
+	 * - Works well in browsers without needing crypto APIs
+	 * 
+	 * @param seed Initial seed value
+	 * @returns Function that returns pseudo-random numbers in [0, 1)
 	 */
 	function createSeededRandom(seed: number) {
 		return function () {

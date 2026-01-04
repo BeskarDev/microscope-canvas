@@ -257,10 +257,32 @@ export async function listGames(): Promise<GameMetadata[]> {
 
 /**
  * Checks if a game exists in IndexedDB
+ * Uses count query for efficiency (doesn't load full game data)
  * @param id The game ID to check
  * @returns true if the game exists
  */
 export async function gameExists(id: string): Promise<boolean> {
-	const game = await loadGame(id);
-	return game !== null;
+	const db = await openDatabase();
+
+	return new Promise((resolve, reject) => {
+		try {
+			const transaction = db.transaction([GAMES_STORE], 'readonly');
+			const store = transaction.objectStore(GAMES_STORE);
+
+			const request = store.count(IDBKeyRange.only(id));
+
+			request.onerror = () => {
+				db.close();
+				reject(new PersistenceError('Failed to check if game exists', request.error));
+			};
+
+			request.onsuccess = () => {
+				db.close();
+				resolve(request.result > 0);
+			};
+		} catch (error) {
+			db.close();
+			reject(new PersistenceError('Failed to check if game exists', error));
+		}
+	});
 }

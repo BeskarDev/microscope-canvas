@@ -125,13 +125,20 @@ export interface GameMetadata {
 
 /**
  * Creates a new empty game with the given name
+ * @param name The name for the new game (must not be empty)
+ * @throws Error if name is empty or just whitespace
  */
 export function createNewGame(name: string): Game {
+	const trimmedName = name.trim();
+	if (!trimmedName) {
+		throw new Error('Game name cannot be empty');
+	}
+
 	const now = new Date().toISOString();
 	return {
 		id: crypto.randomUUID(),
 		schemaVersion: SCHEMA_VERSION,
-		name,
+		name: trimmedName,
 		legacies: [],
 		periods: [],
 		createdAt: now,
