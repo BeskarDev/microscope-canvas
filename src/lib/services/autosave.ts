@@ -73,10 +73,18 @@ export function createAutosave(
 	 * Useful when navigating away from the page
 	 */
 	async function flush(): Promise<void> {
-		cancel();
-		if (lastGame) {
+		// Cancel the pending timeout but preserve lastGame for the immediate save
+		if (timeoutId) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+		}
+
+		const gameToSave = lastGame;
+		lastGame = null;
+
+		if (gameToSave) {
 			try {
-				await saveGame(lastGame);
+				await saveGame(gameToSave);
 			} catch (error) {
 				if (error instanceof PersistenceError && onError) {
 					onError(error);
