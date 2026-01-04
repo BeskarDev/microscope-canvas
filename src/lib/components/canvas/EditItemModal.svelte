@@ -124,11 +124,10 @@
 				{/if}
 			</div>
 
-			<div class="form-field">
-				<!-- svelte-ignore a11y_label_has_associated_control -->
-				<label class="form-label">Tone</label>
+			<fieldset class="form-field tone-fieldset">
+				<legend class="form-label">Tone</legend>
 				<ToneToggle value={tone} onchange={handleToneChange} />
-			</div>
+			</fieldset>
 
 			<div class="form-field">
 				<label for="item-description" class="form-label">Description</label>
@@ -190,6 +189,12 @@
 		gap: 0.5rem;
 	}
 
+	.tone-fieldset {
+		border: none;
+		padding: 0;
+		margin: 0;
+	}
+
 	.form-label {
 		font-size: 0.875rem;
 		font-weight: 500;
@@ -203,7 +208,7 @@
 	}
 
 	:global(.modal-footer) {
-		display: flex !important;
+		display: flex;
 		gap: 0.75rem;
 		align-items: center;
 	}

@@ -189,21 +189,23 @@
 	function handleSaveItem(updates: Partial<Period | GameEvent | Scene>) {
 		if (!game || !editItem) return;
 
+		const itemId = editItem.id;
+
 		if (editItemType === 'period') {
-			const period = game.periods.find((p) => p.id === editItem!.id);
+			const period = game.periods.find((p) => p.id === itemId);
 			if (period) {
 				Object.assign(period, updates, { updatedAt: new Date().toISOString() });
 			}
 		} else if (editItemType === 'event') {
 			const period = game.periods.find((p) => p.id === editItemContext.periodId);
-			const event = period?.events.find((e) => e.id === editItem!.id);
+			const event = period?.events.find((e) => e.id === itemId);
 			if (event) {
 				Object.assign(event, updates, { updatedAt: new Date().toISOString() });
 			}
 		} else if (editItemType === 'scene') {
 			const period = game.periods.find((p) => p.id === editItemContext.periodId);
 			const event = period?.events.find((e) => e.id === editItemContext.eventId);
-			const scene = event?.scenes.find((s) => s.id === editItem!.id);
+			const scene = event?.scenes.find((s) => s.id === itemId);
 			if (scene) {
 				Object.assign(scene, updates, { updatedAt: new Date().toISOString() });
 			}
@@ -237,18 +239,20 @@
 	function handleConfirmDelete() {
 		if (!game || !editItem) return;
 
+		const itemId = editItem.id;
+
 		if (editItemType === 'period') {
-			game.periods = game.periods.filter((p) => p.id !== editItem!.id);
+			game.periods = game.periods.filter((p) => p.id !== itemId);
 		} else if (editItemType === 'event') {
 			const period = game.periods.find((p) => p.id === editItemContext.periodId);
 			if (period) {
-				period.events = period.events.filter((e) => e.id !== editItem!.id);
+				period.events = period.events.filter((e) => e.id !== itemId);
 			}
 		} else if (editItemType === 'scene') {
 			const period = game.periods.find((p) => p.id === editItemContext.periodId);
 			const event = period?.events.find((e) => e.id === editItemContext.eventId);
 			if (event) {
-				event.scenes = event.scenes.filter((s) => s.id !== editItem!.id);
+				event.scenes = event.scenes.filter((s) => s.id !== itemId);
 			}
 		}
 
