@@ -12,10 +12,12 @@
 	let canvas: HTMLCanvasElement;
 	let stars: Star[] = [];
 	let animationFrame: number;
+	let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	const STAR_COUNT = 200;
 	const MIN_SIZE = 0.5;
 	const MAX_SIZE = 2;
+	const RESIZE_DEBOUNCE_MS = 150;
 
 	function generateStars(width: number, height: number): Star[] {
 		const newStars: Star[] = [];
@@ -81,7 +83,7 @@
 		animationFrame = requestAnimationFrame(animate);
 	}
 
-	function handleResize() {
+	function updateCanvasSize() {
 		if (canvas) {
 			canvas.width = window.innerWidth;
 			canvas.height = window.innerHeight;
@@ -89,8 +91,16 @@
 		}
 	}
 
+	function handleResize() {
+		// Debounce resize to avoid expensive star regeneration during resize
+		if (resizeTimeout) {
+			clearTimeout(resizeTimeout);
+		}
+		resizeTimeout = setTimeout(updateCanvasSize, RESIZE_DEBOUNCE_MS);
+	}
+
 	onMount(() => {
-		handleResize();
+		updateCanvasSize();
 		animationFrame = requestAnimationFrame(animate);
 
 		window.addEventListener('resize', handleResize);
@@ -98,6 +108,9 @@
 		return () => {
 			cancelAnimationFrame(animationFrame);
 			window.removeEventListener('resize', handleResize);
+			if (resizeTimeout) {
+				clearTimeout(resizeTimeout);
+			}
 		};
 	});
 </script>
