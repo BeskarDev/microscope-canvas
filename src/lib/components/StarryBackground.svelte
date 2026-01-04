@@ -27,7 +27,7 @@
 	 * - Produces good statistical distribution
 	 * - Deterministic: same seed always produces same sequence
 	 * - Works well in browsers without needing crypto APIs
-	 * 
+	 *
 	 * @param seed Initial seed value
 	 * @returns Function that returns pseudo-random numbers in [0, 1)
 	 */

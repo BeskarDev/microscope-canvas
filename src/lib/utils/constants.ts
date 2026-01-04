@@ -62,7 +62,9 @@ export function wouldExceedEventCap(currentCount: number): boolean {
 	const validCount = validateCount(currentCount);
 	const exceeded = validCount >= MAX_EVENTS_PER_PERIOD;
 	if (exceeded) {
-		console.warn(`Soft cap warning: Attempting to exceed maximum events (${MAX_EVENTS_PER_PERIOD})`);
+		console.warn(
+			`Soft cap warning: Attempting to exceed maximum events (${MAX_EVENTS_PER_PERIOD})`
+		);
 	}
 	return exceeded;
 }
