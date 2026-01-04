@@ -1,29 +1,143 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import * as Dialog from '$lib/components/ui/dialog';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { toast } from '$lib/components/ui/sonner';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Upload from 'lucide-svelte/icons/upload';
 	import Sparkles from 'lucide-svelte/icons/sparkles';
+	import Trash2 from 'lucide-svelte/icons/trash-2';
+	import Loader2 from 'lucide-svelte/icons/loader-2';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
+	import {
+		listGames,
+		createGame as persistCreateGame,
+		deleteGame as persistDeleteGame,
+		DatabaseUnavailableError,
+		PersistenceError
+	} from '$lib/services';
+	import { createNewGame, type GameMetadata } from '$lib/types';
 
-	// Placeholder games list - will be replaced with actual persistence in later milestone
-	let games: { id: string; name: string; lastModified: Date }[] = $state([]);
+	// State
+	let games: GameMetadata[] = $state([]);
+	let isLoading = $state(true);
+	let loadError = $state<string | null>(null);
 
-	function handleCreateGame() {
-		// For now, just navigate to a placeholder game page
-		// In a later milestone, this will create a game in persistence
-		const newId = crypto.randomUUID();
-		toast.success('Creating new game...', {
-			description: 'Game creation will be implemented in the next milestone.'
-		});
-		// Navigate to the new game
-		goto(resolve('/game/[id]', { id: newId }));
+	// Create game dialog state
+	let createDialogOpen = $state(false);
+	let newGameName = $state('');
+	let isCreating = $state(false);
+
+	// Delete confirmation state
+	let deleteDialogOpen = $state(false);
+	let gameToDelete = $state<GameMetadata | null>(null);
+	let isDeleting = $state(false);
+
+	// Load games on mount
+	onMount(async () => {
+		await loadGames();
+	});
+
+	async function loadGames() {
+		isLoading = true;
+		loadError = null;
+
+		try {
+			games = await listGames();
+		} catch (error) {
+			if (error instanceof DatabaseUnavailableError) {
+				loadError =
+					'Local storage is not available. Please check your browser settings or try a different browser.';
+			} else if (error instanceof PersistenceError) {
+				loadError = 'Failed to load your games. Please refresh the page to try again.';
+			} else {
+				loadError = 'An unexpected error occurred. Please refresh the page.';
+			}
+			console.error('Failed to load games:', error);
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	function openCreateDialog() {
+		newGameName = '';
+		createDialogOpen = true;
+	}
+
+	async function handleCreateGame() {
+		const trimmedName = newGameName.trim();
+		if (!trimmedName) {
+			toast.error('Please enter a game name');
+			return;
+		}
+
+		isCreating = true;
+
+		try {
+			const game = createNewGame(trimmedName);
+			await persistCreateGame(game);
+
+			toast.success('Game created!', {
+				description: `"${trimmedName}" is ready for worldbuilding.`
+			});
+
+			createDialogOpen = false;
+			goto(resolve('/game/[id]', { id: game.id }));
+		} catch (error) {
+			console.error('Failed to create game:', error);
+			toast.error('Failed to create game', {
+				description: 'Please try again. If the problem persists, check your browser storage.'
+			});
+		} finally {
+			isCreating = false;
+		}
 	}
 
 	function handleImportGame() {
 		toast.info('Import Coming Soon', {
 			description: 'Game import functionality will be available in a future update.'
+		});
+	}
+
+	function openDeleteDialog(game: GameMetadata) {
+		gameToDelete = game;
+		deleteDialogOpen = true;
+	}
+
+	async function handleDeleteGame() {
+		if (!gameToDelete) return;
+
+		isDeleting = true;
+
+		try {
+			await persistDeleteGame(gameToDelete.id);
+			games = games.filter((g) => g.id !== gameToDelete!.id);
+
+			toast.success('Game deleted', {
+				description: `"${gameToDelete.name}" has been permanently deleted.`
+			});
+
+			deleteDialogOpen = false;
+			gameToDelete = null;
+		} catch (error) {
+			console.error('Failed to delete game:', error);
+			toast.error('Failed to delete game', {
+				description: 'Please try again.'
+			});
+		} finally {
+			isDeleting = false;
+		}
+	}
+
+	function formatDate(isoString: string): string {
+		const date = new Date(isoString);
+		return date.toLocaleDateString(undefined, {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric'
 		});
 	}
 </script>
@@ -41,7 +155,7 @@
 	</section>
 
 	<section class="actions-section">
-		<Button onclick={handleCreateGame} size="lg" class="action-button">
+		<Button onclick={openCreateDialog} size="lg" class="action-button">
 			<Plus class="h-5 w-5" />
 			Create New Game
 		</Button>
@@ -54,7 +168,17 @@
 	<section class="games-section">
 		<h2 class="section-title">Your Games</h2>
 
-		{#if games.length === 0}
+		{#if isLoading}
+			<div class="loading-state">
+				<Loader2 class="h-8 w-8 animate-spin" />
+				<p>Loading your games...</p>
+			</div>
+		{:else if loadError}
+			<div class="error-state">
+				<p class="error-text">{loadError}</p>
+				<Button onclick={loadGames} variant="secondary" size="sm">Try Again</Button>
+			</div>
+		{:else if games.length === 0}
 			<div class="empty-state">
 				<div class="empty-icon">
 					<svg
@@ -78,19 +202,96 @@
 		{:else}
 			<ul class="games-list">
 				{#each games as game (game.id)}
-					<li>
+					<li class="game-item">
 						<a href={resolve('/game/[id]', { id: game.id })} class="game-card">
 							<span class="game-name">{game.name}</span>
 							<span class="game-date">
-								{game.lastModified.toLocaleDateString()}
+								{formatDate(game.updatedAt)}
 							</span>
 						</a>
+						<Button
+							variant="ghost"
+							size="icon"
+							class="delete-button"
+							onclick={(e: MouseEvent) => {
+								e.preventDefault();
+								e.stopPropagation();
+								openDeleteDialog(game);
+							}}
+							aria-label={`Delete ${game.name}`}
+						>
+							<Trash2 class="h-4 w-4" />
+						</Button>
 					</li>
 				{/each}
 			</ul>
 		{/if}
 	</section>
 </div>
+
+<!-- Create Game Dialog -->
+<Dialog.Root bind:open={createDialogOpen}>
+	<Dialog.Content>
+		<Dialog.Header>
+			<Dialog.Title>Create New Game</Dialog.Title>
+			<Dialog.Description>Give your Microscope history a name to get started.</Dialog.Description>
+		</Dialog.Header>
+		<div class="create-form">
+			<label for="game-name" class="form-label">Game Name</label>
+			<Input
+				id="game-name"
+				bind:value={newGameName}
+				placeholder="e.g., Rise and Fall of the Star Empire"
+				disabled={isCreating}
+				onkeydown={(e: KeyboardEvent) => {
+					if (e.key === 'Enter' && !isCreating) {
+						handleCreateGame();
+					}
+				}}
+			/>
+		</div>
+		<Dialog.Footer>
+			<Button variant="secondary" onclick={() => (createDialogOpen = false)} disabled={isCreating}>
+				Cancel
+			</Button>
+			<Button onclick={handleCreateGame} disabled={isCreating || !newGameName.trim()}>
+				{#if isCreating}
+					<Loader2 class="h-4 w-4 animate-spin" />
+					Creating...
+				{:else}
+					Create Game
+				{/if}
+			</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>
+
+<!-- Delete Confirmation Dialog -->
+<AlertDialog.Root bind:open={deleteDialogOpen}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Delete Game?</AlertDialog.Title>
+			<AlertDialog.Description>
+				This will permanently delete "{gameToDelete?.name}". This action cannot be undone.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel disabled={isDeleting}>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action
+				onclick={handleDeleteGame}
+				disabled={isDeleting}
+				class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+			>
+				{#if isDeleting}
+					<Loader2 class="h-4 w-4 animate-spin" />
+					Deleting...
+				{:else}
+					Delete
+				{/if}
+			</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
 
 <style>
 	.home-container {
@@ -162,6 +363,36 @@
 		color: var(--color-foreground);
 	}
 
+	.loading-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		padding: 3rem 2rem;
+		gap: 1rem;
+		color: var(--color-muted-foreground);
+	}
+
+	.loading-state :global(svg) {
+		color: var(--color-primary);
+	}
+
+	.error-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		padding: 2rem;
+		gap: 1rem;
+		border: 1px solid var(--color-destructive);
+		border-radius: var(--radius);
+		background-color: oklch(from var(--color-destructive) l c h / 0.1);
+	}
+
+	.error-text {
+		color: var(--color-destructive);
+		text-align: center;
+	}
+
 	.empty-state {
 		display: flex;
 		flex-direction: column;
@@ -200,7 +431,14 @@
 		gap: 0.75rem;
 	}
 
+	.game-item {
+		display: flex;
+		align-items: stretch;
+		gap: 0.5rem;
+	}
+
 	.game-card {
+		flex: 1;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
@@ -229,6 +467,42 @@
 		color: var(--color-muted-foreground);
 	}
 
+	.game-item :global(.delete-button) {
+		flex-shrink: 0;
+		color: var(--color-muted-foreground);
+	}
+
+	.game-item :global(.delete-button:hover) {
+		color: var(--color-destructive);
+	}
+
+	.create-form {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 1rem 0;
+	}
+
+	.form-label {
+		font-size: 0.875rem;
+		font-weight: 500;
+		color: var(--color-foreground);
+	}
+
+	/* Animation for spinner */
+	:global(.animate-spin) {
+		animation: spin 1s linear infinite;
+	}
+
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
 	@media (max-width: 640px) {
 		.home-container {
 			padding: 1.5rem 1rem;
@@ -250,6 +524,12 @@
 
 		.actions-section :global(.action-button) {
 			width: 100%;
+		}
+
+		.game-card {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.25rem;
 		}
 	}
 </style>
