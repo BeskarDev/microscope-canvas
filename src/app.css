@@ -1,0 +1,58 @@
+@import 'tailwindcss';
+
+/* Theme configuration using Tailwind CSS v4 @theme directive */
+@theme {
+	--color-background: oklch(100% 0 0);
+	--color-foreground: oklch(20.8% 0.033 265.754);
+	--color-card: oklch(100% 0 0);
+	--color-card-foreground: oklch(20.8% 0.033 265.754);
+	--color-popover: oklch(100% 0 0);
+	--color-popover-foreground: oklch(20.8% 0.033 265.754);
+	--color-primary: oklch(26.5% 0.025 264.364);
+	--color-primary-foreground: oklch(97.5% 0.005 264.364);
+	--color-secondary: oklch(96.7% 0.003 264.364);
+	--color-secondary-foreground: oklch(26.5% 0.025 264.364);
+	--color-muted: oklch(96.7% 0.003 264.364);
+	--color-muted-foreground: oklch(55.2% 0.016 264.364);
+	--color-accent: oklch(96.7% 0.003 264.364);
+	--color-accent-foreground: oklch(26.5% 0.025 264.364);
+	--color-destructive: oklch(57.7% 0.245 27.325);
+	--color-destructive-foreground: oklch(97.5% 0.005 27.325);
+	--color-border: oklch(91.4% 0.008 264.364);
+	--color-input: oklch(91.4% 0.008 264.364);
+	--color-ring: oklch(20.8% 0.033 265.754);
+	--radius: 0.5rem;
+}
+
+/* Dark mode colors */
+.dark {
+	--color-background: oklch(20.8% 0.033 265.754);
+	--color-foreground: oklch(97.5% 0.005 264.364);
+	--color-card: oklch(20.8% 0.033 265.754);
+	--color-card-foreground: oklch(97.5% 0.005 264.364);
+	--color-popover: oklch(20.8% 0.033 265.754);
+	--color-popover-foreground: oklch(97.5% 0.005 264.364);
+	--color-primary: oklch(97.5% 0.005 264.364);
+	--color-primary-foreground: oklch(26.5% 0.025 264.364);
+	--color-secondary: oklch(30.3% 0.025 264.364);
+	--color-secondary-foreground: oklch(97.5% 0.005 264.364);
+	--color-muted: oklch(30.3% 0.025 264.364);
+	--color-muted-foreground: oklch(70.9% 0.014 264.364);
+	--color-accent: oklch(30.3% 0.025 264.364);
+	--color-accent-foreground: oklch(97.5% 0.005 264.364);
+	--color-destructive: oklch(42.3% 0.164 27.325);
+	--color-destructive-foreground: oklch(97.5% 0.005 27.325);
+	--color-border: oklch(30.3% 0.025 264.364);
+	--color-input: oklch(30.3% 0.025 264.364);
+	--color-ring: oklch(82.8% 0.022 264.364);
+}
+
+/* Base styles */
+* {
+	border-color: var(--color-border);
+}
+
+body {
+	background-color: var(--color-background);
+	color: var(--color-foreground);
+}

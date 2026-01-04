@@ -5,10 +5,11 @@
 This milestone establishes the **technical foundation** for all future development. It ensures the project has proper tooling, type safety, code quality enforcement, and CI/CD infrastructure before any application code is written.
 
 This milestone exists to:
-* Prevent technical debt from accumulating from the start
-* Ensure consistent code quality across all contributors
-* Establish deployment infrastructure for GitHub Pages
-* Create a reliable, repeatable development environment
+
+- Prevent technical debt from accumulating from the start
+- Ensure consistent code quality across all contributors
+- Establish deployment infrastructure for GitHub Pages
+- Create a reliable, repeatable development environment
 
 ---
 
@@ -16,31 +17,31 @@ This milestone exists to:
 
 ### Included
 
-* Initialize project with a modern JavaScript framework suitable for static deployment
-* Configure TypeScript with strict type checking
-* Set up ESLint with appropriate rules for the codebase
-* Set up Prettier for consistent code formatting
-* Configure a UI component library (headless/unstyled preferred for flexibility)
-* Set up a testing framework (unit and integration tests)
-* Create GitHub Actions workflow for:
-  * Pull request checks (lint, type check, tests)
-  * Main branch deployment to GitHub Pages
-* Create initial project structure and folder conventions
-* Add `.gitignore` for build artifacts and dependencies
-* Create basic `README.md` with development setup instructions
+- Initialize project with a modern JavaScript framework suitable for static deployment
+- Configure TypeScript with strict type checking
+- Set up ESLint with appropriate rules for the codebase
+- Set up Prettier for consistent code formatting
+- Configure a UI component library (headless/unstyled preferred for flexibility)
+- Set up a testing framework (unit and integration tests)
+- Create GitHub Actions workflow for:
+  - Pull request checks (lint, type check, tests)
+  - Main branch deployment to GitHub Pages
+- Create initial project structure and folder conventions
+- Add `.gitignore` for build artifacts and dependencies
+- Create basic `README.md` with development setup instructions
 
 ### Not Included
 
-* Application UI or views
-* Business logic or game state
-* Persistence layer
-* Any user-facing features
+- Application UI or views
+- Business logic or game state
+- Persistence layer
+- Any user-facing features
 
 ---
 
 ## 3. Dependencies
 
-* **None** — This is the first milestone.
+- **None** — This is the first milestone.
 
 ---
 
@@ -51,39 +52,39 @@ This milestone exists to:
 1. **Choose framework**: Use React with Vite for fast builds and static output suitable for GitHub Pages.
 
 2. **TypeScript Configuration**:
-   * Enable `strict` mode
-   * Configure path aliases for clean imports
-   * Set up proper module resolution
+   - Enable `strict` mode
+   - Configure path aliases for clean imports
+   - Set up proper module resolution
 
 3. **Linting & Formatting**:
-   * ESLint with TypeScript support
-   * Prettier integration with ESLint
-   * Pre-configured rules to catch common issues
+   - ESLint with TypeScript support
+   - Prettier integration with ESLint
+   - Pre-configured rules to catch common issues
 
 4. **UI Component Library**:
-   * Consider headless libraries (e.g., Radix UI, Headless UI) for flexibility
-   * Ensure accessibility compliance out of the box
-   * CSS approach: CSS Modules or Tailwind CSS for scoped styling
+   - Consider headless libraries (e.g., Radix UI, Headless UI) for flexibility
+   - Ensure accessibility compliance out of the box
+   - CSS approach: CSS Modules or Tailwind CSS for scoped styling
 
 5. **Testing Setup**:
-   * Vitest for unit tests (Vite-native, fast)
-   * React Testing Library for component tests
-   * Consider Playwright for future E2E tests (setup only, no tests yet)
+   - Vitest for unit tests (Vite-native, fast)
+   - React Testing Library for component tests
+   - Consider Playwright for future E2E tests (setup only, no tests yet)
 
 6. **GitHub Actions**:
-   * PR workflow: lint → type-check → test
-   * Main branch workflow: build → deploy to GitHub Pages
+   - PR workflow: lint → type-check → test
+   - Main branch workflow: build → deploy to GitHub Pages
 
 ### Architectural Considerations
 
-* All configuration should be explicit and version-controlled
-* Prefer conventions that scale (folder structure, naming)
-* Ensure build output is fully static (no server-side rendering)
+- All configuration should be explicit and version-controlled
+- Prefer conventions that scale (folder structure, naming)
+- Ensure build output is fully static (no server-side rendering)
 
 ### Key Risks
 
-* **Over-configuration**: Keep tooling minimal; add only what is needed
-* **Conflicting tool versions**: Lock dependency versions carefully
+- **Over-configuration**: Keep tooling minimal; add only what is needed
+- **Conflicting tool versions**: Lock dependency versions carefully
 
 ---
 
@@ -91,8 +92,8 @@ This milestone exists to:
 
 This milestone has **no user-facing UX**. However:
 
-* The deployed site should show a minimal placeholder page confirming deployment works
-* Console should be free of errors on the placeholder page
+- The deployed site should show a minimal placeholder page confirming deployment works
+- Console should be free of errors on the placeholder page
 
 ---
 
