@@ -41,7 +41,7 @@
 
 	// Configuration for dnd-action
 	const flipDurationMs = 200;
-	const touchDelayMs = 200; // Delay before touch drag starts to prevent accidental drags
+	const touchDelayMs = 500; // Delay before touch drag starts to prevent accidental drags
 	
 	// Touch delay state
 	let dragDisabledDuringDelay = $state(false);
