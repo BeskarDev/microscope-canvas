@@ -634,6 +634,10 @@
 			previousValues.palette = game.palette ? JSON.parse(JSON.stringify(game.palette)) : undefined;
 			newValues.palette = updates.palette;
 		}
+		if (updates.legacies !== undefined) {
+			previousValues.legacies = JSON.parse(JSON.stringify(game.legacies));
+			newValues.legacies = updates.legacies;
+		}
 
 		const action: EditGameMetadataAction = {
 			type: 'EDIT_GAME_METADATA',

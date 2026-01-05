@@ -184,6 +184,42 @@ export async function listSnapshotsForGame(gameId: string): Promise<SnapshotMeta
 }
 
 /**
+ * Loads all full snapshots for a game, sorted newest-first
+ * @param gameId The game ID
+ */
+export async function loadAllSnapshotsForGame(gameId: string): Promise<GameSnapshot[]> {
+	const db = await openSnapshotDatabase();
+
+	return new Promise((resolve, reject) => {
+		try {
+			const transaction = db.transaction([SNAPSHOTS_STORE], 'readonly');
+			const store = transaction.objectStore(SNAPSHOTS_STORE);
+			const index = store.index('gameId');
+
+			const request = index.getAll(gameId);
+
+			request.onerror = () => {
+				db.close();
+				reject(new SnapshotPersistenceError('Failed to load snapshots', request.error));
+			};
+
+			request.onsuccess = () => {
+				db.close();
+				const snapshots = request.result as GameSnapshot[];
+				// Sort by timestamp (newest first)
+				snapshots.sort((a, b) => {
+					return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+				});
+				resolve(snapshots);
+			};
+		} catch (error) {
+			db.close();
+			reject(new SnapshotPersistenceError('Failed to load snapshots', error));
+		}
+	});
+}
+
+/**
  * Deletes a snapshot from IndexedDB
  * @param id The snapshot ID to delete
  */

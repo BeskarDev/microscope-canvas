@@ -294,6 +294,7 @@ function applyEditGameMetadata(game: Game, action: EditGameMetadataAction, rever
 	if (values.focus !== undefined) game.focus = values.focus;
 	if (values.bigPicture !== undefined) game.bigPicture = values.bigPicture;
 	if (values.palette !== undefined) game.palette = values.palette;
+	if (values.legacies !== undefined) game.legacies = [...values.legacies];
 	game.updatedAt = new Date().toISOString();
 	return game;
 }

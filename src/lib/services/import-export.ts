@@ -3,8 +3,17 @@
  * Handles JSON and Markdown export, and JSON import
  */
 
-import type { Game, Period, Event, Scene } from '$lib/types';
+import type { Game, Period, Event, Scene, GameSnapshot } from '$lib/types';
 import { SCHEMA_VERSION } from '$lib/types';
+
+/**
+ * Extended export data that includes game history (snapshots)
+ */
+interface GameExportData extends Game {
+	schemaVersion: number;
+	exportedAt: string;
+	history?: GameSnapshot[];
+}
 
 /**
  * Sanitizes a filename by removing or replacing invalid characters
@@ -19,14 +28,21 @@ function sanitizeFilename(name: string): string {
 
 /**
  * Exports a game to JSON format
+ * @param game The game to export
+ * @param history Optional array of snapshots to include in export
  */
-export function exportGameToJSON(game: Game): string {
+export function exportGameToJSON(game: Game, history?: GameSnapshot[]): string {
 	// Create a clean copy with schema version
-	const exportData = {
+	const exportData: GameExportData = {
 		...JSON.parse(JSON.stringify(game)),
 		schemaVersion: SCHEMA_VERSION,
 		exportedAt: new Date().toISOString()
 	};
+
+	// Include history if provided
+	if (history && history.length > 0) {
+		exportData.history = JSON.parse(JSON.stringify(history));
+	}
 
 	return JSON.stringify(exportData, null, 2);
 }
@@ -53,18 +69,20 @@ export function downloadFile(content: string, filename: string, mimeType: string
 
 /**
  * Exports and downloads a game as JSON
+ * @param game The game to export
+ * @param history Optional array of snapshots to include in export
  */
-export function downloadGameAsJSON(game: Game): void {
-	const json = exportGameToJSON(game);
+export function downloadGameAsJSON(game: Game, history?: GameSnapshot[]): void {
+	const json = exportGameToJSON(game, history);
 	const filename = `${sanitizeFilename(game.name)}-export.json`;
 	downloadFile(json, filename, 'application/json');
 }
 
 /**
- * Formats tone for Markdown display
+ * Formats tone for Markdown display using circle icons for visual consistency
  */
 function formatTone(tone: 'light' | 'dark'): string {
-	return tone === 'light' ? '☀ Light' : '🌑 Dark';
+	return tone === 'light' ? '○' : '●';
 }
 
 /**
@@ -77,22 +95,24 @@ function escapeMarkdown(text: string | undefined): string {
 
 /**
  * Formats a scene for Markdown output
+ * Uses visual hierarchy without explicit "Scene:" prefix
  */
 function formatScene(scene: Scene, indent: string): string[] {
 	const lines: string[] = [];
-	lines.push(`${indent}- **Scene: ${escapeMarkdown(scene.name)}** [${formatTone(scene.tone)}]`);
+	// Use tone icon and italicized name for scenes
+	lines.push(`${indent}- ${formatTone(scene.tone)} *${escapeMarkdown(scene.name)}*`);
 
+	if (scene.description) {
+		lines.push(`${indent}  ${escapeMarkdown(scene.description)}`);
+	}
 	if (scene.question) {
-		lines.push(`${indent}  - Question: ${escapeMarkdown(scene.question)}`);
+		lines.push(`${indent}  > **?** ${escapeMarkdown(scene.question)}`);
 	}
 	if (scene.answer) {
-		lines.push(`${indent}  - Answer: ${escapeMarkdown(scene.answer)}`);
-	}
-	if (scene.description) {
-		lines.push(`${indent}  - ${escapeMarkdown(scene.description)}`);
+		lines.push(`${indent}  > **→** ${escapeMarkdown(scene.answer)}`);
 	}
 	if (scene.notes) {
-		lines.push(`${indent}  - *Notes: ${escapeMarkdown(scene.notes)}*`);
+		lines.push(`${indent}  *Notes: ${escapeMarkdown(scene.notes)}*`);
 	}
 
 	return lines;
@@ -100,16 +120,18 @@ function formatScene(scene: Scene, indent: string): string[] {
 
 /**
  * Formats an event for Markdown output
+ * Uses visual hierarchy without explicit "Event:" prefix
  */
 function formatEvent(event: Event, indent: string): string[] {
 	const lines: string[] = [];
-	lines.push(`${indent}- **Event: ${escapeMarkdown(event.name)}** [${formatTone(event.tone)}]`);
+	// Use tone icon and bold name for events
+	lines.push(`${indent}- ${formatTone(event.tone)} **${escapeMarkdown(event.name)}**`);
 
 	if (event.description) {
-		lines.push(`${indent}  - ${escapeMarkdown(event.description)}`);
+		lines.push(`${indent}  ${escapeMarkdown(event.description)}`);
 	}
 	if (event.notes) {
-		lines.push(`${indent}  - *Notes: ${escapeMarkdown(event.notes)}*`);
+		lines.push(`${indent}  *Notes: ${escapeMarkdown(event.notes)}*`);
 	}
 
 	// Add scenes
@@ -125,7 +147,8 @@ function formatEvent(event: Event, indent: string): string[] {
  */
 function formatPeriod(period: Period): string[] {
 	const lines: string[] = [];
-	lines.push(`### ${escapeMarkdown(period.name)} [${formatTone(period.tone)}]`);
+	// Period uses header with tone icon
+	lines.push(`### ${formatTone(period.tone)} ${escapeMarkdown(period.name)}`);
 	lines.push('');
 
 	if (period.description) {

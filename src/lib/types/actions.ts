@@ -113,7 +113,7 @@ export interface EditSceneAction extends BaseAction {
 }
 
 /**
- * Edit Game Metadata action (name, focus, etc.)
+ * Edit Game Metadata action (name, focus, legacies, etc.)
  */
 export interface EditGameMetadataAction extends BaseAction {
 	type: 'EDIT_GAME_METADATA';
@@ -122,12 +122,14 @@ export interface EditGameMetadataAction extends BaseAction {
 		focus?: Focus;
 		bigPicture?: Game['bigPicture'];
 		palette?: Game['palette'];
+		legacies?: Legacy[];
 	};
 	newValues: {
 		name?: string;
 		focus?: Focus;
 		bigPicture?: Game['bigPicture'];
 		palette?: Game['palette'];
+		legacies?: Legacy[];
 	};
 }
 
