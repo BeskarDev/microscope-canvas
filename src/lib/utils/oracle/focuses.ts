@@ -3,8 +3,8 @@
  * Generated combinatorially: [Theme Prefix] + [Theme Core]
  */
 
-// Theme prefixes - the framing of the theme
-export const THEME_PREFIXES = [
+// Theme prefixes that work with a single concept (e.g., "The nature of power")
+export const SINGLE_CONCEPT_PREFIXES = [
 	'The nature of',
 	'The cost of',
 	'The pursuit of',
@@ -17,7 +17,11 @@ export const THEME_PREFIXES = [
 	'The limits of',
 	'The source of',
 	'The paradox of',
-	'The weight of',
+	'The weight of'
+];
+
+// Theme prefixes that require two concepts (e.g., "The tension between power and freedom")
+export const DUAL_CONCEPT_PREFIXES = [
 	'The balance between',
 	'The conflict between',
 	'The tension between',
@@ -192,12 +196,28 @@ export const FOCUS_THEMES = [
 ];
 
 /**
- * Generate a focus by combining prefix and core
+ * Generate a focus by combining prefix and core(s)
+ * Single-concept prefixes use one core, dual-concept prefixes use two cores connected by "and"
  */
 export function generateCombinedFocus(): string {
-	const prefix = THEME_PREFIXES[Math.floor(Math.random() * THEME_PREFIXES.length)];
-	const core = THEME_CORES[Math.floor(Math.random() * THEME_CORES.length)];
-	return `${prefix} ${core}`;
+	// Randomly choose between single and dual concept prefixes
+	const useDualConcept = Math.random() > 0.6; // 40% chance for dual-concept
+	
+	if (useDualConcept) {
+		const prefix = DUAL_CONCEPT_PREFIXES[Math.floor(Math.random() * DUAL_CONCEPT_PREFIXES.length)];
+		// Pick two different cores
+		const core1 = THEME_CORES[Math.floor(Math.random() * THEME_CORES.length)];
+		let core2 = THEME_CORES[Math.floor(Math.random() * THEME_CORES.length)];
+		// Ensure we get two different concepts
+		while (core2 === core1) {
+			core2 = THEME_CORES[Math.floor(Math.random() * THEME_CORES.length)];
+		}
+		return `${prefix} ${core1} and ${core2}`;
+	} else {
+		const prefix = SINGLE_CONCEPT_PREFIXES[Math.floor(Math.random() * SINGLE_CONCEPT_PREFIXES.length)];
+		const core = THEME_CORES[Math.floor(Math.random() * THEME_CORES.length)];
+		return `${prefix} ${core}`;
+	}
 }
 
 /**
