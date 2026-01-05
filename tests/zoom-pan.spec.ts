@@ -8,9 +8,9 @@ test.describe('Canvas Zoom Controls', () => {
 	test.beforeEach(async ({ page }) => {
 		// Create a test game and navigate to canvas
 		await page.goto('/');
-		await page.getByRole('button', { name: 'Create New Game' }).click();
-		await page.getByRole('textbox', { name: 'Game Name' }).fill('Zoom Test Game');
-		await page.getByRole('button', { name: 'Create Game' }).click();
+		await page.getByRole('button', { name: 'Create New History' }).click();
+		await page.getByRole('textbox', { name: 'History Name' }).fill('Zoom Test Game');
+		await page.getByRole('button', { name: 'Create History' }).click();
 		await expect(page).toHaveURL(/\/game\//);
 	});
 
@@ -114,9 +114,9 @@ test.describe('Canvas Pan Functionality', () => {
 	test.beforeEach(async ({ page }) => {
 		// Create a test game with content
 		await page.goto('/');
-		await page.getByRole('button', { name: 'Create New Game' }).click();
-		await page.getByRole('textbox', { name: 'Game Name' }).fill('Pan Test Game');
-		await page.getByRole('button', { name: 'Create Game' }).click();
+		await page.getByRole('button', { name: 'Create New History' }).click();
+		await page.getByRole('textbox', { name: 'History Name' }).fill('Pan Test Game');
+		await page.getByRole('button', { name: 'Create History' }).click();
 		await expect(page).toHaveURL(/\/game\//);
 
 		// Add some periods to have content to pan

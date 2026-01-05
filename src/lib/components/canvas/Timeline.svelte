@@ -4,7 +4,7 @@
 	import EventCard from './EventCard.svelte';
 	import SceneCard from './SceneCard.svelte';
 	import AddButton from './AddButton.svelte';
-	import { dndzone, TRIGGERS } from 'svelte-dnd-action';
+	import { dndzone, TRIGGERS, SOURCES } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
 
 	interface Props {
@@ -41,113 +41,130 @@
 	// Configuration for dnd-action
 	const flipDurationMs = 200;
 
-	// Track original indices and cached period/event indices for performance
-	// Note: Period reordering is disabled because svelte-dnd-action's horizontal layout
-	// behavior was causing visual issues with the add buttons between periods.
-	// Events and scenes within a period can still be reordered.
-	let draggedEventOriginalIndex = -1;
-	let draggedSceneOriginalIndex = -1;
-	let currentDragPeriodId: string | null = null;
-	let currentDragEventId: string | null = null;
-	let cachedPeriodIndex = -1;
-	let cachedEventIndex = -1;
+	// Track drag state for proper reordering
+	interface DragState {
+		originalIndex: number;
+		periodId: string | null;
+		eventId: string | null;
+	}
+	let dragState: DragState = {
+		originalIndex: -1,
+		periodId: null,
+		eventId: null
+	};
 
-	// Event drag handlers - svelte-dnd-action expects us to update the items array
-	function handleEventConsider(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string } }>) {
+	// Period drag handlers
+	function handlePeriodConsider(e: CustomEvent<{ items: Period[]; info: { trigger: string; id: string; source: string } }>) {
 		const { items, info } = e.detail;
 		
-		// Cache period index when drag starts
 		if (info.trigger === TRIGGERS.DRAG_STARTED) {
-			cachedPeriodIndex = game.periods.findIndex(p => p.id === periodId);
-			if (cachedPeriodIndex === -1) return;
-			draggedEventOriginalIndex = game.periods[cachedPeriodIndex].events.findIndex(ev => ev.id === info.id);
-			currentDragPeriodId = periodId;
+			dragState.originalIndex = game.periods.findIndex(p => p.id === info.id);
 		}
 		
-		if (cachedPeriodIndex === -1) return;
+		// Update periods array to show drag preview
+		game.periods = items;
+	}
 
-		// Update the events array for this period - use spread to trigger reactivity
-		game.periods[cachedPeriodIndex].events = items;
+	function handlePeriodFinalize(e: CustomEvent<{ items: Period[]; info: { trigger: string; id: string; source: string } }>) {
+		const { items, info } = e.detail;
+		
+		// Update periods with final order
+		game.periods = items;
+		
+		// Call reorder callback if position changed
+		if (info.source === SOURCES.POINTER && onReorderPeriods && dragState.originalIndex !== -1) {
+			const newIndex = items.findIndex(p => p.id === info.id);
+			if (newIndex !== -1 && newIndex !== dragState.originalIndex) {
+				onReorderPeriods(dragState.originalIndex, newIndex);
+			}
+		}
+		
+		// Reset drag state
+		dragState.originalIndex = -1;
+	}
+
+	// Event drag handlers
+	function handleEventConsider(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string; source: string } }>) {
+		const { items, info } = e.detail;
+		const periodIndex = game.periods.findIndex(p => p.id === periodId);
+		if (periodIndex === -1) return;
+		
+		if (info.trigger === TRIGGERS.DRAG_STARTED) {
+			dragState.originalIndex = game.periods[periodIndex].events.findIndex(ev => ev.id === info.id);
+			dragState.periodId = periodId;
+		}
+		
+		// Update events array to show drag preview
+		game.periods[periodIndex].events = items;
 		game.periods = [...game.periods];
 	}
 
-	function handleEventFinalize(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string } }>) {
+	function handleEventFinalize(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string; source: string } }>) {
 		const { items, info } = e.detail;
-		
-		// Use cached index if available, otherwise look it up
-		const periodIndex = cachedPeriodIndex !== -1 ? cachedPeriodIndex : game.periods.findIndex(p => p.id === periodId);
+		const periodIndex = game.periods.findIndex(p => p.id === periodId);
 		if (periodIndex === -1) return;
-
-		// Update the events array
+		
+		// Update events with final order
 		game.periods[periodIndex].events = items;
 		game.periods = [...game.periods];
 		
-		// Call the reorder callback with original and new indices
-		if (info.trigger === TRIGGERS.DROPPED_INTO_ZONE && onReorderEvents && 
-			currentDragPeriodId === periodId && draggedEventOriginalIndex !== -1) {
+		// Call reorder callback if position changed
+		if (info.source === SOURCES.POINTER && onReorderEvents && 
+			dragState.periodId === periodId && dragState.originalIndex !== -1) {
 			const newIndex = items.findIndex(ev => ev.id === info.id);
-			if (newIndex !== -1 && newIndex !== draggedEventOriginalIndex) {
-				onReorderEvents(periodId, draggedEventOriginalIndex, newIndex);
+			if (newIndex !== -1 && newIndex !== dragState.originalIndex) {
+				onReorderEvents(periodId, dragState.originalIndex, newIndex);
 			}
 		}
-
-		// Clear cached state
-		draggedEventOriginalIndex = -1;
-		currentDragPeriodId = null;
-		cachedPeriodIndex = -1;
+		
+		// Reset drag state
+		dragState.originalIndex = -1;
+		dragState.periodId = null;
 	}
 
 	// Scene drag handlers
-	function handleSceneConsider(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string } }>) {
+	function handleSceneConsider(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string; source: string } }>) {
 		const { items, info } = e.detail;
+		const periodIndex = game.periods.findIndex(p => p.id === periodId);
+		if (periodIndex === -1) return;
+		const eventIndex = game.periods[periodIndex].events.findIndex(ev => ev.id === eventId);
+		if (eventIndex === -1) return;
 		
-		// Cache indices when drag starts
 		if (info.trigger === TRIGGERS.DRAG_STARTED) {
-			cachedPeriodIndex = game.periods.findIndex(p => p.id === periodId);
-			if (cachedPeriodIndex === -1) return;
-			cachedEventIndex = game.periods[cachedPeriodIndex].events.findIndex(ev => ev.id === eventId);
-			if (cachedEventIndex === -1) return;
-			draggedSceneOriginalIndex = game.periods[cachedPeriodIndex].events[cachedEventIndex].scenes.findIndex(s => s.id === info.id);
-			currentDragPeriodId = periodId;
-			currentDragEventId = eventId;
+			dragState.originalIndex = game.periods[periodIndex].events[eventIndex].scenes.findIndex(s => s.id === info.id);
+			dragState.periodId = periodId;
+			dragState.eventId = eventId;
 		}
 		
-		if (cachedPeriodIndex === -1 || cachedEventIndex === -1) return;
-
-		// Update the scenes array - use spread to trigger reactivity
-		game.periods[cachedPeriodIndex].events[cachedEventIndex].scenes = items;
+		// Update scenes array to show drag preview
+		game.periods[periodIndex].events[eventIndex].scenes = items;
 		game.periods = [...game.periods];
 	}
 
-	function handleSceneFinalize(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string } }>) {
+	function handleSceneFinalize(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string; source: string } }>) {
 		const { items, info } = e.detail;
-		
-		// Use cached indices if available, otherwise look them up
-		const periodIndex = cachedPeriodIndex !== -1 ? cachedPeriodIndex : game.periods.findIndex(p => p.id === periodId);
+		const periodIndex = game.periods.findIndex(p => p.id === periodId);
 		if (periodIndex === -1) return;
-		
-		const eventIndex = cachedEventIndex !== -1 ? cachedEventIndex : game.periods[periodIndex].events.findIndex(ev => ev.id === eventId);
+		const eventIndex = game.periods[periodIndex].events.findIndex(ev => ev.id === eventId);
 		if (eventIndex === -1) return;
-
-		// Update the scenes array
+		
+		// Update scenes with final order
 		game.periods[periodIndex].events[eventIndex].scenes = items;
 		game.periods = [...game.periods];
-
-		// Call the reorder callback
-		if (info.trigger === TRIGGERS.DROPPED_INTO_ZONE && onReorderScenes && 
-			currentDragPeriodId === periodId && currentDragEventId === eventId && draggedSceneOriginalIndex !== -1) {
+		
+		// Call reorder callback if position changed
+		if (info.source === SOURCES.POINTER && onReorderScenes && 
+			dragState.periodId === periodId && dragState.eventId === eventId && dragState.originalIndex !== -1) {
 			const newIndex = items.findIndex(s => s.id === info.id);
-			if (newIndex !== -1 && newIndex !== draggedSceneOriginalIndex) {
-				onReorderScenes(periodId, eventId, draggedSceneOriginalIndex, newIndex);
+			if (newIndex !== -1 && newIndex !== dragState.originalIndex) {
+				onReorderScenes(periodId, eventId, dragState.originalIndex, newIndex);
 			}
 		}
-
-		// Clear cached state
-		draggedSceneOriginalIndex = -1;
-		currentDragPeriodId = null;
-		currentDragEventId = null;
-		cachedPeriodIndex = -1;
-		cachedEventIndex = -1;
+		
+		// Reset drag state
+		dragState.originalIndex = -1;
+		dragState.periodId = null;
+		dragState.eventId = null;
 	}
 </script>
 
@@ -159,83 +176,110 @@
 		onclick={() => onAddPeriod(0)}
 	/>
 
-	<!-- Periods - each column with period + events + scenes -->
-	{#each game.periods as period, periodIndex (period.id)}
-		<div class="period-column">
-			<!-- Period card (not draggable for now - focus on fixing events/scenes first) -->
-			<div class="period-section">
-				<PeriodCard {period} onclick={() => onSelectPeriod(period)} />
-			</div>
+	<!-- Periods container with dnd zone -->
+	<div 
+		class="periods-container"
+		use:dndzone={{
+			items: game.periods,
+			flipDurationMs,
+			type: 'periods',
+			dropTargetStyle: {},
+			dropTargetClasses: ['drop-target-period'],
+			dragDisabled: false,
+			centreDraggedOnCursor: true,
+			dropFromOthersDisabled: true,
+			morphDisabled: false
+		}}
+		onconsider={handlePeriodConsider}
+		onfinalize={handlePeriodFinalize}
+	>
+		{#each game.periods as period, periodIndex (period.id)}
+			<div class="period-wrapper" animate:flip={{ duration: flipDurationMs }}>
+				<div class="period-column">
+					<!-- Period card -->
+					<div class="period-section">
+						<PeriodCard {period} onclick={() => onSelectPeriod(period)} />
+					</div>
 
-			<!-- Events under this period -->
-			<div 
-				class="events-section"
-				use:dndzone={{
-					items: period.events,
-					flipDurationMs,
-					type: `events-${period.id}`,
-					dropTargetStyle: {},
-					dropTargetClasses: ['drop-target'],
-					dragDisabled: false,
-					centreDraggedOnCursor: true
-				}}
-				onconsider={(e) => handleEventConsider(period.id, e)}
-				onfinalize={(e) => handleEventFinalize(period.id, e)}
-			>
-				{#each period.events as event (event.id)}
-					<div class="event-column" animate:flip={{ duration: flipDurationMs }}>
-						<!-- Event card -->
-						<div class="event-wrapper">
-							<EventCard {event} onclick={() => onSelectEvent(period.id, event)} />
-						</div>
-
-						<!-- Scenes under this event -->
+					<!-- Events under this period - only show container if there are events -->
+					{#if period.events.length > 0}
 						<div 
-							class="scenes-section"
+							class="events-section"
 							use:dndzone={{
-								items: event.scenes,
+								items: period.events,
 								flipDurationMs,
-								type: `scenes-${period.id}-${event.id}`,
+								type: `events-${period.id}`,
 								dropTargetStyle: {},
-								dropTargetClasses: ['drop-target'],
+								dropTargetClasses: ['drop-target-event'],
 								dragDisabled: false,
-								centreDraggedOnCursor: true
+								centreDraggedOnCursor: true,
+								dropFromOthersDisabled: true
 							}}
-							onconsider={(e) => handleSceneConsider(period.id, event.id, e)}
-							onfinalize={(e) => handleSceneFinalize(period.id, event.id, e)}
+							onconsider={(e) => handleEventConsider(period.id, e)}
+							onfinalize={(e) => handleEventFinalize(period.id, e)}
 						>
-							{#each event.scenes as scene (scene.id)}
-								<div class="scene-wrapper" animate:flip={{ duration: flipDurationMs }}>
-									<SceneCard {scene} onclick={() => onSelectScene(period.id, event.id, scene)} />
+							{#each period.events as event (event.id)}
+								<div class="event-column" animate:flip={{ duration: flipDurationMs }}>
+									<!-- Event card -->
+									<div class="event-wrapper">
+										<EventCard {event} onclick={() => onSelectEvent(period.id, event)} />
+									</div>
+
+									<!-- Scenes under this event -->
+									{#if event.scenes.length > 0}
+										<div 
+											class="scenes-section"
+											use:dndzone={{
+												items: event.scenes,
+												flipDurationMs,
+												type: `scenes-${period.id}-${event.id}`,
+												dropTargetStyle: {},
+												dropTargetClasses: ['drop-target-scene'],
+												dragDisabled: false,
+												centreDraggedOnCursor: true,
+												dropFromOthersDisabled: true
+											}}
+											onconsider={(e) => handleSceneConsider(period.id, event.id, e)}
+											onfinalize={(e) => handleSceneFinalize(period.id, event.id, e)}
+										>
+											{#each event.scenes as scene (scene.id)}
+												<div class="scene-wrapper" animate:flip={{ duration: flipDurationMs }}>
+													<SceneCard {scene} onclick={() => onSelectScene(period.id, event.id, scene)} />
+												</div>
+											{/each}
+										</div>
+									{/if}
+
+									<!-- Add scene button - smaller size -->
+									<AddButton
+										label="Add scene to this event"
+										orientation="vertical"
+										size="small"
+										onclick={() => onAddScene(period.id, event.id)}
+									/>
 								</div>
 							{/each}
 						</div>
+					{/if}
 
-						<!-- Add scene button -->
-						<AddButton
-							label="Add scene to this event"
-							orientation="vertical"
-							onclick={() => onAddScene(period.id, event.id)}
-						/>
-					</div>
-				{/each}
+					<!-- Add event button - larger size -->
+					<AddButton
+						label="Add event to this period"
+						orientation="vertical"
+						size="medium"
+						onclick={() => onAddEvent(period.id)}
+					/>
+				</div>
+
+				<!-- Add button between periods (inside period-wrapper for proper spacing) -->
+				<AddButton
+					label="Add period here"
+					orientation="horizontal"
+					onclick={() => onAddPeriod(periodIndex + 1)}
+				/>
 			</div>
-
-			<!-- Add event button -->
-			<AddButton
-				label="Add event to this period"
-				orientation="vertical"
-				onclick={() => onAddEvent(period.id)}
-			/>
-		</div>
-
-		<!-- Add button between periods (outside period-column) -->
-		<AddButton
-			label="Add period here"
-			orientation="horizontal"
-			onclick={() => onAddPeriod(periodIndex + 1)}
-		/>
-	{/each}
+		{/each}
+	</div>
 
 	{#if game.periods.length === 0}
 		<!-- Show message when no periods exist -->
@@ -256,6 +300,19 @@
 		min-width: max-content;
 	}
 
+	.periods-container {
+		display: flex;
+		flex-direction: row;
+		align-items: flex-start;
+		gap: 0;
+	}
+
+	.period-wrapper {
+		display: flex;
+		flex-direction: row;
+		align-items: flex-start;
+	}
+
 	.period-column {
 		display: flex;
 		flex-direction: column;
@@ -266,6 +323,11 @@
 	.period-section {
 		flex-shrink: 0;
 		position: relative;
+		cursor: grab;
+	}
+
+	.period-section:active {
+		cursor: grabbing;
 	}
 
 	.events-section {
@@ -274,7 +336,6 @@
 		align-items: center;
 		gap: calc(0.75rem * max(var(--canvas-zoom, 1), 1));
 		min-width: calc(180px * max(var(--canvas-zoom, 1), 1));
-		min-height: calc(50px * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.event-column {
@@ -300,7 +361,6 @@
 		gap: calc(0.5rem * max(var(--canvas-zoom, 1), 1));
 		margin-top: calc(0.5rem * max(var(--canvas-zoom, 1), 1));
 		padding-left: calc(1.5rem * max(var(--canvas-zoom, 1), 1));
-		min-height: calc(30px * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.scene-wrapper {
@@ -336,7 +396,19 @@
 	}
 
 	/* Drag and drop styles */
-	:global(.drop-target) {
+	:global(.drop-target-period) {
+		outline: 2px dashed var(--color-primary);
+		outline-offset: 4px;
+		border-radius: var(--radius);
+	}
+
+	:global(.drop-target-event) {
+		outline: 2px dashed var(--color-primary);
+		outline-offset: 2px;
+		border-radius: var(--radius);
+	}
+
+	:global(.drop-target-scene) {
 		outline: 2px dashed var(--color-primary);
 		outline-offset: 2px;
 		border-radius: var(--radius);
