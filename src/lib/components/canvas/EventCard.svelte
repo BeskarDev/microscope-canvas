@@ -16,6 +16,7 @@
 	class="event-card"
 	class:light={event.tone === 'light'}
 	class:dark={event.tone === 'dark'}
+	data-card="event"
 	{onclick}
 >
 	<div class="tone-indicator">

@@ -41,130 +41,111 @@
 	// Configuration for dnd-action
 	const flipDurationMs = 200;
 
-	// Track drag state for proper reordering
-	interface DragState {
-		originalIndex: number;
-		periodId: string | null;
-		eventId: string | null;
-	}
-	let dragState: DragState = {
-		originalIndex: -1,
-		periodId: null,
-		eventId: null
-	};
+	// Local state for drag and drop - these are used for the preview during dragging
+	let localPeriods = $state<Period[]>([]);
+	let localEventsMap = $state<Map<string, GameEvent[]>>(new Map());
+	let localScenesMap = $state<Map<string, Scene[]>>(new Map());
+
+	// Sync local state with props
+	$effect(() => {
+		localPeriods = game.periods;
+		// Clear maps when game changes
+		localEventsMap.clear();
+		localScenesMap.clear();
+		// Initialize event and scene maps
+		game.periods.forEach(period => {
+			localEventsMap.set(period.id, period.events);
+			period.events.forEach(event => {
+				localScenesMap.set(`${period.id}-${event.id}`, event.scenes);
+			});
+		});
+	});
 
 	// Period drag handlers
 	function handlePeriodConsider(e: CustomEvent<{ items: Period[]; info: { trigger: string; id: string; source: string } }>) {
-		const { items, info } = e.detail;
-		
-		if (info.trigger === TRIGGERS.DRAG_STARTED) {
-			dragState.originalIndex = game.periods.findIndex(p => p.id === info.id);
-		}
-		
-		// Update periods array to show drag preview
-		game.periods = items;
+		const { items } = e.detail;
+		// Update local state for drag preview
+		localPeriods = items;
 	}
 
 	function handlePeriodFinalize(e: CustomEvent<{ items: Period[]; info: { trigger: string; id: string; source: string } }>) {
 		const { items, info } = e.detail;
 		
-		// Update periods with final order
-		game.periods = items;
+		// Update local state
+		localPeriods = items;
 		
-		// Call reorder callback if position changed
-		if (info.source === SOURCES.POINTER && onReorderPeriods && dragState.originalIndex !== -1) {
+		// Call reorder callback if position changed and it was a pointer drag
+		if (info.source === SOURCES.POINTER && onReorderPeriods) {
+			// Find the original and new positions by comparing with game.periods
+			const originalIndex = game.periods.findIndex(p => p.id === info.id);
 			const newIndex = items.findIndex(p => p.id === info.id);
-			if (newIndex !== -1 && newIndex !== dragState.originalIndex) {
-				onReorderPeriods(dragState.originalIndex, newIndex);
+			
+			if (originalIndex !== -1 && newIndex !== -1 && originalIndex !== newIndex) {
+				onReorderPeriods(originalIndex, newIndex);
 			}
 		}
-		
-		// Reset drag state
-		dragState.originalIndex = -1;
 	}
 
 	// Event drag handlers
 	function handleEventConsider(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string; source: string } }>) {
-		const { items, info } = e.detail;
-		const periodIndex = game.periods.findIndex(p => p.id === periodId);
-		if (periodIndex === -1) return;
-		
-		if (info.trigger === TRIGGERS.DRAG_STARTED) {
-			dragState.originalIndex = game.periods[periodIndex].events.findIndex(ev => ev.id === info.id);
-			dragState.periodId = periodId;
-		}
-		
-		// Update events array to show drag preview
-		game.periods[periodIndex].events = items;
-		game.periods = [...game.periods];
+		const { items } = e.detail;
+		// Update local state for drag preview
+		localEventsMap.set(periodId, items);
+		localEventsMap = new Map(localEventsMap);
 	}
 
 	function handleEventFinalize(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string; source: string } }>) {
 		const { items, info } = e.detail;
-		const periodIndex = game.periods.findIndex(p => p.id === periodId);
-		if (periodIndex === -1) return;
 		
-		// Update events with final order
-		game.periods[periodIndex].events = items;
-		game.periods = [...game.periods];
+		// Update local state
+		localEventsMap.set(periodId, items);
+		localEventsMap = new Map(localEventsMap);
 		
 		// Call reorder callback if position changed
-		if (info.source === SOURCES.POINTER && onReorderEvents && 
-			dragState.periodId === periodId && dragState.originalIndex !== -1) {
-			const newIndex = items.findIndex(ev => ev.id === info.id);
-			if (newIndex !== -1 && newIndex !== dragState.originalIndex) {
-				onReorderEvents(periodId, dragState.originalIndex, newIndex);
+		if (info.source === SOURCES.POINTER && onReorderEvents) {
+			const period = game.periods.find(p => p.id === periodId);
+			if (period) {
+				const originalIndex = period.events.findIndex(ev => ev.id === info.id);
+				const newIndex = items.findIndex(ev => ev.id === info.id);
+				
+				if (originalIndex !== -1 && newIndex !== -1 && originalIndex !== newIndex) {
+					onReorderEvents(periodId, originalIndex, newIndex);
+				}
 			}
 		}
-		
-		// Reset drag state
-		dragState.originalIndex = -1;
-		dragState.periodId = null;
 	}
 
 	// Scene drag handlers
 	function handleSceneConsider(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string; source: string } }>) {
-		const { items, info } = e.detail;
-		const periodIndex = game.periods.findIndex(p => p.id === periodId);
-		if (periodIndex === -1) return;
-		const eventIndex = game.periods[periodIndex].events.findIndex(ev => ev.id === eventId);
-		if (eventIndex === -1) return;
-		
-		if (info.trigger === TRIGGERS.DRAG_STARTED) {
-			dragState.originalIndex = game.periods[periodIndex].events[eventIndex].scenes.findIndex(s => s.id === info.id);
-			dragState.periodId = periodId;
-			dragState.eventId = eventId;
-		}
-		
-		// Update scenes array to show drag preview
-		game.periods[periodIndex].events[eventIndex].scenes = items;
-		game.periods = [...game.periods];
+		const { items } = e.detail;
+		const key = `${periodId}-${eventId}`;
+		// Update local state for drag preview
+		localScenesMap.set(key, items);
+		localScenesMap = new Map(localScenesMap);
 	}
 
 	function handleSceneFinalize(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string; source: string } }>) {
 		const { items, info } = e.detail;
-		const periodIndex = game.periods.findIndex(p => p.id === periodId);
-		if (periodIndex === -1) return;
-		const eventIndex = game.periods[periodIndex].events.findIndex(ev => ev.id === eventId);
-		if (eventIndex === -1) return;
+		const key = `${periodId}-${eventId}`;
 		
-		// Update scenes with final order
-		game.periods[periodIndex].events[eventIndex].scenes = items;
-		game.periods = [...game.periods];
+		// Update local state
+		localScenesMap.set(key, items);
+		localScenesMap = new Map(localScenesMap);
 		
 		// Call reorder callback if position changed
-		if (info.source === SOURCES.POINTER && onReorderScenes && 
-			dragState.periodId === periodId && dragState.eventId === eventId && dragState.originalIndex !== -1) {
-			const newIndex = items.findIndex(s => s.id === info.id);
-			if (newIndex !== -1 && newIndex !== dragState.originalIndex) {
-				onReorderScenes(periodId, eventId, dragState.originalIndex, newIndex);
+		if (info.source === SOURCES.POINTER && onReorderScenes) {
+			const period = game.periods.find(p => p.id === periodId);
+			const event = period?.events.find(e => e.id === eventId);
+			
+			if (event) {
+				const originalIndex = event.scenes.findIndex(s => s.id === info.id);
+				const newIndex = items.findIndex(s => s.id === info.id);
+				
+				if (originalIndex !== -1 && newIndex !== -1 && originalIndex !== newIndex) {
+					onReorderScenes(periodId, eventId, originalIndex, newIndex);
+				}
 			}
 		}
-		
-		// Reset drag state
-		dragState.originalIndex = -1;
-		dragState.periodId = null;
-		dragState.eventId = null;
 	}
 </script>
 
@@ -180,7 +161,7 @@
 	<div 
 		class="periods-container"
 		use:dndzone={{
-			items: game.periods,
+			items: localPeriods,
 			flipDurationMs,
 			type: 'periods',
 			dropTargetStyle: {},
@@ -193,7 +174,7 @@
 		onconsider={handlePeriodConsider}
 		onfinalize={handlePeriodFinalize}
 	>
-		{#each game.periods as period, periodIndex (period.id)}
+		{#each localPeriods as period, periodIndex (period.id)}
 			<div class="period-wrapper" animate:flip={{ duration: flipDurationMs }}>
 				<div class="period-column">
 					<!-- Period card -->
@@ -202,11 +183,12 @@
 					</div>
 
 					<!-- Events under this period - only show container if there are events -->
-					{#if period.events.length > 0}
+					{#if (localEventsMap.get(period.id) ?? period.events).length > 0}
+						{@const periodEvents = localEventsMap.get(period.id) ?? period.events}
 						<div 
 							class="events-section"
 							use:dndzone={{
-								items: period.events,
+								items: periodEvents,
 								flipDurationMs,
 								type: `events-${period.id}`,
 								dropTargetStyle: {},
@@ -218,7 +200,7 @@
 							onconsider={(e) => handleEventConsider(period.id, e)}
 							onfinalize={(e) => handleEventFinalize(period.id, e)}
 						>
-							{#each period.events as event (event.id)}
+							{#each periodEvents as event (event.id)}
 								<div class="event-column" animate:flip={{ duration: flipDurationMs }}>
 									<!-- Event card -->
 									<div class="event-wrapper">
@@ -226,11 +208,12 @@
 									</div>
 
 									<!-- Scenes under this event -->
-									{#if event.scenes.length > 0}
+									{#if (localScenesMap.get(`${period.id}-${event.id}`) ?? event.scenes).length > 0}
+										{@const eventScenes = localScenesMap.get(`${period.id}-${event.id}`) ?? event.scenes}
 										<div 
 											class="scenes-section"
 											use:dndzone={{
-												items: event.scenes,
+												items: eventScenes,
 												flipDurationMs,
 												type: `scenes-${period.id}-${event.id}`,
 												dropTargetStyle: {},
@@ -242,7 +225,7 @@
 											onconsider={(e) => handleSceneConsider(period.id, event.id, e)}
 											onfinalize={(e) => handleSceneFinalize(period.id, event.id, e)}
 										>
-											{#each event.scenes as scene (scene.id)}
+											{#each eventScenes as scene (scene.id)}
 												<div class="scene-wrapper" animate:flip={{ duration: flipDurationMs }}>
 													<SceneCard {scene} onclick={() => onSelectScene(period.id, event.id, scene)} />
 												</div>

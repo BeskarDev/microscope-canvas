@@ -16,6 +16,7 @@
 	class="period-card"
 	class:light={period.tone === 'light'}
 	class:dark={period.tone === 'dark'}
+	data-card="period"
 	{onclick}
 >
 	<div class="tone-indicator">
