@@ -54,7 +54,10 @@
 		type DeleteSceneAction,
 		type EditSceneAction,
 		type EditGameMetadataAction,
-		type SnapshotMetadata
+		type SnapshotMetadata,
+		type ReorderPeriodsAction,
+		type ReorderEventsAction,
+		type ReorderScenesAction
 	} from '$lib/types';
 	import {
 		createHistoryState,
