@@ -41,11 +41,61 @@
 
 	// Configuration for dnd-action
 	const flipDurationMs = 200;
+	const touchDelayMs = 200; // Delay before touch drag starts to prevent accidental drags
+	
+	// Touch delay state
+	let dragDisabledDuringDelay = $state(false);
+	let touchDelayTimeout: ReturnType<typeof setTimeout> | null = null;
+	let touchStartPos = { x: 0, y: 0 };
+	const MOVE_THRESHOLD = 10; // pixels to move before canceling drag delay
 
 	// Local state for drag and drop - these are used for the preview during dragging
 	let localPeriods = $state<Period[]>([]);
 	let localEventsMap = new SvelteMap<string, GameEvent[]>();
 	let localScenesMap = new SvelteMap<string, Scene[]>();
+	
+	// Handle touch start to implement delay
+	function handleTouchStart(e: TouchEvent) {
+		const touch = e.touches[0];
+		touchStartPos = { x: touch.clientX, y: touch.clientY };
+		dragDisabledDuringDelay = true;
+		
+		// Clear any existing timeout
+		if (touchDelayTimeout) {
+			clearTimeout(touchDelayTimeout);
+		}
+		
+		// Set timeout to enable dragging after delay
+		touchDelayTimeout = setTimeout(() => {
+			dragDisabledDuringDelay = false;
+			touchDelayTimeout = null;
+		}, touchDelayMs);
+	}
+	
+	// Handle touch move to cancel delay if user is panning
+	function handleTouchMove(e: TouchEvent) {
+		if (touchDelayTimeout && dragDisabledDuringDelay) {
+			const touch = e.touches[0];
+			const dx = Math.abs(touch.clientX - touchStartPos.x);
+			const dy = Math.abs(touch.clientY - touchStartPos.y);
+			
+			// If moved more than threshold, cancel the drag delay (user is panning)
+			if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
+				clearTimeout(touchDelayTimeout);
+				touchDelayTimeout = null;
+				dragDisabledDuringDelay = false;
+			}
+		}
+	}
+	
+	// Handle touch end to clean up
+	function handleTouchEnd() {
+		if (touchDelayTimeout) {
+			clearTimeout(touchDelayTimeout);
+			touchDelayTimeout = null;
+		}
+		dragDisabledDuringDelay = false;
+	}
 
 	// Sync local state with props
 	$effect(() => {
@@ -150,7 +200,12 @@
 	}
 </script>
 
-<div class="timeline">
+<div class="timeline"
+	ontouchstart={handleTouchStart}
+	ontouchmove={handleTouchMove}
+	ontouchend={handleTouchEnd}
+	ontouchcancel={handleTouchEnd}
+>
 	<!-- Add button before first period -->
 	<AddButton
 		label="Add period at beginning"
@@ -167,7 +222,7 @@
 			type: 'periods',
 			dropTargetStyle: {},
 			dropTargetClasses: ['drop-target-period'],
-			dragDisabled: false,
+			dragDisabled: dragDisabledDuringDelay,
 			centreDraggedOnCursor: true,
 			dropFromOthersDisabled: true,
 			morphDisabled: false
@@ -194,7 +249,7 @@
 								type: `events-${period.id}`,
 								dropTargetStyle: {},
 								dropTargetClasses: ['drop-target-event'],
-								dragDisabled: false,
+								dragDisabled: dragDisabledDuringDelay,
 								centreDraggedOnCursor: true,
 								dropFromOthersDisabled: true
 							}}
@@ -219,7 +274,7 @@
 												type: `scenes-${period.id}-${event.id}`,
 												dropTargetStyle: {},
 												dropTargetClasses: ['drop-target-scene'],
-												dragDisabled: false,
+												dragDisabled: dragDisabledDuringDelay,
 												centreDraggedOnCursor: true,
 												dropFromOthersDisabled: true
 											}}
