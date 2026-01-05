@@ -1,4 +1,4 @@
-name: Preview Deployment
+name: PR Build and Test
 
 on:
   pull_request:
@@ -7,17 +7,12 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
   pull-requests: write
 
 jobs:
-  preview:
-    name: Build and Deploy Preview
+  build-and-test:
+    name: Build and Test PR
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages-preview
-      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout repository
@@ -43,20 +38,20 @@ jobs:
 
       - name: Run linting
         run: npm run lint
-        continue-on-error: true
 
       - name: Run Prettier check
         run: npm run format:check || true
 
-      - name: Build for preview
+      - name: Run type check
+        run: npm run check -- --threshold warning
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build
         run: npm run build
         env:
           BASE_PATH: '/${{ github.event.repository.name }}'
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./build
 
       - name: Comment PR
         uses: actions/github-script@v7
@@ -65,11 +60,11 @@ jobs:
             const prNumber = context.issue.number;
             const repoName = context.repo.repo;
             const owner = context.repo.owner;
-            const previewUrl = `https://${owner}.github.io/${repoName}/`;
-
+            const productionUrl = `https://${owner}.github.io/${repoName}/`;
+            
             github.rest.issues.createComment({
               issue_number: prNumber,
               owner: owner,
               repo: repoName,
-              body: `## 🚀 Preview Deployment\n\nPreview will be available at: ${previewUrl}\n\n_Note: This uses the main GitHub Pages deployment. For PR-specific previews, consider using a service like Netlify or Vercel._`
+              body: `## ✅ Build Successful\n\nAll checks passed! This PR is ready for review.\n\n**Note:** GitHub Pages only supports one deployment at a time. Preview will be available at ${productionUrl} after merging to main.\n\nFor per-PR preview deployments, consider using Netlify, Vercel, or Cloudflare Pages.`
             });
