@@ -3,6 +3,7 @@
  * Provides a thin abstraction over IndexedDB for game storage
  */
 
+import { browser } from '$app/environment';
 import type { Game, GameMetadata } from '$lib/types';
 import { getGameMetadata } from '$lib/types';
 
@@ -42,10 +43,14 @@ export class GameNotFoundError extends PersistenceError {
 
 /**
  * Check if IndexedDB is available
+ * Must check both browser environment and indexedDB existence
  */
 function isIndexedDBAvailable(): boolean {
+	if (!browser) {
+		return false;
+	}
 	try {
-		return typeof indexedDB !== 'undefined' && indexedDB !== null;
+		return typeof window !== 'undefined' && 'indexedDB' in window && window.indexedDB !== null;
 	} catch {
 		return false;
 	}
@@ -63,7 +68,7 @@ function openDatabase(): Promise<IDBDatabase> {
 		}
 
 		try {
-			const request = indexedDB.open(DB_NAME, DB_VERSION);
+			const request = window.indexedDB.open(DB_NAME, DB_VERSION);
 
 			request.onerror = () => {
 				reject(new PersistenceError('Failed to open database', request.error));
@@ -154,24 +159,17 @@ export async function loadGame(id: string): Promise<Game | null> {
 
 /**
  * Saves a game to IndexedDB (updates existing or creates new)
- * Updates the updatedAt timestamp
- * @param game The game to save
+ * @param game The game to save (should be a plain object with updatedAt already set)
  */
 export async function saveGame(game: Game): Promise<void> {
 	const db = await openDatabase();
-
-	// Update the timestamp
-	const updatedGame: Game = {
-		...game,
-		updatedAt: new Date().toISOString()
-	};
 
 	return new Promise((resolve, reject) => {
 		try {
 			const transaction = db.transaction([GAMES_STORE], 'readwrite');
 			const store = transaction.objectStore(GAMES_STORE);
 
-			const request = store.put(updatedGame);
+			const request = store.put(game);
 
 			request.onerror = () => {
 				db.close();

@@ -3,10 +3,11 @@
 
 	interface Props {
 		zoom?: number;
+		onZoomChange?: (newZoom: number) => void;
 		children: Snippet;
 	}
 
-	let { zoom = 1, children }: Props = $props();
+	let { zoom = 1, onZoomChange, children }: Props = $props();
 
 	let containerRef = $state<HTMLDivElement | null>(null);
 	let isPanning = $state(false);
@@ -63,6 +64,29 @@
 			internalPanY = startPanY;
 		}
 	}
+
+	// Handle wheel zoom
+	function handleWheel(e: WheelEvent) {
+		// Only handle vertical scroll for zoom
+		if (e.deltaY === 0) return;
+
+		e.preventDefault();
+
+		if (!onZoomChange) return;
+
+		// Determine zoom direction
+		const zoomIn = e.deltaY < 0;
+		const ZOOM_LEVELS = [2, 1.75, 1.5, 1.25, 1, 0.75, 0.5, 0.25];
+		const currentIndex = ZOOM_LEVELS.indexOf(zoom);
+
+		if (currentIndex === -1) return;
+
+		if (zoomIn && currentIndex > 0) {
+			onZoomChange(ZOOM_LEVELS[currentIndex - 1]);
+		} else if (!zoomIn && currentIndex < ZOOM_LEVELS.length - 1) {
+			onZoomChange(ZOOM_LEVELS[currentIndex + 1]);
+		}
+	}
 </script>
 
 <svelte:window onkeydown={handleKeyDown} />
@@ -76,6 +100,7 @@
 	onpointermove={handlePointerMove}
 	onpointerup={handlePointerUp}
 	onpointercancel={handlePointerUp}
+	onwheel={handleWheel}
 	role="application"
 	aria-label="Timeline canvas"
 	tabindex="0"

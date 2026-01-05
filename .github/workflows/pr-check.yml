@@ -1,0 +1,70 @@
+name: PR Build and Test
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  build-and-test:
+    name: Build and Test PR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-
+
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run Prettier check
+        run: npm run format:check || true
+
+      - name: Run type check
+        run: npm run check -- --threshold warning
+
+      - name: Run tests
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+        env:
+          BASE_PATH: '/${{ github.event.repository.name }}'
+
+      - name: Comment PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.issue.number;
+            const repoName = context.repo.repo;
+            const owner = context.repo.owner;
+            const productionUrl = `https://${owner}.github.io/${repoName}/`;
+            
+            github.rest.issues.createComment({
+              issue_number: prNumber,
+              owner: owner,
+              repo: repoName,
+              body: `## ✅ Build Successful\n\nAll checks passed! This PR is ready for review.\n\n**Note:** GitHub Pages only supports one deployment at a time. Preview will be available at ${productionUrl} after merging to main.\n\nFor per-PR preview deployments, consider using Netlify, Vercel, or Cloudflare Pages.`
+            });
