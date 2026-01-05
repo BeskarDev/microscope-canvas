@@ -154,14 +154,10 @@ export async function loadGame(id: string): Promise<Game | null> {
 
 /**
  * Saves a game to IndexedDB (updates existing or creates new)
- * Updates the updatedAt timestamp
- * @param game The game to save
+ * @param game The game to save (should be a plain object with updatedAt already set)
  */
 export async function saveGame(game: Game): Promise<void> {
 	const db = await openDatabase();
-
-	// Update the timestamp - game should already be a plain object
-	game.updatedAt = new Date().toISOString();
 
 	return new Promise((resolve, reject) => {
 		try {

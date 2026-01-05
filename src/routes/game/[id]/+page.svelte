@@ -35,10 +35,10 @@
 	const gameId = $derived($page.params.id ?? '');
 	const homeUrl = resolve('/');
 
-	// Zoom levels for zoom-out only (100%, 75%, 50%, 25%)
-	const ZOOM_LEVELS = [1, 0.75, 0.5, 0.25];
+	// Zoom levels: 200%, 175%, 150%, 125%, 100%, 75%, 50%, 25%
+	const ZOOM_LEVELS = [2, 1.75, 1.5, 1.25, 1, 0.75, 0.5, 0.25];
 	const MIN_ZOOM = 0.25;
-	const MAX_ZOOM = 1;
+	const MAX_ZOOM = 2;
 
 	// State
 	let game = $state<Game | null>(null);
@@ -131,6 +131,10 @@
 
 	function handleZoomReset() {
 		zoom = 1;
+	}
+
+	function handleZoomChange(newZoom: number) {
+		zoom = newZoom;
 	}
 
 	// Add item handlers
@@ -327,7 +331,7 @@
 				</div>
 			</div>
 		{:else if game}
-			<Canvas {zoom}>
+			<Canvas {zoom} onZoomChange={handleZoomChange}>
 				<Timeline
 					{game}
 					onAddPeriod={handleAddPeriod}
