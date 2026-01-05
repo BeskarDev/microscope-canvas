@@ -35,11 +35,11 @@ export function createHistoryState(limit: number = DEFAULT_HISTORY_LIMIT): Histo
  * Clears the redo stack and trims the undo stack if needed
  */
 export function recordAction(state: HistoryState, action: GameAction): HistoryState {
-	const newUndoStack = [...state.undoStack, action];
+	let newUndoStack = [...state.undoStack, action];
 
-	// Trim oldest actions if over limit
-	while (newUndoStack.length > state.limit) {
-		newUndoStack.shift();
+	// Trim oldest actions if over limit (use slice for O(n) instead of loop with shift O(n²))
+	if (newUndoStack.length > state.limit) {
+		newUndoStack = newUndoStack.slice(newUndoStack.length - state.limit);
 	}
 
 	return {

@@ -72,7 +72,13 @@ export function applyAction(game: Game, action: GameAction): Game {
 		case 'REORDER_SCENES':
 			return applyReorderScenes(newGame, action, false);
 		default:
-			console.warn('Unknown action type:', (action as GameAction).type);
+			console.warn(
+				`applyAction: Unknown action type "${(action as GameAction).type}". ` +
+					`Expected one of: CREATE_PERIOD, DELETE_PERIOD, EDIT_PERIOD, ` +
+					`CREATE_EVENT, DELETE_EVENT, EDIT_EVENT, CREATE_SCENE, DELETE_SCENE, EDIT_SCENE, ` +
+					`EDIT_GAME_METADATA, ADD_LEGACY, REMOVE_LEGACY, EDIT_LEGACY, ` +
+					`REORDER_PERIODS, REORDER_EVENTS, REORDER_SCENES`
+			);
 			return newGame;
 	}
 }
@@ -123,7 +129,13 @@ export function reverseAction(game: Game, action: GameAction): Game {
 		case 'REORDER_SCENES':
 			return applyReorderScenes(newGame, action, true);
 		default:
-			console.warn('Unknown action type:', (action as GameAction).type);
+			console.warn(
+				`reverseAction: Unknown action type "${(action as GameAction).type}". ` +
+					`Expected one of: CREATE_PERIOD, DELETE_PERIOD, EDIT_PERIOD, ` +
+					`CREATE_EVENT, DELETE_EVENT, EDIT_EVENT, CREATE_SCENE, DELETE_SCENE, EDIT_SCENE, ` +
+					`EDIT_GAME_METADATA, ADD_LEGACY, REMOVE_LEGACY, EDIT_LEGACY, ` +
+					`REORDER_PERIODS, REORDER_EVENTS, REORDER_SCENES`
+			);
 			return newGame;
 	}
 }

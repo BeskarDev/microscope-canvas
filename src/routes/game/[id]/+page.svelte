@@ -202,8 +202,14 @@
 			// Enforce limit
 			await enforceSnapshotLimit(plainGame.id);
 		} catch (error) {
-			console.error('Failed to create snapshot:', error);
+			// Log snapshot errors with full context for debugging
+			console.error('Failed to create snapshot for game:', {
+				gameId: plainGame.id,
+				gameName: plainGame.name,
+				error
+			});
 			// Don't show toast for snapshot errors - they're not critical
+			// Snapshots are a convenience feature and the main autosave still works
 		}
 	}
 
