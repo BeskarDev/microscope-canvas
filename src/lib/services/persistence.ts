@@ -166,7 +166,7 @@ export async function saveGame(game: Game): Promise<void> {
 	return new Promise((resolve, reject) => {
 		try {
 			const transaction = db.transaction([GAMES_STORE], 'readwrite');
-			const store = transaction.objectStore(GAMES_STORE');
+			const store = transaction.objectStore(GAMES_STORE);
 
 			const request = store.put(game);
 
