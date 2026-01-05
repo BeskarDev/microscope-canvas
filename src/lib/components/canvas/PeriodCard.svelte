@@ -35,9 +35,11 @@
 	.period-card {
 		display: flex;
 		flex-direction: column;
-		width: 160px;
-		min-height: 200px;
-		padding: 1rem;
+		/* Use CSS custom property for zoom-aware sizing */
+		width: calc(160px * max(var(--canvas-zoom, 1), 1));
+		min-height: calc(200px * max(var(--canvas-zoom, 1), 1));
+		padding: calc(1rem * max(var(--canvas-zoom, 1), 1));
+		font-size: calc(1rem * max(var(--canvas-zoom, 1), 1));
 		background-color: var(--color-card);
 		border: 1px solid var(--color-border);
 		border-radius: var(--radius);
@@ -67,23 +69,23 @@
 	}
 
 	.period-card.light {
-		border-left: 4px solid oklch(95% 0.05 90);
+		border-left: calc(4px * max(var(--canvas-zoom, 1), 1)) solid oklch(95% 0.05 90);
 	}
 
 	.period-card.dark {
-		border-left: 4px solid oklch(25% 0.05 265);
+		border-left: calc(4px * max(var(--canvas-zoom, 1), 1)) solid oklch(25% 0.05 265);
 	}
 
 	.tone-indicator {
 		display: flex;
 		align-items: center;
-		gap: 0.25rem;
-		margin-bottom: 0.5rem;
+		gap: calc(0.25rem * max(var(--canvas-zoom, 1), 1));
+		margin-bottom: calc(0.5rem * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.tone-indicator :global(.tone-icon) {
-		width: 1rem;
-		height: 1rem;
+		width: calc(1rem * max(var(--canvas-zoom, 1), 1));
+		height: calc(1rem * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.period-card.light .tone-indicator :global(.tone-icon) {
@@ -95,9 +97,9 @@
 	}
 
 	.card-title {
-		font-size: 0.9375rem;
+		font-size: calc(0.9375rem * max(var(--canvas-zoom, 1), 1));
 		font-weight: 600;
-		margin: 0 0 0.5rem 0;
+		margin: 0 0 calc(0.5rem * max(var(--canvas-zoom, 1), 1)) 0;
 		line-height: 1.3;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
@@ -106,7 +108,7 @@
 	}
 
 	.card-description {
-		font-size: 0.8125rem;
+		font-size: calc(0.8125rem * max(var(--canvas-zoom, 1), 1));
 		color: var(--color-muted-foreground);
 		margin: 0;
 		line-height: 1.4;

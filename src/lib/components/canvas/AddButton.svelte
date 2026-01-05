@@ -40,15 +40,15 @@
 	}
 
 	.add-button.horizontal {
-		width: 40px;
-		height: 100px;
-		margin: 0 0.5rem;
+		width: calc(40px * max(var(--canvas-zoom, 1), 1));
+		height: calc(100px * max(var(--canvas-zoom, 1), 1));
+		margin: 0 calc(0.5rem * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.add-button.vertical {
 		width: 100%;
-		height: 32px;
-		margin: 0.5rem 0;
+		height: calc(32px * max(var(--canvas-zoom, 1), 1));
+		margin: calc(0.5rem * max(var(--canvas-zoom, 1), 1)) 0;
 	}
 
 	.add-button:hover {
@@ -67,7 +67,7 @@
 	}
 
 	.add-button :global(.add-icon) {
-		width: 1.25rem;
-		height: 1.25rem;
+		width: calc(1.25rem * max(var(--canvas-zoom, 1), 1));
+		height: calc(1.25rem * max(var(--canvas-zoom, 1), 1));
 	}
 </style>

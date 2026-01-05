@@ -6,29 +6,64 @@
 	import Loader2 from 'lucide-svelte/icons/loader-2';
 	import AlertTriangle from 'lucide-svelte/icons/alert-triangle';
 	import Settings from 'lucide-svelte/icons/settings';
+	import Undo2 from 'lucide-svelte/icons/undo-2';
+	import Redo2 from 'lucide-svelte/icons/redo-2';
+	import History from 'lucide-svelte/icons/history';
+	import ArrowLeftToLine from 'lucide-svelte/icons/arrow-left-to-line';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
 		DatabaseUnavailableError,
 		PersistenceError,
-		createAutosave
+		createAutosave,
+		createSnapshotRecord,
+		loadSnapshot,
+		listSnapshotsForGame,
+		enforceSnapshotLimit,
+		getLatestSnapshot
 	} from '$lib/services';
 	import {
 		createNewPeriod,
 		createNewEvent,
 		createNewScene,
+		createSnapshot,
+		areGamesEqual,
 		type Game,
 		type Period,
 		type Event as GameEvent,
-		type Scene
+		type Scene,
+		type GameAction,
+		type CreatePeriodAction,
+		type DeletePeriodAction,
+		type EditPeriodAction,
+		type CreateEventAction,
+		type DeleteEventAction,
+		type EditEventAction,
+		type CreateSceneAction,
+		type DeleteSceneAction,
+		type EditSceneAction,
+		type EditGameMetadataAction,
+		type SnapshotMetadata
 	} from '$lib/types';
+	import {
+		createHistoryState,
+		recordAction,
+		popUndo,
+		popRedo,
+		canUndo,
+		canRedo,
+		clearHistory,
+		type HistoryState
+	} from '$lib/stores';
+	import { applyAction, reverseAction } from '$lib/utils';
 	import {
 		Canvas,
 		Timeline,
 		ZoomControls,
 		EditItemModal,
 		GameSettingsModal,
-		DeleteConfirmModal
+		DeleteConfirmModal,
+		HistoryModal
 	} from '$lib/components/canvas';
 	import { toast } from '$lib/components/ui/sonner';
 
@@ -46,6 +81,11 @@
 	let loadError = $state<string | null>(null);
 	let zoom = $state(1);
 
+	// Undo/Redo history state
+	let historyState = $state<HistoryState>(createHistoryState());
+	const canUndoAction = $derived(canUndo(historyState));
+	const canRedoAction = $derived(canRedo(historyState));
+
 	// Edit modal state
 	let editModalOpen = $state(false);
 	let editItemType = $state<'period' | 'event' | 'scene'>('period');
@@ -60,6 +100,20 @@
 	let deleteItemType = $state<'period' | 'event' | 'scene'>('period');
 	let deleteItemName = $state('');
 	let deleteItemHasChildren = $state(false);
+
+	// History modal state
+	let historyModalOpen = $state(false);
+	let snapshots = $state<SnapshotMetadata[]>([]);
+	let snapshotsLoading = $state(false);
+	let snapshotsError = $state<string | null>(null);
+
+	// Historical view state
+	let isViewingHistory = $state(false);
+	let historicalGame = $state<Game | null>(null);
+	let currentSnapshotId = $state<string | null>(null);
+
+	// Track last saved state for duplicate detection
+	let lastSavedState = $state<string | null>(null);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -107,10 +161,119 @@
 		if (game) {
 			// Create a plain object copy to avoid issues with Svelte proxies in IndexedDB
 			// Use JSON round-trip to ensure we get a plain object without Svelte proxies
-			const plainGame = JSON.parse(JSON.stringify(game));
+			const plainGame = JSON.parse(JSON.stringify(game)) as Game;
 			// Update timestamp on the plain copy
 			plainGame.updatedAt = new Date().toISOString();
 			autosave.save(plainGame);
+
+			// Create snapshot if state changed significantly
+			createSnapshotIfNeeded(plainGame);
+		}
+	}
+
+	/**
+	 * Creates a snapshot if the game state has changed since last snapshot
+	 */
+	async function createSnapshotIfNeeded(plainGame: Game) {
+		const currentState = JSON.stringify({
+			...plainGame,
+			createdAt: '',
+			updatedAt: ''
+		});
+
+		// Skip if no change from last saved state
+		if (lastSavedState === currentState) {
+			return;
+		}
+
+		// Check if different from latest snapshot
+		try {
+			const latestSnapshot = await getLatestSnapshot(plainGame.id);
+			if (latestSnapshot && areGamesEqual(latestSnapshot.data, plainGame)) {
+				lastSavedState = currentState;
+				return;
+			}
+
+			// Create new snapshot
+			const snapshot = createSnapshot(plainGame);
+			await createSnapshotRecord(snapshot);
+			lastSavedState = currentState;
+
+			// Enforce limit
+			await enforceSnapshotLimit(plainGame.id);
+		} catch (error) {
+			// Log snapshot errors with full context for debugging
+			console.error('Failed to create snapshot for game:', {
+				gameId: plainGame.id,
+				gameName: plainGame.name,
+				error
+			});
+			// Don't show toast for snapshot errors - they're not critical
+			// Snapshots are a convenience feature and the main autosave still works
+		}
+	}
+
+	/**
+	 * Records an action to history and triggers autosave
+	 */
+	function recordGameAction(action: GameAction) {
+		historyState = recordAction(historyState, action);
+		triggerAutosave();
+	}
+
+	/**
+	 * Handles undo action
+	 */
+	function handleUndo() {
+		if (!game || !canUndoAction) return;
+
+		const result = popUndo(historyState);
+		if (result) {
+			historyState = result.newState;
+			game = reverseAction(game, result.action);
+			triggerAutosave();
+		}
+	}
+
+	/**
+	 * Handles redo action
+	 */
+	function handleRedo() {
+		if (!game || !canRedoAction) return;
+
+		const result = popRedo(historyState);
+		if (result) {
+			historyState = result.newState;
+			game = applyAction(game, result.action);
+			triggerAutosave();
+		}
+	}
+
+	/**
+	 * Keyboard shortcuts for undo/redo
+	 */
+	function handleGlobalKeyDown(e: KeyboardEvent) {
+		// Check if user is in a text input
+		const target = e.target as HTMLElement;
+		const isTextInput =
+			target.tagName === 'INPUT' ||
+			target.tagName === 'TEXTAREA' ||
+			target.isContentEditable;
+
+		// Don't intercept when in text input (let browser handle native undo)
+		if (isTextInput) return;
+
+		const isMac = navigator.platform.toUpperCase().includes('MAC');
+		const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+		if (cmdOrCtrl && !e.altKey) {
+			if (e.key === 'z' && !e.shiftKey) {
+				e.preventDefault();
+				handleUndo();
+			} else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+				e.preventDefault();
+				handleRedo();
+			}
 		}
 	}
 
@@ -141,9 +304,19 @@
 	function handleAddPeriod(index: number) {
 		if (!game) return;
 		const period = createNewPeriod('New Period');
+		
+		// Create action for undo
+		const action: CreatePeriodAction = {
+			type: 'CREATE_PERIOD',
+			timestamp: new Date().toISOString(),
+			periodId: period.id,
+			index,
+			period: JSON.parse(JSON.stringify(period))
+		};
+
 		game.periods.splice(index, 0, period);
 		game = game; // Trigger reactivity
-		triggerAutosave();
+		recordGameAction(action);
 	}
 
 	function handleAddEvent(periodId: string) {
@@ -152,9 +325,21 @@
 		if (!period) return;
 
 		const event = createNewEvent('New Event');
+		const index = period.events.length;
+
+		// Create action for undo
+		const action: CreateEventAction = {
+			type: 'CREATE_EVENT',
+			timestamp: new Date().toISOString(),
+			periodId,
+			eventId: event.id,
+			index,
+			event: JSON.parse(JSON.stringify(event))
+		};
+
 		period.events.push(event);
 		game = game;
-		triggerAutosave();
+		recordGameAction(action);
 	}
 
 	function handleAddScene(periodId: string, eventId: string) {
@@ -166,9 +351,22 @@
 		if (!event) return;
 
 		const scene = createNewScene('New Scene');
+		const index = event.scenes.length;
+
+		// Create action for undo
+		const action: CreateSceneAction = {
+			type: 'CREATE_SCENE',
+			timestamp: new Date().toISOString(),
+			periodId,
+			eventId,
+			sceneId: scene.id,
+			index,
+			scene: JSON.parse(JSON.stringify(scene))
+		};
+
 		event.scenes.push(scene);
 		game = game;
-		triggerAutosave();
+		recordGameAction(action);
 	}
 
 	// Select item handlers (open edit modal)
@@ -202,25 +400,93 @@
 		if (editItemType === 'period') {
 			const period = game.periods.find((p) => p.id === itemId);
 			if (period) {
+				// Create action for undo - store previous values
+				const periodUpdates = updates as Partial<Period>;
+				const previousValues: Partial<Period> = {};
+				const newValues: Partial<Period> = {};
+				for (const key of Object.keys(periodUpdates) as (keyof Period)[]) {
+					if (key in period && key in periodUpdates) {
+						(previousValues as Record<string, unknown>)[key] = JSON.parse(
+							JSON.stringify(period[key])
+						);
+						(newValues as Record<string, unknown>)[key] = periodUpdates[key];
+					}
+				}
+
+				const action: EditPeriodAction = {
+					type: 'EDIT_PERIOD',
+					timestamp: new Date().toISOString(),
+					periodId: itemId,
+					previousValues,
+					newValues
+				};
+
 				Object.assign(period, updates, { updatedAt: new Date().toISOString() });
+				recordGameAction(action);
 			}
 		} else if (editItemType === 'event') {
 			const period = game.periods.find((p) => p.id === editItemContext.periodId);
 			const event = period?.events.find((e) => e.id === itemId);
-			if (event) {
+			if (event && editItemContext.periodId) {
+				// Create action for undo - store previous values
+				const eventUpdates = updates as Partial<GameEvent>;
+				const previousValues: Partial<GameEvent> = {};
+				const newValues: Partial<GameEvent> = {};
+				for (const key of Object.keys(eventUpdates) as (keyof GameEvent)[]) {
+					if (key in event && key in eventUpdates) {
+						(previousValues as Record<string, unknown>)[key] = JSON.parse(
+							JSON.stringify(event[key])
+						);
+						(newValues as Record<string, unknown>)[key] = eventUpdates[key];
+					}
+				}
+
+				const action: EditEventAction = {
+					type: 'EDIT_EVENT',
+					timestamp: new Date().toISOString(),
+					periodId: editItemContext.periodId,
+					eventId: itemId,
+					previousValues,
+					newValues
+				};
+
 				Object.assign(event, updates, { updatedAt: new Date().toISOString() });
+				recordGameAction(action);
 			}
 		} else if (editItemType === 'scene') {
 			const period = game.periods.find((p) => p.id === editItemContext.periodId);
 			const event = period?.events.find((e) => e.id === editItemContext.eventId);
 			const scene = event?.scenes.find((s) => s.id === itemId);
-			if (scene) {
+			if (scene && editItemContext.periodId && editItemContext.eventId) {
+				// Create action for undo - store previous values
+				const sceneUpdates = updates as Partial<Scene>;
+				const previousValues: Partial<Scene> = {};
+				const newValues: Partial<Scene> = {};
+				for (const key of Object.keys(sceneUpdates) as (keyof Scene)[]) {
+					if (key in scene && key in sceneUpdates) {
+						(previousValues as Record<string, unknown>)[key] = JSON.parse(
+							JSON.stringify(scene[key])
+						);
+						(newValues as Record<string, unknown>)[key] = sceneUpdates[key];
+					}
+				}
+
+				const action: EditSceneAction = {
+					type: 'EDIT_SCENE',
+					timestamp: new Date().toISOString(),
+					periodId: editItemContext.periodId,
+					eventId: editItemContext.eventId,
+					sceneId: itemId,
+					previousValues,
+					newValues
+				};
+
 				Object.assign(scene, updates, { updatedAt: new Date().toISOString() });
+				recordGameAction(action);
 			}
 		}
 
 		game = game;
-		triggerAutosave();
 	}
 
 	// Delete item
@@ -250,45 +516,212 @@
 		const itemId = editItem.id;
 
 		if (editItemType === 'period') {
-			game.periods = game.periods.filter((p) => p.id !== itemId);
+			const periodIndex = game.periods.findIndex((p) => p.id === itemId);
+			const period = game.periods[periodIndex];
+			if (period && periodIndex >= 0) {
+				// Create action for undo - store deleted period
+				const action: DeletePeriodAction = {
+					type: 'DELETE_PERIOD',
+					timestamp: new Date().toISOString(),
+					periodId: itemId,
+					index: periodIndex,
+					period: JSON.parse(JSON.stringify(period))
+				};
+
+				game.periods = game.periods.filter((p) => p.id !== itemId);
+				recordGameAction(action);
+			}
 		} else if (editItemType === 'event') {
 			const period = game.periods.find((p) => p.id === editItemContext.periodId);
-			if (period) {
-				period.events = period.events.filter((e) => e.id !== itemId);
+			if (period && editItemContext.periodId) {
+				const eventIndex = period.events.findIndex((e) => e.id === itemId);
+				const event = period.events[eventIndex];
+				if (event && eventIndex >= 0) {
+					// Create action for undo - store deleted event
+					const action: DeleteEventAction = {
+						type: 'DELETE_EVENT',
+						timestamp: new Date().toISOString(),
+						periodId: editItemContext.periodId,
+						eventId: itemId,
+						index: eventIndex,
+						event: JSON.parse(JSON.stringify(event))
+					};
+
+					period.events = period.events.filter((e) => e.id !== itemId);
+					recordGameAction(action);
+				}
 			}
 		} else if (editItemType === 'scene') {
 			const period = game.periods.find((p) => p.id === editItemContext.periodId);
 			const event = period?.events.find((e) => e.id === editItemContext.eventId);
-			if (event) {
-				event.scenes = event.scenes.filter((s) => s.id !== itemId);
+			if (event && editItemContext.periodId && editItemContext.eventId) {
+				const sceneIndex = event.scenes.findIndex((s) => s.id === itemId);
+				const scene = event.scenes[sceneIndex];
+				if (scene && sceneIndex >= 0) {
+					// Create action for undo - store deleted scene
+					const action: DeleteSceneAction = {
+						type: 'DELETE_SCENE',
+						timestamp: new Date().toISOString(),
+						periodId: editItemContext.periodId,
+						eventId: editItemContext.eventId,
+						sceneId: itemId,
+						index: sceneIndex,
+						scene: JSON.parse(JSON.stringify(scene))
+					};
+
+					event.scenes = event.scenes.filter((s) => s.id !== itemId);
+					recordGameAction(action);
+				}
 			}
 		}
 
 		game = game;
 		editItem = null;
-		triggerAutosave();
 		toast.success(`${editItemType.charAt(0).toUpperCase() + editItemType.slice(1)} deleted`);
 	}
 
 	// Game settings
 	function handleSaveGameSettings(updates: Partial<Game>) {
 		if (!game) return;
+
+		// Create action for undo - store previous values
+		const previousValues: EditGameMetadataAction['previousValues'] = {};
+		const newValues: EditGameMetadataAction['newValues'] = {};
+
+		if (updates.name !== undefined) {
+			previousValues.name = game.name;
+			newValues.name = updates.name;
+		}
+		if (updates.focus !== undefined) {
+			previousValues.focus = game.focus ? JSON.parse(JSON.stringify(game.focus)) : undefined;
+			newValues.focus = updates.focus;
+		}
+		if (updates.bigPicture !== undefined) {
+			previousValues.bigPicture = game.bigPicture
+				? JSON.parse(JSON.stringify(game.bigPicture))
+				: undefined;
+			newValues.bigPicture = updates.bigPicture;
+		}
+		if (updates.palette !== undefined) {
+			previousValues.palette = game.palette ? JSON.parse(JSON.stringify(game.palette)) : undefined;
+			newValues.palette = updates.palette;
+		}
+
+		const action: EditGameMetadataAction = {
+			type: 'EDIT_GAME_METADATA',
+			timestamp: new Date().toISOString(),
+			previousValues,
+			newValues
+		};
+
 		Object.assign(game, updates);
 		game = game;
-		triggerAutosave();
+		recordGameAction(action);
+	}
+
+	// History modal handlers
+	async function openHistoryModal() {
+		historyModalOpen = true;
+		snapshotsLoading = true;
+		snapshotsError = null;
+
+		try {
+			snapshots = await listSnapshotsForGame(gameId);
+		} catch (error) {
+			console.error('Failed to load snapshots:', error);
+			snapshotsError = 'Failed to load version history. Please try again.';
+		} finally {
+			snapshotsLoading = false;
+		}
+	}
+
+	async function handleViewSnapshot(snapshotId: string) {
+		try {
+			const snapshot = await loadSnapshot(snapshotId);
+			if (snapshot) {
+				isViewingHistory = true;
+				historicalGame = snapshot.data;
+				currentSnapshotId = snapshotId;
+				historyModalOpen = false;
+			}
+		} catch (error) {
+			console.error('Failed to load snapshot:', error);
+			toast.error('Failed to load version', {
+				description: 'Could not load the selected version. Please try again.'
+			});
+		}
+	}
+
+	async function handleRestoreSnapshot(snapshotId: string) {
+		if (!game) return;
+
+		try {
+			const snapshot = await loadSnapshot(snapshotId);
+			if (snapshot) {
+				// Create a snapshot of current state before restoring
+				const currentSnapshot = createSnapshot(game);
+				await createSnapshotRecord(currentSnapshot);
+
+				// Restore the historical version
+				const restoredGame = JSON.parse(JSON.stringify(snapshot.data)) as Game;
+				restoredGame.updatedAt = new Date().toISOString();
+				game = restoredGame;
+
+				// Clear undo/redo history since we're at a new state
+				historyState = clearHistory(historyState);
+
+				// Trigger autosave
+				triggerAutosave();
+
+				// Close modals and return to editing
+				historyModalOpen = false;
+				isViewingHistory = false;
+				historicalGame = null;
+				currentSnapshotId = null;
+
+				toast.success('Version restored', {
+					description: 'The selected version has been restored. Your previous state was saved.'
+				});
+			}
+		} catch (error) {
+			console.error('Failed to restore snapshot:', error);
+			toast.error('Failed to restore version', {
+				description: 'Could not restore the selected version. Please try again.'
+			});
+		}
+	}
+
+	function exitHistoryView() {
+		isViewingHistory = false;
+		historicalGame = null;
+		currentSnapshotId = null;
 	}
 </script>
+
+<svelte:window onkeydown={handleGlobalKeyDown} />
 
 <div class="canvas-page">
 	<div class="canvas-header">
 		<div class="header-left">
-			<a href={homeUrl}>
-				<Button variant="ghost" size="sm">
-					<ArrowLeft class="h-4 w-4" />
-					<span class="back-text">Back</span>
+			{#if isViewingHistory}
+				<Button variant="ghost" size="sm" onclick={exitHistoryView}>
+					<ArrowLeftToLine class="h-4 w-4" />
+					<span class="back-text">Return to Current</span>
 				</Button>
-			</a>
-			{#if game}
+			{:else}
+				<a href={homeUrl}>
+					<Button variant="ghost" size="sm">
+						<ArrowLeft class="h-4 w-4" />
+						<span class="back-text">Back</span>
+					</Button>
+				</a>
+			{/if}
+			{#if isViewingHistory && historicalGame}
+				<span class="game-title">{historicalGame.name}</span>
+				<span class="history-indicator">
+					Viewing History
+				</span>
+			{:else if game}
 				<span class="game-title">{game.name}</span>
 				{#if game.focus}
 					<span class="focus-indicator" title="Current Focus: {game.focus.name}">
@@ -299,7 +732,47 @@
 		</div>
 
 		<div class="header-right">
-			{#if game}
+			{#if isViewingHistory && currentSnapshotId}
+				<Button
+					variant="default"
+					size="sm"
+					onclick={() => handleRestoreSnapshot(currentSnapshotId!)}
+				>
+					Restore This Version
+				</Button>
+			{:else if game}
+				<!-- Undo/Redo buttons -->
+				<div class="undo-redo-controls">
+					<Button
+						variant="ghost"
+						size="sm"
+						onclick={handleUndo}
+						disabled={!canUndoAction}
+						aria-label="Undo"
+						title="Undo (Ctrl+Z)"
+					>
+						<Undo2 class="h-4 w-4" />
+					</Button>
+					<Button
+						variant="ghost"
+						size="sm"
+						onclick={handleRedo}
+						disabled={!canRedoAction}
+						aria-label="Redo"
+						title="Redo (Ctrl+Shift+Z)"
+					>
+						<Redo2 class="h-4 w-4" />
+					</Button>
+				</div>
+				<Button
+					variant="ghost"
+					size="sm"
+					onclick={openHistoryModal}
+					aria-label="Version history"
+					title="Version history"
+				>
+					<History class="h-4 w-4" />
+				</Button>
 				<Button
 					variant="ghost"
 					size="sm"
@@ -312,7 +785,7 @@
 		</div>
 	</div>
 
-	<div class="canvas-area">
+	<div class="canvas-area" class:historical-view={isViewingHistory}>
 		{#if isLoading}
 			<div class="loading-state">
 				<Loader2 class="h-12 w-12 animate-spin" />
@@ -329,6 +802,36 @@
 						<Button variant="default">Return Home</Button>
 					</a>
 				</div>
+			</div>
+		{:else if isViewingHistory && historicalGame}
+			<!-- Historical view (read-only) -->
+			<Canvas {zoom} onZoomChange={handleZoomChange}>
+				<Timeline
+					game={historicalGame}
+					onAddPeriod={() => {}}
+					onAddEvent={() => {}}
+					onAddScene={() => {}}
+					onSelectPeriod={() => {}}
+					onSelectEvent={() => {}}
+					onSelectScene={() => {}}
+				/>
+			</Canvas>
+
+			<!-- Historical view overlay -->
+			<div class="historical-overlay">
+				<span class="historical-label">Read-Only Historical View</span>
+			</div>
+
+			<!-- Zoom controls -->
+			<div class="zoom-controls-container">
+				<ZoomControls
+					{zoom}
+					minZoom={MIN_ZOOM}
+					maxZoom={MAX_ZOOM}
+					onZoomIn={handleZoomIn}
+					onZoomOut={handleZoomOut}
+					onReset={handleZoomReset}
+				/>
 			</div>
 		{:else if game}
 			<Canvas {zoom} onZoomChange={handleZoomChange}>
@@ -386,6 +889,17 @@
 	onConfirm={handleConfirmDelete}
 />
 
+<!-- History Modal -->
+<HistoryModal
+	open={historyModalOpen}
+	onOpenChange={(open) => (historyModalOpen = open)}
+	{snapshots}
+	isLoading={snapshotsLoading}
+	error={snapshotsError}
+	onView={handleViewSnapshot}
+	onRestore={handleRestoreSnapshot}
+/>
+
 <style>
 	.canvas-page {
 		flex: 1;
@@ -419,6 +933,15 @@
 		gap: 0.5rem;
 	}
 
+	.undo-redo-controls {
+		display: flex;
+		align-items: center;
+		gap: 0.125rem;
+		padding-right: 0.5rem;
+		border-right: 1px solid var(--color-border);
+		margin-right: 0.25rem;
+	}
+
 	.game-title {
 		font-size: 0.9375rem;
 		font-weight: 600;
@@ -433,6 +956,15 @@
 		border-radius: var(--radius);
 	}
 
+	.history-indicator {
+		font-size: 0.75rem;
+		color: oklch(85% 0.15 50);
+		padding: 0.125rem 0.5rem;
+		background-color: oklch(45% 0.15 50 / 0.2);
+		border: 1px solid oklch(45% 0.15 50 / 0.4);
+		border-radius: var(--radius);
+	}
+
 	.back-text {
 		display: none;
 	}
@@ -441,6 +973,31 @@
 		flex: 1;
 		position: relative;
 		overflow: hidden;
+	}
+
+	.canvas-area.historical-view {
+		background-color: oklch(from var(--color-background) calc(l + 0.03) c h);
+	}
+
+	.historical-overlay {
+		position: absolute;
+		bottom: 1rem;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 10;
+		padding: 0.5rem 1rem;
+		background-color: oklch(45% 0.15 50 / 0.9);
+		color: white;
+		border-radius: var(--radius);
+		font-size: 0.875rem;
+		font-weight: 500;
+		pointer-events: none;
+	}
+
+	.historical-label {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 	.loading-state {

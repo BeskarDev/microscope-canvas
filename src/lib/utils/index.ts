@@ -12,3 +12,4 @@ export {
 	type FlyAndScaleParams
 } from './cn';
 export * from './constants';
+export * from './action-executor';

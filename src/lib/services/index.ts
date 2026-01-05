@@ -5,3 +5,4 @@
 
 export * from './persistence';
 export * from './autosave';
+export * from './snapshot-persistence';

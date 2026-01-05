@@ -35,9 +35,11 @@
 	.scene-card {
 		display: flex;
 		flex-direction: column;
-		width: 140px;
-		min-height: 60px;
-		padding: 0.5rem;
+		/* Use CSS custom property for zoom-aware sizing */
+		width: calc(140px * max(var(--canvas-zoom, 1), 1));
+		min-height: calc(60px * max(var(--canvas-zoom, 1), 1));
+		padding: calc(0.5rem * max(var(--canvas-zoom, 1), 1));
+		font-size: calc(1rem * max(var(--canvas-zoom, 1), 1));
 		background-color: oklch(from var(--color-card) calc(l + 0.02) c h);
 		border: 1px solid var(--color-border);
 		border-radius: calc(var(--radius) * 0.75);
@@ -65,23 +67,23 @@
 	}
 
 	.scene-card.light {
-		border-left: 2px solid oklch(95% 0.05 90);
+		border-left: calc(2px * max(var(--canvas-zoom, 1), 1)) solid oklch(95% 0.05 90);
 	}
 
 	.scene-card.dark {
-		border-left: 2px solid oklch(25% 0.05 265);
+		border-left: calc(2px * max(var(--canvas-zoom, 1), 1)) solid oklch(25% 0.05 265);
 	}
 
 	.tone-indicator {
 		display: flex;
 		align-items: center;
-		gap: 0.25rem;
-		margin-bottom: 0.25rem;
+		gap: calc(0.25rem * max(var(--canvas-zoom, 1), 1));
+		margin-bottom: calc(0.25rem * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.tone-indicator :global(.tone-icon) {
-		width: 0.75rem;
-		height: 0.75rem;
+		width: calc(0.75rem * max(var(--canvas-zoom, 1), 1));
+		height: calc(0.75rem * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.scene-card.light .tone-indicator :global(.tone-icon) {
@@ -93,9 +95,9 @@
 	}
 
 	.card-title {
-		font-size: 0.75rem;
+		font-size: calc(0.75rem * max(var(--canvas-zoom, 1), 1));
 		font-weight: 600;
-		margin: 0 0 0.25rem 0;
+		margin: 0 0 calc(0.25rem * max(var(--canvas-zoom, 1), 1)) 0;
 		line-height: 1.3;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
@@ -104,7 +106,7 @@
 	}
 
 	.card-question {
-		font-size: 0.6875rem;
+		font-size: calc(0.6875rem * max(var(--canvas-zoom, 1), 1));
 		color: var(--color-muted-foreground);
 		margin: 0;
 		line-height: 1.3;
