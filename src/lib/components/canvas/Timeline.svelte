@@ -4,7 +4,6 @@
 	import EventCard from './EventCard.svelte';
 	import SceneCard from './SceneCard.svelte';
 	import AddButton from './AddButton.svelte';
-	import GripVertical from 'lucide-svelte/icons/grip-vertical';
 
 	interface Props {
 		game: Game;
@@ -37,17 +36,188 @@
 		onReorderScenes
 	}: Props = $props();
 
-	// Drag state
+	// Drag state for touch/pointer-based reordering
 	type DragType = 'period' | 'event' | 'scene';
+	let isDragging = $state(false);
 	let dragType = $state<DragType | null>(null);
 	let dragIndex = $state(-1);
 	let dragPeriodId = $state<string | null>(null);
 	let dragEventId = $state<string | null>(null);
 	let dropIndex = $state(-1);
+	let dragStartPos = $state({ x: 0, y: 0 });
+	let dragElement = $state<HTMLElement | null>(null);
+	const DRAG_THRESHOLD = 5; // pixels before drag starts
 
+	// Long press detection for mobile
+	let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+	const LONG_PRESS_DURATION = 300; // ms
+
+	function handlePointerDown(
+		type: DragType,
+		index: number,
+		periodId?: string,
+		eventId?: string
+	) {
+		return (e: PointerEvent) => {
+			// Don't start drag on buttons or interactive elements
+			const target = e.target as HTMLElement;
+			if (target.closest('button') || target.closest('[data-no-drag]')) return;
+
+			dragStartPos = { x: e.clientX, y: e.clientY };
+			dragElement = e.currentTarget as HTMLElement;
+
+			// For touch devices, use long press to initiate drag
+			if (e.pointerType === 'touch') {
+				longPressTimer = setTimeout(() => {
+					startDrag(type, index, periodId, eventId, e.currentTarget as HTMLElement);
+				}, LONG_PRESS_DURATION);
+			}
+		};
+	}
+
+	function handlePointerMove(e: PointerEvent) {
+		if (!dragElement) return;
+
+		const dx = Math.abs(e.clientX - dragStartPos.x);
+		const dy = Math.abs(e.clientY - dragStartPos.y);
+
+		// For mouse, start drag after threshold
+		if (!isDragging && e.pointerType === 'mouse' && (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD)) {
+			// Cancel long press timer if exists
+			if (longPressTimer) {
+				clearTimeout(longPressTimer);
+				longPressTimer = null;
+			}
+			// Can't start drag from pointermove for mouse - need to use native drag
+		}
+
+		// For touch, cancel long press if moved too much
+		if (e.pointerType === 'touch' && (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD)) {
+			if (longPressTimer) {
+				clearTimeout(longPressTimer);
+				longPressTimer = null;
+			}
+		}
+
+		// Update drop target during drag
+		if (isDragging) {
+			updateDropTarget(e);
+		}
+	}
+
+	function handlePointerUp() {
+		// Clear long press timer
+		if (longPressTimer) {
+			clearTimeout(longPressTimer);
+			longPressTimer = null;
+		}
+
+		// Complete drag if active
+		if (isDragging) {
+			completeDrag();
+		}
+
+		// Reset pointer tracking
+		dragElement = null;
+	}
+
+	function handlePointerCancel() {
+		if (longPressTimer) {
+			clearTimeout(longPressTimer);
+			longPressTimer = null;
+		}
+		if (isDragging) {
+			resetDragState();
+		}
+		dragElement = null;
+	}
+
+	function startDrag(
+		type: DragType,
+		index: number,
+		periodId: string | undefined,
+		eventId: string | undefined,
+		element: HTMLElement
+	) {
+		isDragging = true;
+		dragType = type;
+		dragIndex = index;
+		dragPeriodId = periodId ?? null;
+		dragEventId = eventId ?? null;
+		element.classList.add('dragging');
+
+		// Add haptic feedback on mobile if available
+		if (navigator.vibrate) {
+			navigator.vibrate(50);
+		}
+	}
+
+	function updateDropTarget(e: PointerEvent) {
+		const elementsAtPoint = document.elementsFromPoint(e.clientX, e.clientY);
+
+		// Find the nearest drop target
+		for (const el of elementsAtPoint) {
+			const dropTarget = el.closest('[data-drop-target]') as HTMLElement | null;
+			if (dropTarget) {
+				const targetType = dropTarget.dataset.dropType;
+				const targetIndex = parseInt(dropTarget.dataset.dropIndex || '-1', 10);
+				const targetPeriodId = dropTarget.dataset.dropPeriodId;
+				const targetEventId = dropTarget.dataset.dropEventId;
+
+				// Check if valid drop target (same type and parent)
+				if (targetType === dragType) {
+					if (dragType === 'period') {
+						dropIndex = targetIndex;
+						return;
+					}
+					if (dragType === 'event' && targetPeriodId === dragPeriodId) {
+						dropIndex = targetIndex;
+						return;
+					}
+					if (
+						dragType === 'scene' &&
+						targetPeriodId === dragPeriodId &&
+						targetEventId === dragEventId
+					) {
+						dropIndex = targetIndex;
+						return;
+					}
+				}
+			}
+		}
+		dropIndex = -1;
+	}
+
+	function completeDrag() {
+		if (dragIndex !== -1 && dropIndex !== -1 && dragIndex !== dropIndex) {
+			if (dragType === 'period' && onReorderPeriods) {
+				onReorderPeriods(dragIndex, dropIndex);
+			} else if (dragType === 'event' && onReorderEvents && dragPeriodId) {
+				onReorderEvents(dragPeriodId, dragIndex, dropIndex);
+			} else if (dragType === 'scene' && onReorderScenes && dragPeriodId && dragEventId) {
+				onReorderScenes(dragPeriodId, dragEventId, dragIndex, dropIndex);
+			}
+		}
+		resetDragState();
+	}
+
+	function resetDragState() {
+		// Remove dragging class from element
+		document.querySelectorAll('.dragging').forEach((el) => el.classList.remove('dragging'));
+
+		isDragging = false;
+		dragType = null;
+		dragIndex = -1;
+		dragPeriodId = null;
+		dragEventId = null;
+		dropIndex = -1;
+	}
+
+	// Native drag events for desktop (mouse)
 	function handleDragStart(type: DragType, index: number, periodId?: string, eventId?: string) {
 		return (e: DragEvent) => {
 			if (!e.dataTransfer) return;
+			isDragging = true;
 			dragType = type;
 			dragIndex = index;
 			dragPeriodId = periodId ?? null;
@@ -105,15 +275,13 @@
 	function handleDragEnd() {
 		resetDragState();
 	}
-
-	function resetDragState() {
-		dragType = null;
-		dragIndex = -1;
-		dragPeriodId = null;
-		dragEventId = null;
-		dropIndex = -1;
-	}
 </script>
+
+<svelte:window
+	onpointermove={handlePointerMove}
+	onpointerup={handlePointerUp}
+	onpointercancel={handlePointerCancel}
+/>
 
 <div class="timeline">
 	<!-- Add button before first period -->
@@ -129,21 +297,26 @@
 			class:drag-over={dragType === 'period' &&
 				dropIndex === periodIndex &&
 				dragIndex !== periodIndex}
+			data-drop-target
+			data-drop-type="period"
+			data-drop-index={periodIndex}
 			ondragover={handleDragOver('period', periodIndex)}
 			ondragleave={handleDragLeave}
 			ondrop={handleDrop('period', periodIndex)}
+			role="listitem"
 		>
-			<!-- Period card with drag handle -->
+			<!-- Period card - draggable -->
 			<div
 				class="period-section"
 				class:dragging={dragType === 'period' && dragIndex === periodIndex}
 				draggable="true"
 				ondragstart={handleDragStart('period', periodIndex)}
 				ondragend={handleDragEnd}
+				onpointerdown={handlePointerDown('period', periodIndex)}
+				role="button"
+				tabindex="0"
+				aria-grabbed={dragType === 'period' && dragIndex === periodIndex}
 			>
-				<div class="drag-handle" title="Drag to reorder">
-					<GripVertical class="h-4 w-4" />
-				</div>
 				<PeriodCard {period} onclick={() => onSelectPeriod(period)} />
 			</div>
 
@@ -156,11 +329,16 @@
 							dropIndex === eventIndex &&
 							dragIndex !== eventIndex &&
 							dragPeriodId === period.id}
+						data-drop-target
+						data-drop-type="event"
+						data-drop-index={eventIndex}
+						data-drop-period-id={period.id}
 						ondragover={handleDragOver('event', eventIndex, period.id)}
 						ondragleave={handleDragLeave}
 						ondrop={handleDrop('event', eventIndex, period.id)}
+						role="listitem"
 					>
-						<!-- Event card with drag handle -->
+						<!-- Event card - draggable -->
 						<div
 							class="event-wrapper"
 							class:dragging={dragType === 'event' &&
@@ -169,10 +347,11 @@
 							draggable="true"
 							ondragstart={handleDragStart('event', eventIndex, period.id)}
 							ondragend={handleDragEnd}
+							onpointerdown={handlePointerDown('event', eventIndex, period.id)}
+							role="button"
+							tabindex="0"
+							aria-grabbed={dragType === 'event' && dragIndex === eventIndex && dragPeriodId === period.id}
 						>
-							<div class="drag-handle" title="Drag to reorder">
-								<GripVertical class="h-3.5 w-3.5" />
-							</div>
 							<EventCard {event} onclick={() => onSelectEvent(period.id, event)} />
 						</div>
 
@@ -190,16 +369,22 @@
 										dragIndex === sceneIndex &&
 										dragPeriodId === period.id &&
 										dragEventId === event.id}
+									data-drop-target
+									data-drop-type="scene"
+									data-drop-index={sceneIndex}
+									data-drop-period-id={period.id}
+									data-drop-event-id={event.id}
 									draggable="true"
 									ondragstart={handleDragStart('scene', sceneIndex, period.id, event.id)}
 									ondragover={handleDragOver('scene', sceneIndex, period.id, event.id)}
 									ondragleave={handleDragLeave}
 									ondrop={handleDrop('scene', sceneIndex, period.id, event.id)}
 									ondragend={handleDragEnd}
+									onpointerdown={handlePointerDown('scene', sceneIndex, period.id, event.id)}
+									role="button"
+									tabindex="0"
+									aria-grabbed={dragType === 'scene' && dragIndex === sceneIndex && dragPeriodId === period.id && dragEventId === event.id}
 								>
-									<div class="drag-handle scene-handle" title="Drag to reorder">
-										<GripVertical class="h-3 w-3" />
-									</div>
 									<SceneCard {scene} onclick={() => onSelectScene(period.id, event.id, scene)} />
 								</div>
 							{/each}
@@ -265,12 +450,16 @@
 	.period-section {
 		flex-shrink: 0;
 		position: relative;
-		display: flex;
-		align-items: flex-start;
-		gap: calc(0.25rem * max(var(--canvas-zoom, 1), 1));
+		cursor: grab;
+		touch-action: none;
 	}
 
-	.period-section.dragging {
+	.period-section:active {
+		cursor: grabbing;
+	}
+
+	.period-section.dragging,
+	:global(.period-section.dragging) {
 		opacity: 0.5;
 	}
 
@@ -296,12 +485,16 @@
 	.event-wrapper {
 		flex-shrink: 0;
 		position: relative;
-		display: flex;
-		align-items: flex-start;
-		gap: calc(0.25rem * max(var(--canvas-zoom, 1), 1));
+		cursor: grab;
+		touch-action: none;
 	}
 
-	.event-wrapper.dragging {
+	.event-wrapper:active {
+		cursor: grabbing;
+	}
+
+	.event-wrapper.dragging,
+	:global(.event-wrapper.dragging) {
 		opacity: 0.5;
 	}
 
@@ -317,46 +510,22 @@
 	.scene-wrapper {
 		flex-shrink: 0;
 		position: relative;
-		display: flex;
-		align-items: flex-start;
-		gap: calc(0.125rem * max(var(--canvas-zoom, 1), 1));
+		cursor: grab;
+		touch-action: none;
 		transition: transform 0.15s ease;
+	}
+
+	.scene-wrapper:active {
+		cursor: grabbing;
 	}
 
 	.scene-wrapper.drag-over {
 		transform: translateY(4px);
 	}
 
-	.scene-wrapper.dragging {
+	.scene-wrapper.dragging,
+	:global(.scene-wrapper.dragging) {
 		opacity: 0.5;
-	}
-
-	.drag-handle {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		padding: calc(0.25rem * max(var(--canvas-zoom, 1), 1));
-		cursor: grab;
-		color: var(--color-muted-foreground);
-		opacity: 0.5;
-		transition:
-			opacity 0.15s,
-			color 0.15s;
-		border-radius: var(--radius);
-	}
-
-	.drag-handle:hover {
-		opacity: 1;
-		color: var(--color-foreground);
-		background-color: var(--color-muted);
-	}
-
-	.drag-handle:active {
-		cursor: grabbing;
-	}
-
-	.scene-handle {
-		padding: calc(0.125rem * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.empty-timeline {

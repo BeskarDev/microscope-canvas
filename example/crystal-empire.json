@@ -1,0 +1,267 @@
+{
+  "id": "example-game-001",
+  "schemaVersion": 1,
+  "name": "The Rise and Fall of the Crystal Empire",
+  "bigPicture": {
+    "premise": "A civilization discovers how to harness crystalline energy, rises to unprecedented heights, and ultimately brings about its own destruction.",
+    "bookendStart": "Scattered tribes discover the first crystal caverns",
+    "bookendEnd": "The last crystal shatters, ending an age"
+  },
+  "palette": {
+    "yes": [
+      "Magic derived from crystals",
+      "Political intrigue between crystal houses",
+      "Ancient prophecies",
+      "Non-human sentient beings",
+      "Lost or forbidden knowledge"
+    ],
+    "no": [
+      "Aliens or space travel",
+      "Time travel",
+      "Resurrection of the dead",
+      "Modern technology"
+    ]
+  },
+  "focuses": [
+    {
+      "id": "focus-001",
+      "name": "The Nature of Power",
+      "description": "How the pursuit and use of power corrupts even noble intentions"
+    },
+    {
+      "id": "focus-002",
+      "name": "The Crystal Singers",
+      "description": "Those who can communicate with crystals - are they blessed or cursed?"
+    },
+    {
+      "id": "focus-003",
+      "name": "What Was Lost",
+      "description": "The knowledge and wisdom sacrificed in the pursuit of progress"
+    }
+  ],
+  "currentFocusIndex": 1,
+  "players": [
+    {
+      "id": "player-001",
+      "name": "Solo Player"
+    }
+  ],
+  "activePlayerIndex": 0,
+  "legacies": [
+    {
+      "id": "legacy-001",
+      "name": "The Heartstone",
+      "description": "The first and largest crystal ever found, said to contain the memories of the world"
+    },
+    {
+      "id": "legacy-002",
+      "name": "House Luminari",
+      "description": "The founding dynasty of the Crystal Empire, their bloodline carries natural affinity for crystals"
+    },
+    {
+      "id": "legacy-003",
+      "name": "The Silent Order",
+      "description": "A monastic order that guards the forbidden knowledge of crystal manipulation"
+    }
+  ],
+  "periods": [
+    {
+      "id": "period-001",
+      "name": "The Age of Discovery",
+      "tone": "light",
+      "description": "Tribal peoples discover the crystal caverns and learn to tap into their power",
+      "events": [
+        {
+          "id": "event-001",
+          "name": "The First Light",
+          "tone": "light",
+          "description": "A young shepherd girl accidentally awakens the Heartstone, revealing the crystals' potential",
+          "scenes": [
+            {
+              "id": "scene-001",
+              "name": "Voice in the Dark",
+              "tone": "light",
+              "description": "Elen follows a lost lamb into the caverns and hears the crystal sing for the first time",
+              "question": "How does the crystal communicate its knowledge?",
+              "answer": "Through haunting melodies that plant visions directly in the mind - beautiful but overwhelming for the unprepared",
+              "createdAt": "2024-01-15T10:00:00.000Z",
+              "updatedAt": "2024-01-15T10:00:00.000Z"
+            }
+          ],
+          "createdAt": "2024-01-15T10:00:00.000Z",
+          "updatedAt": "2024-01-15T10:00:00.000Z"
+        },
+        {
+          "id": "event-002",
+          "name": "The Gathering of Tribes",
+          "tone": "light",
+          "description": "The scattered peoples unite under the promise of crystal power, forming the first alliance",
+          "scenes": [],
+          "createdAt": "2024-01-15T11:00:00.000Z",
+          "updatedAt": "2024-01-15T11:00:00.000Z"
+        }
+      ],
+      "createdAt": "2024-01-15T09:00:00.000Z",
+      "updatedAt": "2024-01-15T11:00:00.000Z"
+    },
+    {
+      "id": "period-002",
+      "name": "The Golden Empire",
+      "tone": "light",
+      "description": "The Crystal Empire reaches its zenith, with crystal-powered cities and wonders beyond imagination",
+      "events": [
+        {
+          "id": "event-003",
+          "name": "The Crowning of the First Emperor",
+          "tone": "light",
+          "description": "Theron Luminari unites all the crystal houses and establishes the Empire",
+          "scenes": [
+            {
+              "id": "scene-002",
+              "name": "The Oath of the Houses",
+              "tone": "light",
+              "description": "Each house lord swears fealty, binding their bloodlines to the Heartstone",
+              "question": "What does House Shadowmere demand in exchange for their loyalty?",
+              "answer": "They demand the right to study the 'silent crystals' - those that refuse to sing - a request everyone else finds troubling",
+              "createdAt": "2024-01-15T12:00:00.000Z",
+              "updatedAt": "2024-01-15T12:00:00.000Z"
+            }
+          ],
+          "createdAt": "2024-01-15T12:00:00.000Z",
+          "updatedAt": "2024-01-15T12:00:00.000Z"
+        },
+        {
+          "id": "event-004",
+          "name": "The Construction of Prismatica",
+          "tone": "light",
+          "description": "The capital city is built entirely from living crystal, a marvel that draws pilgrims from every land",
+          "scenes": [],
+          "createdAt": "2024-01-15T13:00:00.000Z",
+          "updatedAt": "2024-01-15T13:00:00.000Z"
+        },
+        {
+          "id": "event-005",
+          "name": "The Singer's Plague",
+          "tone": "dark",
+          "description": "Crystal Singers begin dying mysteriously, their minds shattered by the crystals they once communed with",
+          "scenes": [
+            {
+              "id": "scene-003",
+              "name": "The Last Song of Maera",
+              "tone": "dark",
+              "description": "The Empire's greatest Singer gives a final performance before her mind fractures",
+              "question": "What warning does Maera deliver in her final song?",
+              "answer": "She sings of 'the silence that hungers' and begs them to 'let the crystals sleep' - but the audience only applauds, thinking it artistic metaphor",
+              "createdAt": "2024-01-15T14:00:00.000Z",
+              "updatedAt": "2024-01-15T14:00:00.000Z"
+            }
+          ],
+          "createdAt": "2024-01-15T14:00:00.000Z",
+          "updatedAt": "2024-01-15T14:00:00.000Z"
+        }
+      ],
+      "createdAt": "2024-01-15T12:00:00.000Z",
+      "updatedAt": "2024-01-15T14:00:00.000Z"
+    },
+    {
+      "id": "period-003",
+      "name": "The War of Shadows",
+      "tone": "dark",
+      "description": "House Shadowmere's experiments unleash something terrible, and the Empire tears itself apart",
+      "events": [
+        {
+          "id": "event-006",
+          "name": "The Awakening of the Silent Ones",
+          "tone": "dark",
+          "description": "The 'dead' crystals that House Shadowmere studied were not dead - they were imprisoned entities",
+          "scenes": [
+            {
+              "id": "scene-004",
+              "name": "The Breaking of the Seal",
+              "tone": "dark",
+              "description": "Lord Shadowmere performs the ritual to 'awaken' the largest silent crystal",
+              "question": "What was imprisoned in the silent crystals?",
+              "answer": "An ancient consciousness that predates humanity - it doesn't hate them, but it cannot exist alongside their kind. Its very presence unravels minds and turns crystals into weapons against their wielders.",
+              "createdAt": "2024-01-15T15:00:00.000Z",
+              "updatedAt": "2024-01-15T15:00:00.000Z"
+            }
+          ],
+          "createdAt": "2024-01-15T15:00:00.000Z",
+          "updatedAt": "2024-01-15T15:00:00.000Z"
+        },
+        {
+          "id": "event-007",
+          "name": "The Shattering of Prismatica",
+          "tone": "dark",
+          "description": "The capital city's crystal structures turn against their inhabitants in a single night of horror",
+          "scenes": [],
+          "createdAt": "2024-01-15T16:00:00.000Z",
+          "updatedAt": "2024-01-15T16:00:00.000Z"
+        },
+        {
+          "id": "event-008",
+          "name": "The Silent Order Emerges",
+          "tone": "light",
+          "description": "Survivors of the Singer caste form a secret order, seeking a way to contain the awakened entity",
+          "scenes": [
+            {
+              "id": "scene-005",
+              "name": "The Founding Vow",
+              "tone": "light",
+              "description": "Seven surviving Singers make a pact that will guide their order for generations",
+              "question": "What terrible sacrifice does the Silent Order's founding vow require?",
+              "answer": "They must give up their ability to hear the crystals' songs forever, becoming immune to the entity's influence but cut off from the source of their power",
+              "createdAt": "2024-01-15T17:00:00.000Z",
+              "updatedAt": "2024-01-15T17:00:00.000Z"
+            }
+          ],
+          "createdAt": "2024-01-15T17:00:00.000Z",
+          "updatedAt": "2024-01-15T17:00:00.000Z"
+        }
+      ],
+      "createdAt": "2024-01-15T15:00:00.000Z",
+      "updatedAt": "2024-01-15T17:00:00.000Z"
+    },
+    {
+      "id": "period-004",
+      "name": "The Long Twilight",
+      "tone": "dark",
+      "description": "The remnants of civilization struggle to survive as crystal after crystal goes dark",
+      "events": [
+        {
+          "id": "event-009",
+          "name": "The Last Luminari",
+          "tone": "light",
+          "description": "Princess Vera Luminari discovers she can hear both the crystals AND the entity - she may be the key to ending the conflict",
+          "scenes": [
+            {
+              "id": "scene-006",
+              "name": "The Choice",
+              "tone": "dark",
+              "description": "Vera stands before the Heartstone, facing an impossible decision",
+              "question": "What choice does Vera face?",
+              "answer": "She can merge with the Heartstone to imprison the entity again, but she would become just like it - conscious but unable to exist alongside humanity. Her family line would end, and she would watch her people for eternity, never able to touch them again.",
+              "createdAt": "2024-01-15T18:00:00.000Z",
+              "updatedAt": "2024-01-15T18:00:00.000Z"
+            }
+          ],
+          "createdAt": "2024-01-15T18:00:00.000Z",
+          "updatedAt": "2024-01-15T18:00:00.000Z"
+        },
+        {
+          "id": "event-010",
+          "name": "The Final Song",
+          "tone": "dark",
+          "description": "Vera makes her choice, and the crystals fall silent forever",
+          "scenes": [],
+          "createdAt": "2024-01-15T19:00:00.000Z",
+          "updatedAt": "2024-01-15T19:00:00.000Z"
+        }
+      ],
+      "createdAt": "2024-01-15T18:00:00.000Z",
+      "updatedAt": "2024-01-15T19:00:00.000Z"
+    }
+  ],
+  "createdAt": "2024-01-15T09:00:00.000Z",
+  "updatedAt": "2024-01-15T19:00:00.000Z"
+}
