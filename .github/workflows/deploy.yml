@@ -95,6 +95,8 @@ jobs:
 
   deploy:
     name: Deploy to GitHub Pages
+    # Only deploy from main branch to avoid environment protection rule issues
+    if: github.ref == 'refs/heads/main'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -105,43 +107,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
-      - name: Comment on PR
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const prNumber = context.issue.number;
-            const repoName = context.repo.repo;
-            const owner = context.repo.owner;
-            const deploymentUrl = `https://${owner}.github.io/${repoName}/`;
-            
-            // Find and update existing comment or create new one
-            const { data: comments } = await github.rest.issues.listComments({
-              issue_number: prNumber,
-              owner: owner,
-              repo: repoName
-            });
-            
-            const botComment = comments.find(comment => 
-              comment.user.type === 'Bot' && 
-              comment.body.includes('## 🚀 Preview Deployed')
-            );
-            
-            const body = `## 🚀 Preview Deployed\n\nYour changes have been deployed to GitHub Pages for preview!\n\n**Preview URL:** ${deploymentUrl}\n\n> **Note:** This preview will be overwritten by subsequent PR deployments or main branch pushes.`;
-            
-            if (botComment) {
-              await github.rest.issues.updateComment({
-                comment_id: botComment.id,
-                owner: owner,
-                repo: repoName,
-                body: body
-              });
-            } else {
-              await github.rest.issues.createComment({
-                issue_number: prNumber,
-                owner: owner,
-                repo: repoName,
-                body: body
-              });
-            }

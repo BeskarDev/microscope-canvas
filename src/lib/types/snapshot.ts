@@ -13,6 +13,10 @@ export interface GameSnapshot {
 	gameId: string;
 	timestamp: string; // ISO 8601 timestamp
 	data: Game; // Full game state at the time of snapshot
+	/** User-provided name for the version (optional) */
+	versionName?: string;
+	/** Summary of changes since last version */
+	changeSummary?: string;
 }
 
 /**
@@ -23,6 +27,10 @@ export interface SnapshotMetadata {
 	gameId: string;
 	timestamp: string;
 	gameName: string;
+	/** User-provided name for the version (optional) */
+	versionName?: string;
+	/** Summary of changes since last version */
+	changeSummary?: string;
 }
 
 /**
@@ -33,12 +41,18 @@ export const DEFAULT_SNAPSHOT_LIMIT = 50;
 /**
  * Creates a new snapshot from a game state
  */
-export function createSnapshot(game: Game): GameSnapshot {
+export function createSnapshot(
+	game: Game,
+	versionName?: string,
+	changeSummary?: string
+): GameSnapshot {
 	return {
 		id: crypto.randomUUID(),
 		gameId: game.id,
 		timestamp: new Date().toISOString(),
-		data: JSON.parse(JSON.stringify(game)) // Deep clone
+		data: JSON.parse(JSON.stringify(game)), // Deep clone
+		versionName,
+		changeSummary
 	};
 }
 
@@ -50,7 +64,9 @@ export function getSnapshotMetadata(snapshot: GameSnapshot): SnapshotMetadata {
 		id: snapshot.id,
 		gameId: snapshot.gameId,
 		timestamp: snapshot.timestamp,
-		gameName: snapshot.data.name
+		gameName: snapshot.data.name,
+		versionName: snapshot.versionName,
+		changeSummary: snapshot.changeSummary
 	};
 }
 
@@ -67,4 +83,93 @@ export function areGamesEqual(game1: Game, game2: Game): boolean {
 	});
 
 	return JSON.stringify(normalize(game1)) === JSON.stringify(normalize(game2));
+}
+
+/**
+ * Generates a summary of changes between two game states
+ */
+export function generateChangeSummary(oldGame: Game | null, newGame: Game): string {
+	if (!oldGame) {
+		return 'Initial version';
+	}
+
+	const changes: string[] = [];
+
+	// Check name change
+	if (oldGame.name !== newGame.name) {
+		changes.push(`Renamed game to "${newGame.name}"`);
+	}
+
+	// Check focus change
+	if (oldGame.focus?.name !== newGame.focus?.name) {
+		if (newGame.focus) {
+			changes.push(`Focus: ${newGame.focus.name}`);
+		} else {
+			changes.push('Removed focus');
+		}
+	}
+
+	// Check periods
+	const oldPeriodIds = new Set(oldGame.periods.map((p) => p.id));
+	const newPeriodIds = new Set(newGame.periods.map((p) => p.id));
+
+	const addedPeriods = newGame.periods.filter((p) => !oldPeriodIds.has(p.id));
+	const removedPeriods = oldGame.periods.filter((p) => !newPeriodIds.has(p.id));
+
+	if (addedPeriods.length > 0) {
+		changes.push(
+			`Added ${addedPeriods.length} period${addedPeriods.length > 1 ? 's' : ''}: ${addedPeriods.map((p) => p.name).join(', ')}`
+		);
+	}
+	if (removedPeriods.length > 0) {
+		changes.push(`Removed ${removedPeriods.length} period${removedPeriods.length > 1 ? 's' : ''}`);
+	}
+
+	// Check events (count total changes)
+	let addedEvents = 0;
+	let removedEvents = 0;
+	let addedScenes = 0;
+	let removedScenes = 0;
+
+	for (const newPeriod of newGame.periods) {
+		const oldPeriod = oldGame.periods.find((p) => p.id === newPeriod.id);
+		if (!oldPeriod) continue;
+
+		const oldEventIds = new Set(oldPeriod.events.map((e) => e.id));
+		const newEventIds = new Set(newPeriod.events.map((e) => e.id));
+
+		addedEvents += newPeriod.events.filter((e) => !oldEventIds.has(e.id)).length;
+		removedEvents += oldPeriod.events.filter((e) => !newEventIds.has(e.id)).length;
+
+		for (const newEvent of newPeriod.events) {
+			const oldEvent = oldPeriod.events.find((e) => e.id === newEvent.id);
+			if (!oldEvent) continue;
+
+			const oldSceneIds = new Set(oldEvent.scenes.map((s) => s.id));
+			const newSceneIds = new Set(newEvent.scenes.map((s) => s.id));
+
+			addedScenes += newEvent.scenes.filter((s) => !oldSceneIds.has(s.id)).length;
+			removedScenes += oldEvent.scenes.filter((s) => !newSceneIds.has(s.id)).length;
+		}
+	}
+
+	if (addedEvents > 0) {
+		changes.push(`Added ${addedEvents} event${addedEvents > 1 ? 's' : ''}`);
+	}
+	if (removedEvents > 0) {
+		changes.push(`Removed ${removedEvents} event${removedEvents > 1 ? 's' : ''}`);
+	}
+	if (addedScenes > 0) {
+		changes.push(`Added ${addedScenes} scene${addedScenes > 1 ? 's' : ''}`);
+	}
+	if (removedScenes > 0) {
+		changes.push(`Removed ${removedScenes} scene${removedScenes > 1 ? 's' : ''}`);
+	}
+
+	// If no specific changes detected, indicate general edits
+	if (changes.length === 0) {
+		return 'Various edits';
+	}
+
+	return changes.slice(0, 3).join('; ') + (changes.length > 3 ? '...' : '');
 }

@@ -10,6 +10,7 @@
 	import Sparkles from 'lucide-svelte/icons/sparkles';
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import Loader2 from 'lucide-svelte/icons/loader-2';
+	import FileJson from 'lucide-svelte/icons/file-json';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import {
@@ -17,7 +18,12 @@
 		createGame as persistCreateGame,
 		deleteGame as persistDeleteGame,
 		DatabaseUnavailableError,
-		PersistenceError
+		PersistenceError,
+		parseGameJSON,
+		createGameFromImport,
+		readFileAsText,
+		isJSONFile,
+		ImportError
 	} from '$lib/services';
 	import { createNewGame, type GameMetadata } from '$lib/types';
 
@@ -35,6 +41,11 @@
 	let deleteDialogOpen = $state(false);
 	let gameToDelete = $state<GameMetadata | null>(null);
 	let isDeleting = $state(false);
+
+	// Import state
+	let isImporting = $state(false);
+	let isDragOver = $state(false);
+	let fileInputRef = $state<HTMLInputElement | null>(null);
 
 	// Load games on mount
 	onMount(async () => {
@@ -97,9 +108,91 @@
 	}
 
 	function handleImportGame() {
-		toast.info('Import Coming Soon', {
-			description: 'Game import functionality will be available in a future update.'
-		});
+		// Trigger file input click
+		fileInputRef?.click();
+	}
+
+	async function handleFileSelect(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+		if (file) {
+			await importFile(file);
+		}
+		// Reset input so the same file can be selected again
+		input.value = '';
+	}
+
+	async function importFile(file: File) {
+		if (!isJSONFile(file)) {
+			toast.error('Invalid file type', {
+				description: 'Please select a JSON file exported from Microscope Canvas.'
+			});
+			return;
+		}
+
+		isImporting = true;
+
+		try {
+			const content = await readFileAsText(file);
+			const importedData = parseGameJSON(content);
+			const newGame = createGameFromImport(importedData);
+
+			await persistCreateGame(newGame);
+
+			toast.success('Game imported!', {
+				description: `"${newGame.name}" has been added to your games.`
+			});
+
+			// Navigate to the new game
+			goto(resolve('/game/[id]', { id: newGame.id }));
+		} catch (error) {
+			console.error('Import failed:', error);
+
+			if (error instanceof ImportError) {
+				toast.error('Import failed', {
+					description: error.message
+				});
+			} else {
+				toast.error('Import failed', {
+					description: 'Could not import the file. Please check that it is a valid export.'
+				});
+			}
+		} finally {
+			isImporting = false;
+		}
+	}
+
+	// Drag and drop handlers
+	function handleDragEnter(event: DragEvent) {
+		event.preventDefault();
+		isDragOver = true;
+	}
+
+	function handleDragLeave(event: DragEvent) {
+		event.preventDefault();
+		// Only set false if we're leaving the container, not entering a child
+		const relatedTarget = event.relatedTarget as HTMLElement | null;
+		const currentTarget = event.currentTarget as HTMLElement | null;
+		if (!relatedTarget || !currentTarget?.contains(relatedTarget)) {
+			isDragOver = false;
+		}
+	}
+
+	function handleDragOver(event: DragEvent) {
+		event.preventDefault();
+		if (event.dataTransfer) {
+			event.dataTransfer.dropEffect = 'copy';
+		}
+	}
+
+	function handleDrop(event: DragEvent) {
+		event.preventDefault();
+		isDragOver = false;
+
+		const file = event.dataTransfer?.files?.[0];
+		if (file) {
+			importFile(file);
+		}
 	}
 
 	function openDeleteDialog(game: GameMetadata) {
@@ -145,7 +238,35 @@
 	}
 </script>
 
-<div class="home-container">
+<!-- Hidden file input for import -->
+<input
+	type="file"
+	accept=".json,application/json"
+	bind:this={fileInputRef}
+	onchange={handleFileSelect}
+	class="hidden-input"
+	aria-hidden="true"
+/>
+
+<div
+	class="home-container"
+	class:drag-over={isDragOver}
+	ondragenter={handleDragEnter}
+	ondragleave={handleDragLeave}
+	ondragover={handleDragOver}
+	ondrop={handleDrop}
+	role="region"
+	aria-label="Drop zone for importing games"
+>
+	{#if isDragOver}
+		<div class="drop-overlay animate-fade-in">
+			<div class="drop-content">
+				<FileJson class="h-16 w-16" />
+				<p class="drop-text">Drop JSON file to import</p>
+			</div>
+		</div>
+	{/if}
+
 	<section class="hero-section">
 		<div class="hero-icon">
 			<Sparkles class="h-12 w-12" />
@@ -158,13 +279,24 @@
 	</section>
 
 	<section class="actions-section">
-		<Button onclick={openCreateDialog} size="lg" class="action-button">
+		<Button onclick={openCreateDialog} size="lg" class="action-button" disabled={isImporting}>
 			<Plus class="h-5 w-5" />
 			Create New Game
 		</Button>
-		<Button onclick={handleImportGame} variant="secondary" size="lg" class="action-button">
-			<Upload class="h-5 w-5" />
-			Import Game
+		<Button
+			onclick={handleImportGame}
+			variant="secondary"
+			size="lg"
+			class="action-button"
+			disabled={isImporting}
+		>
+			{#if isImporting}
+				<Loader2 class="h-5 w-5 animate-spin" />
+				Importing...
+			{:else}
+				<Upload class="h-5 w-5" />
+				Import Game
+			{/if}
 		</Button>
 	</section>
 
@@ -297,6 +429,18 @@
 </AlertDialog.Root>
 
 <style>
+	.hidden-input {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border-width: 0;
+	}
+
 	.home-container {
 		display: flex;
 		flex-direction: column;
@@ -305,6 +449,44 @@
 		max-width: 800px;
 		margin: 0 auto;
 		gap: 3rem;
+		position: relative;
+		min-height: calc(100vh - 60px);
+	}
+
+	.home-container.drag-over {
+		pointer-events: none;
+	}
+
+	.drop-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 100;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background-color: oklch(from var(--color-background) l c h / 0.95);
+		pointer-events: none;
+	}
+
+	.drop-content {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+		padding: 3rem;
+		border: 2px dashed var(--color-primary);
+		border-radius: var(--radius);
+		background-color: oklch(from var(--color-primary) l c h / 0.1);
+	}
+
+	.drop-content :global(svg) {
+		color: var(--color-primary);
+	}
+
+	.drop-text {
+		font-size: 1.25rem;
+		font-weight: 500;
+		color: var(--color-foreground);
 	}
 
 	.hero-section {

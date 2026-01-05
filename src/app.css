@@ -152,6 +152,172 @@
 	}
 }
 
+/* Standardized game-like animations */
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+@keyframes fade-out {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes scale-in {
+	from {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+@keyframes scale-out {
+	from {
+		opacity: 1;
+		transform: scale(1);
+	}
+	to {
+		opacity: 0;
+		transform: scale(0.95);
+	}
+}
+
+@keyframes slide-in-up {
+	from {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes slide-out-down {
+	from {
+		opacity: 1;
+		transform: translateY(0);
+	}
+	to {
+		opacity: 0;
+		transform: translateY(10px);
+	}
+}
+
+@keyframes slide-in-right {
+	from {
+		opacity: 0;
+		transform: translateX(10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(0);
+	}
+}
+
+@keyframes slide-out-right {
+	from {
+		opacity: 1;
+		transform: translateX(0);
+	}
+	to {
+		opacity: 0;
+		transform: translateX(10px);
+	}
+}
+
+@keyframes pulse-subtle {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.7;
+	}
+}
+
+@keyframes shimmer {
+	0% {
+		background-position: -200% 0;
+	}
+	100% {
+		background-position: 200% 0;
+	}
+}
+
+@keyframes float {
+	0%,
+	100% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-4px);
+	}
+}
+
+/* Animation utility classes */
+.animate-fade-in {
+	animation: fade-in 0.2s cubic-bezier(0, 0, 0.2, 1) forwards;
+}
+
+.animate-fade-out {
+	animation: fade-out 0.15s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.animate-scale-in {
+	animation: scale-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.animate-scale-out {
+	animation: scale-out 0.15s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.animate-slide-in-up {
+	animation: slide-in-up 0.2s cubic-bezier(0, 0, 0.2, 1) forwards;
+}
+
+.animate-slide-out-down {
+	animation: slide-out-down 0.15s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.animate-slide-in-right {
+	animation: slide-in-right 0.2s cubic-bezier(0, 0, 0.2, 1) forwards;
+}
+
+.animate-slide-out-right {
+	animation: slide-out-right 0.15s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+.animate-pulse {
+	animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+.animate-shimmer {
+	background: linear-gradient(
+		90deg,
+		var(--color-muted) 25%,
+		var(--color-card) 50%,
+		var(--color-muted) 75%
+	);
+	background-size: 200% 100%;
+	animation: shimmer 1.5s ease-in-out infinite;
+}
+
+.animate-float {
+	animation: float 3s ease-in-out infinite;
+}
+
 /* Base styles */
 * {
 	border-color: var(--color-border);

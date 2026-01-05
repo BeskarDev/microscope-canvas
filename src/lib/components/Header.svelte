@@ -25,7 +25,7 @@
 					</Button>
 				{/snippet}
 			</Dialog.Trigger>
-			<Dialog.Content class="max-h-[85vh] overflow-y-auto">
+			<Dialog.Content class="help-dialog-content">
 				<Dialog.Header>
 					<Dialog.Title>Help & Guide</Dialog.Title>
 					<Dialog.Description>Learn about Microscope and how to use this app</Dialog.Description>
@@ -75,7 +75,7 @@
 							</li>
 							<li>
 								<strong>Navigate the Canvas</strong> — Pan by dragging the background. Use zoom controls
-								for overview.
+								or pinch gestures for overview.
 							</li>
 							<li>
 								<strong>Add Content</strong> — Click (+) buttons to add Periods, Events, or Scenes at
@@ -85,10 +85,16 @@
 								<strong>Edit Cards</strong> — Click any card to view and edit its details, tone, and notes.
 							</li>
 							<li>
-								<strong>Reorder</strong> — Drag cards to rearrange them within their structural constraints.
+								<strong>Undo/Redo</strong> — Use the undo/redo buttons or Ctrl+Z / Ctrl+Shift+Z to revert
+								changes.
 							</li>
 							<li>
-								<strong>Export</strong> — Save your history as JSON (for backup) or Markdown (for reading).
+								<strong>Publish Version</strong> — Click "Publish Version" to save a named checkpoint
+								in your history.
+							</li>
+							<li>
+								<strong>Export/Import</strong> — Save your history as JSON (for backup) or Markdown (for
+								reading). Import JSON files to restore backups.
 							</li>
 						</ul>
 					</section>
@@ -100,7 +106,7 @@
 								<strong>Pan</strong> — Click and drag the background to move around.
 							</li>
 							<li>
-								<strong>Zoom</strong> — Use the (+) and (−) buttons for zoom control.
+								<strong>Zoom</strong> — Use the (+) and (−) buttons, scroll wheel, or pinch gestures.
 							</li>
 							<li>
 								<strong>Select</strong> — Click a card to select and view/edit it.
@@ -115,12 +121,26 @@
 						<h3>Keyboard Shortcuts</h3>
 						<ul>
 							<li>
+								<strong>Ctrl+Z</strong> — Undo the last action.
+							</li>
+							<li>
+								<strong>Ctrl+Shift+Z / Ctrl+Y</strong> — Redo an undone action.
+							</li>
+							<li>
 								<strong>Escape</strong> — Close dialogs and deselect items.
 							</li>
 							<li>
 								<strong>Tab</strong> — Navigate between interactive elements.
 							</li>
 						</ul>
+					</section>
+
+					<section class="help-section">
+						<h3>Data & Privacy</h3>
+						<p>
+							All your data is stored locally in your browser. Nothing is sent to any server. You can
+							export your games as JSON files for backup or to transfer between devices.
+						</p>
 					</section>
 				</div>
 
@@ -223,6 +243,21 @@
 
 	.help-section li strong {
 		color: var(--color-foreground);
+	}
+
+	/* Help dialog responsive sizing */
+	:global(.help-dialog-content) {
+		max-height: calc(100vh - 2rem);
+		max-height: calc(100dvh - 2rem);
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	:global(.help-dialog-content) .help-content {
+		overflow-y: auto;
+		flex: 1;
+		min-height: 0;
 	}
 
 	@media (max-width: 640px) {

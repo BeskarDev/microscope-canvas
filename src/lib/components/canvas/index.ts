@@ -14,3 +14,5 @@ export { default as EditItemModal } from './EditItemModal.svelte';
 export { default as GameSettingsModal } from './GameSettingsModal.svelte';
 export { default as DeleteConfirmModal } from './DeleteConfirmModal.svelte';
 export { default as HistoryModal } from './HistoryModal.svelte';
+export { default as PublishVersionModal } from './PublishVersionModal.svelte';
+export { default as ExportMenu } from './ExportMenu.svelte';
