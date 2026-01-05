@@ -17,6 +17,10 @@
 	let startPanX = $state(0);
 	let startPanY = $state(0);
 
+	// Pinch zoom state
+	let initialPinchDistance = $state<number | null>(null);
+	let initialPinchZoom = $state<number>(1);
+
 	// Internal pan state - start with some offset to show content centered
 	let internalPanX = $state(50);
 	let internalPanY = $state(50);
@@ -105,6 +109,54 @@
 			onZoomChange(ZOOM_LEVELS[currentIndex + 1]);
 		}
 	}
+
+	// Get distance between two touch points
+	function getTouchDistance(touch1: Touch, touch2: Touch): number {
+		const dx = touch2.clientX - touch1.clientX;
+		const dy = touch2.clientY - touch1.clientY;
+		return Math.sqrt(dx * dx + dy * dy);
+	}
+
+	// Handle touch start for pinch zoom
+	function handleTouchStart(e: TouchEvent) {
+		if (e.touches.length === 2) {
+			// Pinch zoom started
+			e.preventDefault();
+			const distance = getTouchDistance(e.touches[0], e.touches[1]);
+			initialPinchDistance = distance;
+			initialPinchZoom = zoom;
+			isPanning = false; // Cancel any panning
+		}
+	}
+
+	// Handle touch move for pinch zoom
+	function handleTouchMove(e: TouchEvent) {
+		if (e.touches.length === 2 && initialPinchDistance !== null && onZoomChange) {
+			e.preventDefault();
+			const distance = getTouchDistance(e.touches[0], e.touches[1]);
+			const scale = distance / initialPinchDistance;
+			
+			// Calculate new zoom level
+			const newZoom = Math.max(0.25, Math.min(2, initialPinchZoom * scale));
+			
+			// Find closest zoom level
+			const ZOOM_LEVELS = [2, 1.75, 1.5, 1.25, 1, 0.75, 0.5, 0.25];
+			const closest = ZOOM_LEVELS.reduce((prev, curr) => 
+				Math.abs(curr - newZoom) < Math.abs(prev - newZoom) ? curr : prev
+			);
+			
+			if (closest !== zoom) {
+				onZoomChange(closest);
+			}
+		}
+	}
+
+	// Handle touch end for pinch zoom
+	function handleTouchEnd(e: TouchEvent) {
+		if (e.touches.length < 2) {
+			initialPinchDistance = null;
+		}
+	}
 </script>
 
 <svelte:window onkeydown={handleKeyDown} />
@@ -119,6 +171,10 @@
 	onpointerup={handlePointerUp}
 	onpointercancel={handlePointerUp}
 	onwheel={handleWheel}
+	ontouchstart={handleTouchStart}
+	ontouchmove={handleTouchMove}
+	ontouchend={handleTouchEnd}
+	ontouchcancel={handleTouchEnd}
 	role="application"
 	aria-label="Timeline canvas"
 	tabindex="0"

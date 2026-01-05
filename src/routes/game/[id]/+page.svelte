@@ -1711,7 +1711,7 @@
 	}
 
 	.zoom-controls-container {
-		position: absolute;
+		position: fixed;
 		bottom: 1rem;
 		right: 1rem;
 		z-index: 10;

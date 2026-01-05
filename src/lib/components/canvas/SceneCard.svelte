@@ -18,6 +18,7 @@
 	class="scene-card"
 	class:light={scene.tone === 'light'}
 	class:dark={scene.tone === 'dark'}
+	data-card="scene"
 	{onclick}
 >
 	<div class="tone-indicator">
