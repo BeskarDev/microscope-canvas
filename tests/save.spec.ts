@@ -166,7 +166,10 @@ test.describe('Game Save Functionality', () => {
 
 		// Rapidly add multiple periods
 		for (let i = 0; i < 5; i++) {
-			await page.getByRole('button', { name: /Add period/ }).first().click();
+			await page
+				.getByRole('button', { name: /Add period/ })
+				.first()
+				.click();
 			await page.waitForTimeout(100); // Brief delay between clicks
 		}
 
