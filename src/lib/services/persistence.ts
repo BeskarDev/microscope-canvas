@@ -3,6 +3,7 @@
  * Provides a thin abstraction over IndexedDB for game storage
  */
 
+import { browser } from '$app/environment';
 import type { Game, GameMetadata } from '$lib/types';
 import { getGameMetadata } from '$lib/types';
 
@@ -42,10 +43,14 @@ export class GameNotFoundError extends PersistenceError {
 
 /**
  * Check if IndexedDB is available
+ * Must check both browser environment and indexedDB existence
  */
 function isIndexedDBAvailable(): boolean {
+	if (!browser) {
+		return false;
+	}
 	try {
-		return typeof indexedDB !== 'undefined' && indexedDB !== null;
+		return typeof window !== 'undefined' && 'indexedDB' in window && window.indexedDB !== null;
 	} catch {
 		return false;
 	}
@@ -63,7 +68,7 @@ function openDatabase(): Promise<IDBDatabase> {
 		}
 
 		try {
-			const request = indexedDB.open(DB_NAME, DB_VERSION);
+			const request = window.indexedDB.open(DB_NAME, DB_VERSION);
 
 			request.onerror = () => {
 				reject(new PersistenceError('Failed to open database', request.error));
