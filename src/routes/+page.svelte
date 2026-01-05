@@ -168,6 +168,7 @@
 
 	function handleDragEnter(event: DragEvent) {
 		event.preventDefault();
+		event.stopPropagation();
 		dragEnterCount++;
 		if (dragEnterCount === 1) {
 			isDragOver = true;
@@ -176,6 +177,7 @@
 
 	function handleDragLeave(event: DragEvent) {
 		event.preventDefault();
+		event.stopPropagation();
 		dragEnterCount--;
 		if (dragEnterCount === 0) {
 			isDragOver = false;
@@ -184,6 +186,7 @@
 
 	function handleDragOver(event: DragEvent) {
 		event.preventDefault();
+		event.stopPropagation();
 		if (event.dataTransfer) {
 			event.dataTransfer.dropEffect = 'copy';
 		}
@@ -191,6 +194,7 @@
 
 	function handleDrop(event: DragEvent) {
 		event.preventDefault();
+		event.stopPropagation();
 		dragEnterCount = 0;
 		isDragOver = false;
 
@@ -246,7 +250,7 @@
 <!-- Hidden file input for import -->
 <input
 	type="file"
-	accept=".json,application/json"
+	accept=".json"
 	bind:this={fileInputRef}
 	onchange={handleFileSelect}
 	class="hidden-input"
@@ -264,7 +268,14 @@
 	aria-label="Drop zone for importing games"
 >
 	{#if isDragOver}
-		<div class="drop-overlay animate-fade-in">
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div 
+			class="drop-overlay animate-fade-in"
+			ondragenter={handleDragEnter}
+			ondragleave={handleDragLeave}
+			ondragover={handleDragOver}
+			ondrop={handleDrop}
+		>
 			<div class="drop-content">
 				<FileJson class="h-16 w-16" />
 				<p class="drop-text">Drop JSON file to import</p>
@@ -458,10 +469,6 @@
 		min-height: calc(100vh - 60px);
 	}
 
-	.home-container.drag-over {
-		pointer-events: none;
-	}
-
 	.drop-overlay {
 		position: fixed;
 		inset: 0;
@@ -470,7 +477,8 @@
 		align-items: center;
 		justify-content: center;
 		background-color: oklch(from var(--color-background) l c h / 0.95);
-		pointer-events: none;
+		/* Allow pointer events on overlay so it can receive the drop */
+		pointer-events: auto;
 	}
 
 	.drop-content {

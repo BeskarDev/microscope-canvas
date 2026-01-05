@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Period, Event, Scene, Tone } from '$lib/types';
 	import * as Dialog from '$lib/components/ui/dialog';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
@@ -28,18 +29,89 @@
 	let answer = $state('');
 	let nameError = $state<string | null>(null);
 
-	// Sync form state when item changes
-	$effect(() => {
+	// Track original values to detect unsaved changes
+	let originalName = $state('');
+	let originalDescription = $state('');
+	let originalTone = $state<Tone>('light');
+	let originalQuestion = $state('');
+	let originalAnswer = $state('');
+
+	// Track item ID to force reset when item changes
+	let currentItemId = $state<string | null>(null);
+
+	// Unsaved changes warning state
+	let showUnsavedWarning = $state(false);
+
+	// Detect if there are unsaved changes
+	const hasUnsavedChanges = $derived(() => {
+		if (!item) return false;
+		if (name !== originalName) return true;
+		if (description !== originalDescription) return true;
+		if (tone !== originalTone) return true;
+		if (itemType === 'scene') {
+			if (question !== originalQuestion) return true;
+			if (answer !== originalAnswer) return true;
+		}
+		return false;
+	});
+
+	// Reset form state function
+	function resetFormState() {
 		if (item) {
 			name = item.name;
 			description = item.description ?? '';
 			tone = item.tone;
 
+			// Store original values
+			originalName = name;
+			originalDescription = description;
+			originalTone = tone;
+
 			// Scene-specific fields
 			if (itemType === 'scene' && 'question' in item) {
 				question = (item as Scene).question ?? '';
 				answer = (item as Scene).answer ?? '';
+				originalQuestion = question;
+				originalAnswer = answer;
+			} else {
+				question = '';
+				answer = '';
+				originalQuestion = '';
+				originalAnswer = '';
 			}
+
+			currentItemId = item.id;
+			nameError = null;
+		} else {
+			// Reset all values when no item
+			name = '';
+			description = '';
+			tone = 'light';
+			question = '';
+			answer = '';
+			originalName = '';
+			originalDescription = '';
+			originalTone = 'light';
+			originalQuestion = '';
+			originalAnswer = '';
+			currentItemId = null;
+			nameError = null;
+		}
+	}
+
+	// Sync form state when item changes (using item.id as dependency)
+	$effect(() => {
+		const itemId = item?.id ?? null;
+		// Only reset if the item ID changed (different item selected)
+		if (itemId !== currentItemId) {
+			resetFormState();
+		}
+	});
+
+	// Also reset when dialog opens with an item
+	$effect(() => {
+		if (open && item && item.id !== currentItemId) {
+			resetFormState();
 		}
 	});
 
@@ -82,6 +154,12 @@
 		}
 
 		onSave(updates);
+		// Reset tracking after save
+		originalName = name;
+		originalDescription = description;
+		originalTone = tone;
+		originalQuestion = question;
+		originalAnswer = answer;
 		onOpenChange(false);
 	}
 
@@ -93,14 +171,41 @@
 	function handleToneChange(newTone: Tone) {
 		tone = newTone;
 	}
+
+	function handleClose() {
+		if (hasUnsavedChanges()) {
+			showUnsavedWarning = true;
+		} else {
+			onOpenChange(false);
+		}
+	}
+
+	function handleDiscardChanges() {
+		showUnsavedWarning = false;
+		resetFormState();
+		onOpenChange(false);
+	}
+
+	function handleContinueEditing() {
+		showUnsavedWarning = false;
+	}
+
+	// Intercept dialog close to check for unsaved changes
+	function handleOpenChange(newOpen: boolean) {
+		if (!newOpen && hasUnsavedChanges()) {
+			showUnsavedWarning = true;
+		} else {
+			onOpenChange(newOpen);
+		}
+	}
 </script>
 
-<Dialog.Root {open} {onOpenChange}>
+<Dialog.Root {open} onOpenChange={handleOpenChange}>
 	<Dialog.Content class="edit-modal">
 		<Dialog.Header>
 			<Dialog.Title>{getTitle()}</Dialog.Title>
 			<Dialog.Description>
-				Make changes to your {itemType}. Changes are saved automatically.
+				Make changes to your {itemType}. Click "Save Changes" when done.
 			</Dialog.Description>
 		</Dialog.Header>
 
@@ -167,13 +272,34 @@
 				Delete
 			</Button>
 			<div class="spacer"></div>
-			<Button type="button" variant="secondary" onclick={() => onOpenChange(false)}>Cancel</Button>
+			<Button type="button" variant="secondary" onclick={handleClose}>Cancel</Button>
 			<Button type="button" onclick={handleSave} disabled={!!nameError || !name.trim()}>
 				Save Changes
 			</Button>
 		</Dialog.Footer>
 	</Dialog.Content>
 </Dialog.Root>
+
+<!-- Unsaved changes warning dialog -->
+<AlertDialog.Root bind:open={showUnsavedWarning}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Unsaved Changes</AlertDialog.Title>
+			<AlertDialog.Description>
+				You have unsaved changes. Do you want to discard them?
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel onclick={handleContinueEditing}>Continue Editing</AlertDialog.Cancel>
+			<AlertDialog.Action
+				onclick={handleDiscardChanges}
+				class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+			>
+				Discard Changes
+			</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
 
 <style>
 	.edit-form {

@@ -292,8 +292,13 @@ function applyEditGameMetadata(game: Game, action: EditGameMetadataAction, rever
 	const values = reverse ? action.previousValues : action.newValues;
 	if (values.name !== undefined) game.name = values.name;
 	if (values.focus !== undefined) game.focus = values.focus;
+	if (values.focuses !== undefined) game.focuses = [...values.focuses];
+	if (values.currentFocusIndex !== undefined) game.currentFocusIndex = values.currentFocusIndex;
+	if (values.players !== undefined) game.players = [...values.players];
+	if (values.activePlayerIndex !== undefined) game.activePlayerIndex = values.activePlayerIndex;
 	if (values.bigPicture !== undefined) game.bigPicture = values.bigPicture;
 	if (values.palette !== undefined) game.palette = values.palette;
+	if (values.legacies !== undefined) game.legacies = [...values.legacies];
 	game.updatedAt = new Date().toISOString();
 	return game;
 }

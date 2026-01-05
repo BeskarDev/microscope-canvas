@@ -11,6 +11,13 @@
 	import History from 'lucide-svelte/icons/history';
 	import Bookmark from 'lucide-svelte/icons/bookmark';
 	import ArrowLeftToLine from 'lucide-svelte/icons/arrow-left-to-line';
+	import Menu from 'lucide-svelte/icons/menu';
+	import FileJson from 'lucide-svelte/icons/file-json';
+	import FileText from 'lucide-svelte/icons/file-text';
+	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
+	import ChevronRight from 'lucide-svelte/icons/chevron-right';
+	import User from 'lucide-svelte/icons/user';
+	import Target from 'lucide-svelte/icons/target';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
@@ -21,7 +28,10 @@
 		loadSnapshot,
 		listSnapshotsForGame,
 		enforceSnapshotLimit,
-		getLatestSnapshot
+		getLatestSnapshot,
+		loadAllSnapshotsForGame,
+		downloadGameAsJSON,
+		downloadGameAsMarkdown
 	} from '$lib/services';
 	import {
 		createNewPeriod,
@@ -44,7 +54,10 @@
 		type DeleteSceneAction,
 		type EditSceneAction,
 		type EditGameMetadataAction,
-		type SnapshotMetadata
+		type SnapshotMetadata,
+		type ReorderPeriodsAction,
+		type ReorderEventsAction,
+		type ReorderScenesAction
 	} from '$lib/types';
 	import {
 		createHistoryState,
@@ -119,6 +132,9 @@
 	let publishModalOpen = $state(false);
 	let isPublishing = $state(false);
 	let lastPublishedGame = $state<Game | null>(null);
+
+	// Mobile menu state
+	let mobileMenuOpen = $state(false);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -634,6 +650,26 @@
 			previousValues.palette = game.palette ? JSON.parse(JSON.stringify(game.palette)) : undefined;
 			newValues.palette = updates.palette;
 		}
+		if (updates.legacies !== undefined) {
+			previousValues.legacies = JSON.parse(JSON.stringify(game.legacies));
+			newValues.legacies = updates.legacies;
+		}
+		if (updates.players !== undefined) {
+			previousValues.players = JSON.parse(JSON.stringify(game.players));
+			newValues.players = updates.players;
+		}
+		if (updates.activePlayerIndex !== undefined) {
+			previousValues.activePlayerIndex = game.activePlayerIndex;
+			newValues.activePlayerIndex = updates.activePlayerIndex;
+		}
+		if (updates.focuses !== undefined) {
+			previousValues.focuses = JSON.parse(JSON.stringify(game.focuses));
+			newValues.focuses = updates.focuses;
+		}
+		if (updates.currentFocusIndex !== undefined) {
+			previousValues.currentFocusIndex = game.currentFocusIndex;
+			newValues.currentFocusIndex = updates.currentFocusIndex;
+		}
 
 		const action: EditGameMetadataAction = {
 			type: 'EDIT_GAME_METADATA',
@@ -645,6 +681,42 @@
 		Object.assign(game, updates);
 		game = game;
 		recordGameAction(action);
+	}
+
+	// Player navigation
+	function handlePreviousPlayer() {
+		if (!game || game.players.length === 0) return;
+		const newIndex = game.activePlayerIndex <= 0 
+			? game.players.length - 1 
+			: game.activePlayerIndex - 1;
+		handleSaveGameSettings({ activePlayerIndex: newIndex });
+	}
+
+	function handleNextPlayer() {
+		if (!game || game.players.length === 0) return;
+		const newIndex = (game.activePlayerIndex + 1) % game.players.length;
+		handleSaveGameSettings({ activePlayerIndex: newIndex });
+	}
+
+	// Focus navigation  
+	function handlePreviousFocus() {
+		if (!game || game.focuses.length === 0) return;
+		const newIndex = game.currentFocusIndex <= 0 
+			? game.focuses.length - 1 
+			: game.currentFocusIndex - 1;
+		handleSaveGameSettings({ 
+			currentFocusIndex: newIndex,
+			focus: game.focuses[newIndex]
+		});
+	}
+
+	function handleNextFocus() {
+		if (!game || game.focuses.length === 0) return;
+		const newIndex = (game.currentFocusIndex + 1) % game.focuses.length;
+		handleSaveGameSettings({ 
+			currentFocusIndex: newIndex,
+			focus: game.focuses[newIndex]
+		});
 	}
 
 	// History modal handlers
@@ -729,6 +801,62 @@
 		historicalGame = null;
 		currentSnapshotId = null;
 	}
+
+	// Mobile menu handlers
+	function closeMobileMenu() {
+		mobileMenuOpen = false;
+	}
+
+	async function handleMobileExportJSON() {
+		if (!game) return;
+		closeMobileMenu();
+		try {
+			const history = await loadAllSnapshotsForGame(game.id);
+			downloadGameAsJSON(game, history);
+			const historyNote = history.length > 0 
+				? ` Includes ${history.length} version${history.length > 1 ? 's' : ''} in history.`
+				: '';
+			toast.success('Export complete', {
+				description: `Your game has been exported as JSON.${historyNote}`
+			});
+		} catch (error) {
+			console.error('Export failed:', error);
+			toast.error('Export failed', {
+				description: 'Could not export the game. Please try again.'
+			});
+		}
+	}
+
+	function handleMobileExportMarkdown() {
+		if (!game) return;
+		closeMobileMenu();
+		try {
+			downloadGameAsMarkdown(game);
+			toast.success('Export complete', {
+				description: 'Your game has been exported as Markdown.'
+			});
+		} catch (error) {
+			console.error('Export failed:', error);
+			toast.error('Export failed', {
+				description: 'Could not export the game. Please try again.'
+			});
+		}
+	}
+
+	function handleMobilePublish() {
+		closeMobileMenu();
+		openPublishModal();
+	}
+
+	function handleMobileHistory() {
+		closeMobileMenu();
+		openHistoryModal();
+	}
+
+	function handleMobileSettings() {
+		closeMobileMenu();
+		settingsModalOpen = true;
+	}
 </script>
 
 <svelte:window onkeydown={handleGlobalKeyDown} />
@@ -757,13 +885,87 @@
 					</span>
 				{:else if game}
 					<span class="game-title">{game.name}</span>
-					{#if game.focus}
-						<span class="focus-indicator" title="Current Focus: {game.focus.name}">
-							Focus: {game.focus.name}
-						</span>
-					{/if}
 				{/if}
 			</div>
+
+			<!-- Player and Focus navigation (center section) -->
+			{#if !isViewingHistory && game}
+				<div class="header-center">
+					<!-- Active Player -->
+					{#if game.players && game.players.length > 0}
+						<div class="nav-control player-control" title="Active Player">
+							<Button
+								variant="ghost"
+								size="icon"
+								class="nav-btn"
+								onclick={handlePreviousPlayer}
+								aria-label="Previous player"
+								disabled={game.players.length <= 1}
+							>
+								<ChevronLeft class="h-3.5 w-3.5" />
+							</Button>
+							<div class="nav-label">
+								<User class="h-3.5 w-3.5 nav-icon" />
+								<span class="nav-text">
+									{game.activePlayerIndex >= 0 && game.players[game.activePlayerIndex]
+										? game.players[game.activePlayerIndex].name
+										: 'No player'}
+								</span>
+							</div>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="nav-btn"
+								onclick={handleNextPlayer}
+								aria-label="Next player"
+								disabled={game.players.length <= 1}
+							>
+								<ChevronRight class="h-3.5 w-3.5" />
+							</Button>
+						</div>
+					{/if}
+
+					<!-- Current Focus -->
+					{#if game.focuses && game.focuses.length > 0}
+						<div class="nav-control focus-control" title="Current Focus">
+							<Button
+								variant="ghost"
+								size="icon"
+								class="nav-btn"
+								onclick={handlePreviousFocus}
+								aria-label="Previous focus"
+								disabled={game.focuses.length <= 1}
+							>
+								<ChevronLeft class="h-3.5 w-3.5" />
+							</Button>
+							<div class="nav-label">
+								<Target class="h-3.5 w-3.5 nav-icon" />
+								<span class="nav-text">
+									{game.currentFocusIndex >= 0 && game.focuses[game.currentFocusIndex]
+										? game.focuses[game.currentFocusIndex].name
+										: 'No focus'}
+								</span>
+							</div>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="nav-btn"
+								onclick={handleNextFocus}
+								aria-label="Next focus"
+								disabled={game.focuses.length <= 1}
+							>
+								<ChevronRight class="h-3.5 w-3.5" />
+							</Button>
+						</div>
+					{:else if game.focus}
+						<!-- Fallback for legacy focus field -->
+						<div class="focus-indicator" title="Current Focus: {game.focus.name}">
+							<Target class="h-3.5 w-3.5" />
+							{game.focus.name}
+						</div>
+					{/if}
+				</div>
+			{/if}
 
 			<div class="header-right">
 				{#if isViewingHistory && currentSnapshotId}
@@ -775,7 +977,7 @@
 						Restore This Version
 					</Button>
 				{:else if game}
-					<!-- Undo/Redo buttons -->
+					<!-- Undo/Redo buttons (always visible) -->
 					<div class="undo-redo-controls">
 						<Button
 							variant="ghost"
@@ -798,33 +1000,84 @@
 							<Redo2 class="h-4 w-4" />
 						</Button>
 					</div>
-					<Button
-						variant="ghost"
-						size="sm"
-						onclick={openPublishModal}
-						aria-label="Publish version"
-						title="Publish version"
-					>
-						<Bookmark class="h-4 w-4" />
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						onclick={openHistoryModal}
-						aria-label="Version history"
-						title="Version history"
-					>
-						<History class="h-4 w-4" />
-					</Button>
-					<ExportMenu {game} />
-					<Button
-						variant="ghost"
-						size="sm"
-						onclick={() => (settingsModalOpen = true)}
-						aria-label="Game settings"
-					>
-						<Settings class="h-4 w-4" />
-					</Button>
+					
+					<!-- Desktop controls (hidden on mobile) -->
+					<div class="desktop-controls">
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={openPublishModal}
+							aria-label="Publish version"
+							title="Publish version"
+						>
+							<Bookmark class="h-4 w-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={openHistoryModal}
+							aria-label="Version history"
+							title="Version history"
+						>
+							<History class="h-4 w-4" />
+						</Button>
+						<ExportMenu {game} />
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={() => (settingsModalOpen = true)}
+							aria-label="Game settings"
+						>
+							<Settings class="h-4 w-4" />
+						</Button>
+					</div>
+
+					<!-- Mobile menu button (hidden on desktop) -->
+					<div class="mobile-menu-container">
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
+							aria-label="Menu"
+							aria-haspopup="menu"
+							aria-expanded={mobileMenuOpen}
+						>
+							<Menu class="h-4 w-4" />
+						</Button>
+
+						{#if mobileMenuOpen}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div 
+								class="mobile-menu-backdrop" 
+								onclick={closeMobileMenu}
+								onkeydown={(e) => e.key === 'Escape' && closeMobileMenu()}
+							></div>
+							<div class="mobile-dropdown" role="menu">
+								<button type="button" class="mobile-menu-item" onclick={handleMobilePublish} role="menuitem">
+									<Bookmark class="h-4 w-4" />
+									<span>Publish Version</span>
+								</button>
+								<button type="button" class="mobile-menu-item" onclick={handleMobileHistory} role="menuitem">
+									<History class="h-4 w-4" />
+									<span>Version History</span>
+								</button>
+								<div class="mobile-menu-divider"></div>
+								<button type="button" class="mobile-menu-item" onclick={handleMobileExportJSON} role="menuitem">
+									<FileJson class="h-4 w-4" />
+									<span>Export as JSON</span>
+								</button>
+								<button type="button" class="mobile-menu-item" onclick={handleMobileExportMarkdown} role="menuitem">
+									<FileText class="h-4 w-4" />
+									<span>Export as Markdown</span>
+								</button>
+								<div class="mobile-menu-divider"></div>
+								<button type="button" class="mobile-menu-item" onclick={handleMobileSettings} role="menuitem">
+									<Settings class="h-4 w-4" />
+									<span>Game Settings</span>
+								</button>
+							</div>
+						{/if}
+					</div>
 				{/if}
 			</div>
 		</div>
@@ -1012,6 +1265,120 @@
 		margin-right: 0.25rem;
 	}
 
+	.desktop-controls {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	/* Center section with player/focus navigation */
+	.header-center {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.nav-control {
+		display: flex;
+		align-items: center;
+		gap: 0.125rem;
+		background-color: var(--color-muted);
+		border-radius: var(--radius);
+		padding: 0.125rem;
+	}
+
+	.nav-control :global(.nav-btn) {
+		width: 1.5rem;
+		height: 1.5rem;
+		padding: 0;
+	}
+
+	.nav-label {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0.25rem 0.5rem;
+		min-width: 0;
+	}
+
+	.nav-label :global(.nav-icon) {
+		flex-shrink: 0;
+		color: var(--color-muted-foreground);
+	}
+
+	.player-control :global(.nav-icon) {
+		color: oklch(70% 0.15 200);
+	}
+
+	.focus-control :global(.nav-icon) {
+		color: oklch(70% 0.15 50);
+	}
+
+	.nav-text {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--color-foreground);
+		max-width: 100px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.mobile-menu-container {
+		display: none;
+		position: relative;
+	}
+
+	.mobile-menu-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 40;
+	}
+
+	.mobile-dropdown {
+		position: absolute;
+		top: 100%;
+		right: 0;
+		margin-top: 0.25rem;
+		min-width: 200px;
+		background-color: var(--color-popover);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		box-shadow: 0 4px 12px oklch(0% 0 0 / 0.3);
+		z-index: 50;
+		overflow: hidden;
+	}
+
+	.mobile-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		width: 100%;
+		padding: 0.75rem 1rem;
+		background: none;
+		border: none;
+		text-align: left;
+		color: var(--color-popover-foreground);
+		font-size: 0.875rem;
+		cursor: pointer;
+		transition: background-color 0.15s;
+	}
+
+	.mobile-menu-item:hover {
+		background-color: var(--color-accent);
+	}
+
+	.mobile-menu-item :global(svg) {
+		flex-shrink: 0;
+		color: var(--color-muted-foreground);
+	}
+
+	.mobile-menu-divider {
+		height: 1px;
+		background-color: var(--color-border);
+		margin: 0.25rem 0;
+	}
+
 	.game-title {
 		font-size: 0.9375rem;
 		font-weight: 600;
@@ -1019,11 +1386,19 @@
 	}
 
 	.focus-indicator {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
 		font-size: 0.75rem;
 		color: var(--color-muted-foreground);
-		padding: 0.125rem 0.5rem;
+		padding: 0.25rem 0.5rem;
 		background-color: var(--color-muted);
 		border-radius: var(--radius);
+	}
+
+	.focus-indicator :global(svg) {
+		flex-shrink: 0;
+		color: oklch(70% 0.15 50);
 	}
 
 	.history-indicator {
@@ -1171,6 +1546,18 @@
 			display: none;
 		}
 
+		.header-center {
+			display: none;
+		}
+
+		.desktop-controls {
+			display: none;
+		}
+
+		.mobile-menu-container {
+			display: block;
+		}
+
 		.zoom-controls-container {
 			bottom: 0.5rem;
 			right: 0.5rem;
@@ -1184,6 +1571,23 @@
 		.error-actions :global(button),
 		.error-actions :global(a) {
 			width: 100%;
+		}
+	}
+
+	/* Show header center on tablets */
+	@media (min-width: 768px) {
+		.header-center {
+			display: flex;
+		}
+
+		.nav-text {
+			max-width: 120px;
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.nav-text {
+			max-width: 160px;
 		}
 	}
 </style>

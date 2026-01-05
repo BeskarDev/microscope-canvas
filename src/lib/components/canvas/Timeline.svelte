@@ -4,6 +4,7 @@
 	import EventCard from './EventCard.svelte';
 	import SceneCard from './SceneCard.svelte';
 	import AddButton from './AddButton.svelte';
+	import GripVertical from 'lucide-svelte/icons/grip-vertical';
 
 	interface Props {
 		game: Game;
@@ -13,6 +14,9 @@
 		onSelectPeriod: (period: Period) => void;
 		onSelectEvent: (periodId: string, event: GameEvent) => void;
 		onSelectScene: (periodId: string, eventId: string, scene: Scene) => void;
+		onReorderPeriods?: (fromIndex: number, toIndex: number) => void;
+		onReorderEvents?: (periodId: string, fromIndex: number, toIndex: number) => void;
+		onReorderScenes?: (periodId: string, eventId: string, fromIndex: number, toIndex: number) => void;
 	}
 
 	let {
@@ -22,8 +26,88 @@
 		onAddScene,
 		onSelectPeriod,
 		onSelectEvent,
-		onSelectScene
+		onSelectScene,
+		onReorderPeriods,
+		onReorderEvents,
+		onReorderScenes
 	}: Props = $props();
+
+	// Drag state
+	type DragType = 'period' | 'event' | 'scene';
+	let dragType = $state<DragType | null>(null);
+	let dragIndex = $state(-1);
+	let dragPeriodId = $state<string | null>(null);
+	let dragEventId = $state<string | null>(null);
+	let dropIndex = $state(-1);
+
+	function handleDragStart(type: DragType, index: number, periodId?: string, eventId?: string) {
+		return (e: DragEvent) => {
+			if (!e.dataTransfer) return;
+			dragType = type;
+			dragIndex = index;
+			dragPeriodId = periodId ?? null;
+			dragEventId = eventId ?? null;
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', `${type}:${index}`);
+		};
+	}
+
+	function handleDragOver(type: DragType, index: number, periodId?: string, eventId?: string) {
+		return (e: DragEvent) => {
+			e.preventDefault();
+			if (!e.dataTransfer) return;
+			// Only allow drop on same type and same parent
+			if (dragType !== type) return;
+			if (type === 'event' && dragPeriodId !== periodId) return;
+			if (type === 'scene' && (dragPeriodId !== periodId || dragEventId !== eventId)) return;
+			e.dataTransfer.dropEffect = 'move';
+			dropIndex = index;
+		};
+	}
+
+	function handleDragLeave() {
+		dropIndex = -1;
+	}
+
+	function handleDrop(type: DragType, toIndex: number, periodId?: string, eventId?: string) {
+		return (e: DragEvent) => {
+			e.preventDefault();
+			if (dragType !== type || dragIndex === toIndex) {
+				resetDragState();
+				return;
+			}
+			// Same parent check
+			if (type === 'event' && dragPeriodId !== periodId) {
+				resetDragState();
+				return;
+			}
+			if (type === 'scene' && (dragPeriodId !== periodId || dragEventId !== eventId)) {
+				resetDragState();
+				return;
+			}
+
+			if (type === 'period' && onReorderPeriods) {
+				onReorderPeriods(dragIndex, toIndex);
+			} else if (type === 'event' && onReorderEvents && periodId) {
+				onReorderEvents(periodId, dragIndex, toIndex);
+			} else if (type === 'scene' && onReorderScenes && periodId && eventId) {
+				onReorderScenes(periodId, eventId, dragIndex, toIndex);
+			}
+			resetDragState();
+		};
+	}
+
+	function handleDragEnd() {
+		resetDragState();
+	}
+
+	function resetDragState() {
+		dragType = null;
+		dragIndex = -1;
+		dragPeriodId = null;
+		dragEventId = null;
+		dropIndex = -1;
+	}
 </script>
 
 <div class="timeline">
@@ -35,25 +119,68 @@
 	/>
 
 	{#each game.periods as period, periodIndex (period.id)}
-		<div class="period-column">
-			<!-- Period card -->
-			<div class="period-section" data-card>
+		<div 
+			class="period-column"
+			class:drag-over={dragType === 'period' && dropIndex === periodIndex && dragIndex !== periodIndex}
+			ondragover={handleDragOver('period', periodIndex)}
+			ondragleave={handleDragLeave}
+			ondrop={handleDrop('period', periodIndex)}
+		>
+			<!-- Period card with drag handle -->
+			<div 
+				class="period-section" 
+				class:dragging={dragType === 'period' && dragIndex === periodIndex}
+				draggable="true"
+				ondragstart={handleDragStart('period', periodIndex)}
+				ondragend={handleDragEnd}
+			>
+				<div class="drag-handle" title="Drag to reorder">
+					<GripVertical class="h-4 w-4" />
+				</div>
 				<PeriodCard {period} onclick={() => onSelectPeriod(period)} />
 			</div>
 
 			<!-- Events under this period -->
 			<div class="events-section">
-				{#each period.events as event (event.id)}
-					<div class="event-column">
-						<!-- Event card -->
-						<div class="event-wrapper" data-card>
+				{#each period.events as event, eventIndex (event.id)}
+					<div 
+						class="event-column"
+						class:drag-over={dragType === 'event' && dropIndex === eventIndex && dragIndex !== eventIndex && dragPeriodId === period.id}
+						ondragover={handleDragOver('event', eventIndex, period.id)}
+						ondragleave={handleDragLeave}
+						ondrop={handleDrop('event', eventIndex, period.id)}
+					>
+						<!-- Event card with drag handle -->
+						<div 
+							class="event-wrapper"
+							class:dragging={dragType === 'event' && dragIndex === eventIndex && dragPeriodId === period.id}
+							draggable="true"
+							ondragstart={handleDragStart('event', eventIndex, period.id)}
+							ondragend={handleDragEnd}
+						>
+							<div class="drag-handle" title="Drag to reorder">
+								<GripVertical class="h-3.5 w-3.5" />
+							</div>
 							<EventCard {event} onclick={() => onSelectEvent(period.id, event)} />
 						</div>
 
 						<!-- Scenes under this event -->
 						<div class="scenes-section">
-							{#each event.scenes as scene (scene.id)}
-								<div class="scene-wrapper" data-card>
+							{#each event.scenes as scene, sceneIndex (scene.id)}
+								<div 
+									class="scene-wrapper"
+									class:drag-over={dragType === 'scene' && dropIndex === sceneIndex && dragIndex !== sceneIndex && dragPeriodId === period.id && dragEventId === event.id}
+									class:dragging={dragType === 'scene' && dragIndex === sceneIndex && dragPeriodId === period.id && dragEventId === event.id}
+									draggable="true"
+									ondragstart={handleDragStart('scene', sceneIndex, period.id, event.id)}
+									ondragover={handleDragOver('scene', sceneIndex, period.id, event.id)}
+									ondragleave={handleDragLeave}
+									ondrop={handleDrop('scene', sceneIndex, period.id, event.id)}
+									ondragend={handleDragEnd}
+								>
+									<div class="drag-handle scene-handle" title="Drag to reorder">
+										<GripVertical class="h-3 w-3" />
+									</div>
 									<SceneCard {scene} onclick={() => onSelectScene(period.id, event.id, scene)} />
 								</div>
 							{/each}
@@ -109,10 +236,23 @@
 		flex-direction: column;
 		align-items: center;
 		gap: calc(1rem * max(var(--canvas-zoom, 1), 1));
+		transition: transform 0.15s ease;
+	}
+
+	.period-column.drag-over {
+		transform: translateX(4px);
 	}
 
 	.period-section {
 		flex-shrink: 0;
+		position: relative;
+		display: flex;
+		align-items: flex-start;
+		gap: calc(0.25rem * max(var(--canvas-zoom, 1), 1));
+	}
+
+	.period-section.dragging {
+		opacity: 0.5;
 	}
 
 	.events-section {
@@ -127,10 +267,23 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		transition: transform 0.15s ease;
+	}
+
+	.event-column.drag-over {
+		transform: translateY(4px);
 	}
 
 	.event-wrapper {
 		flex-shrink: 0;
+		position: relative;
+		display: flex;
+		align-items: flex-start;
+		gap: calc(0.25rem * max(var(--canvas-zoom, 1), 1));
+	}
+
+	.event-wrapper.dragging {
+		opacity: 0.5;
 	}
 
 	.scenes-section {
@@ -144,6 +297,45 @@
 
 	.scene-wrapper {
 		flex-shrink: 0;
+		position: relative;
+		display: flex;
+		align-items: flex-start;
+		gap: calc(0.125rem * max(var(--canvas-zoom, 1), 1));
+		transition: transform 0.15s ease;
+	}
+
+	.scene-wrapper.drag-over {
+		transform: translateY(4px);
+	}
+
+	.scene-wrapper.dragging {
+		opacity: 0.5;
+	}
+
+	.drag-handle {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: calc(0.25rem * max(var(--canvas-zoom, 1), 1));
+		cursor: grab;
+		color: var(--color-muted-foreground);
+		opacity: 0.5;
+		transition: opacity 0.15s, color 0.15s;
+		border-radius: var(--radius);
+	}
+
+	.drag-handle:hover {
+		opacity: 1;
+		color: var(--color-foreground);
+		background-color: var(--color-muted);
+	}
+
+	.drag-handle:active {
+		cursor: grabbing;
+	}
+
+	.scene-handle {
+		padding: calc(0.125rem * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.empty-timeline {

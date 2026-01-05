@@ -3,7 +3,7 @@
  * These types define the structure of undoable operations
  */
 
-import type { Game, Focus, Legacy, Period, Event as GameEvent, Scene } from './game';
+import type { Game, Focus, Legacy, Period, Event as GameEvent, Scene, Player } from './game';
 
 /**
  * Base action interface
@@ -113,21 +113,31 @@ export interface EditSceneAction extends BaseAction {
 }
 
 /**
- * Edit Game Metadata action (name, focus, etc.)
+ * Edit Game Metadata action (name, focus, legacies, players, etc.)
  */
 export interface EditGameMetadataAction extends BaseAction {
 	type: 'EDIT_GAME_METADATA';
 	previousValues: {
 		name?: string;
 		focus?: Focus;
+		focuses?: Focus[];
+		currentFocusIndex?: number;
+		players?: Player[];
+		activePlayerIndex?: number;
 		bigPicture?: Game['bigPicture'];
 		palette?: Game['palette'];
+		legacies?: Legacy[];
 	};
 	newValues: {
 		name?: string;
 		focus?: Focus;
+		focuses?: Focus[];
+		currentFocusIndex?: number;
+		players?: Player[];
+		activePlayerIndex?: number;
 		bigPicture?: Game['bigPicture'];
 		palette?: Game['palette'];
+		legacies?: Legacy[];
 	};
 }
 

@@ -2,6 +2,8 @@
 	import type { Scene } from '$lib/types';
 	import Sun from 'lucide-svelte/icons/sun';
 	import Moon from 'lucide-svelte/icons/moon';
+	import HelpCircle from 'lucide-svelte/icons/help-circle';
+	import MessageCircle from 'lucide-svelte/icons/message-circle';
 
 	interface Props {
 		scene: Scene;
@@ -26,8 +28,20 @@
 		{/if}
 	</div>
 	<h5 class="card-title">{scene.name}</h5>
+	{#if scene.description}
+		<p class="card-description">{scene.description}</p>
+	{/if}
 	{#if scene.question}
-		<p class="card-question">{scene.question}</p>
+		<p class="card-question">
+			<HelpCircle class="field-icon" />
+			<span>{scene.question}</span>
+		</p>
+	{/if}
+	{#if scene.answer}
+		<p class="card-answer">
+			<MessageCircle class="field-icon" />
+			<span>{scene.answer}</span>
+		</p>
 	{/if}
 </button>
 
@@ -105,15 +119,53 @@
 		overflow: hidden;
 	}
 
-	.card-question {
+	.card-description {
 		font-size: calc(0.6875rem * max(var(--canvas-zoom, 1), 1));
 		color: var(--color-muted-foreground);
-		margin: 0;
+		margin: 0 0 calc(0.25rem * max(var(--canvas-zoom, 1), 1)) 0;
 		line-height: 1.3;
-		font-style: italic;
 		display: -webkit-box;
 		-webkit-line-clamp: 2;
 		-webkit-box-orient: vertical;
 		overflow: hidden;
+	}
+
+	.card-question,
+	.card-answer {
+		font-size: calc(0.625rem * max(var(--canvas-zoom, 1), 1));
+		color: var(--color-muted-foreground);
+		margin: calc(0.125rem * max(var(--canvas-zoom, 1), 1)) 0 0 0;
+		line-height: 1.3;
+		display: flex;
+		align-items: flex-start;
+		gap: calc(0.25rem * max(var(--canvas-zoom, 1), 1));
+	}
+
+	.card-question {
+		font-style: italic;
+	}
+
+	.card-question span,
+	.card-answer span {
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+
+	.card-question :global(.field-icon),
+	.card-answer :global(.field-icon) {
+		flex-shrink: 0;
+		width: calc(0.625rem * max(var(--canvas-zoom, 1), 1));
+		height: calc(0.625rem * max(var(--canvas-zoom, 1), 1));
+		margin-top: calc(0.0625rem * max(var(--canvas-zoom, 1), 1));
+	}
+
+	.card-question :global(.field-icon) {
+		color: oklch(65% 0.12 260);
+	}
+
+	.card-answer :global(.field-icon) {
+		color: oklch(65% 0.12 145);
 	}
 </style>
