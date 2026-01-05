@@ -13,3 +13,4 @@ export {
 } from './cn';
 export * from './constants';
 export * from './action-executor';
+export * from './animations';

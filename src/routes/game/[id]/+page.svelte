@@ -9,6 +9,7 @@
 	import Undo2 from 'lucide-svelte/icons/undo-2';
 	import Redo2 from 'lucide-svelte/icons/redo-2';
 	import History from 'lucide-svelte/icons/history';
+	import Bookmark from 'lucide-svelte/icons/bookmark';
 	import ArrowLeftToLine from 'lucide-svelte/icons/arrow-left-to-line';
 	import { resolve } from '$app/paths';
 	import {
@@ -27,7 +28,7 @@
 		createNewEvent,
 		createNewScene,
 		createSnapshot,
-		areGamesEqual,
+		generateChangeSummary,
 		type Game,
 		type Period,
 		type Event as GameEvent,
@@ -63,7 +64,9 @@
 		EditItemModal,
 		GameSettingsModal,
 		DeleteConfirmModal,
-		HistoryModal
+		HistoryModal,
+		PublishVersionModal,
+		ExportMenu
 	} from '$lib/components/canvas';
 	import { toast } from '$lib/components/ui/sonner';
 
@@ -112,8 +115,10 @@
 	let historicalGame = $state<Game | null>(null);
 	let currentSnapshotId = $state<string | null>(null);
 
-	// Track last saved state for duplicate detection
-	let lastSavedState = $state<string | null>(null);
+	// Publish version modal state
+	let publishModalOpen = $state(false);
+	let isPublishing = $state(false);
+	let lastPublishedGame = $state<Game | null>(null);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -141,6 +146,12 @@
 			game = await loadGame(gameId);
 			if (!game) {
 				loadError = 'Game not found. It may have been deleted or the link is invalid.';
+			} else {
+				// Load the latest snapshot to track changes since last publish
+				const latestSnapshot = await getLatestSnapshot(gameId);
+				if (latestSnapshot) {
+					lastPublishedGame = latestSnapshot.data;
+				}
 			}
 		} catch (error) {
 			if (error instanceof DatabaseUnavailableError) {
@@ -165,51 +176,68 @@
 			// Update timestamp on the plain copy
 			plainGame.updatedAt = new Date().toISOString();
 			autosave.save(plainGame);
-
-			// Create snapshot if state changed significantly
-			createSnapshotIfNeeded(plainGame);
 		}
 	}
 
 	/**
-	 * Creates a snapshot if the game state has changed since last snapshot
+	 * Opens the publish version modal
 	 */
-	async function createSnapshotIfNeeded(plainGame: Game) {
-		const currentState = JSON.stringify({
-			...plainGame,
-			createdAt: '',
-			updatedAt: ''
+	function openPublishModal() {
+		publishModalOpen = true;
+	}
+
+	/**
+	 * Generate a default version name
+	 */
+	function getDefaultVersionName(): string {
+		const now = new Date();
+		return now.toLocaleDateString(undefined, {
+			year: 'numeric',
+			month: 'short',
+			day: 'numeric',
+			hour: '2-digit',
+			minute: '2-digit'
 		});
+	}
 
-		// Skip if no change from last saved state
-		if (lastSavedState === currentState) {
-			return;
-		}
+	/**
+	 * Get the change summary for the publish modal
+	 */
+	function getCurrentChangeSummary(): string {
+		if (!game) return '';
+		return generateChangeSummary(lastPublishedGame, game);
+	}
 
-		// Check if different from latest snapshot
+	/**
+	 * Publishes the current game state as a new version
+	 */
+	async function handlePublishVersion(versionName: string) {
+		if (!game || isPublishing) return;
+
+		isPublishing = true;
+
 		try {
-			const latestSnapshot = await getLatestSnapshot(plainGame.id);
-			if (latestSnapshot && areGamesEqual(latestSnapshot.data, plainGame)) {
-				lastSavedState = currentState;
-				return;
-			}
-
-			// Create new snapshot
-			const snapshot = createSnapshot(plainGame);
+			const plainGame = JSON.parse(JSON.stringify(game)) as Game;
+			const changeSummary = generateChangeSummary(lastPublishedGame, plainGame);
+			const snapshot = createSnapshot(plainGame, versionName, changeSummary);
 			await createSnapshotRecord(snapshot);
-			lastSavedState = currentState;
-
-			// Enforce limit
 			await enforceSnapshotLimit(plainGame.id);
-		} catch (error) {
-			// Log snapshot errors with full context for debugging
-			console.error('Failed to create snapshot for game:', {
-				gameId: plainGame.id,
-				gameName: plainGame.name,
-				error
+
+			// Update the last published game
+			lastPublishedGame = plainGame;
+
+			toast.success('Version published', {
+				description: `"${versionName}" has been saved to your version history.`
 			});
-			// Don't show toast for snapshot errors - they're not critical
-			// Snapshots are a convenience feature and the main autosave still works
+
+			publishModalOpen = false;
+		} catch (error) {
+			console.error('Failed to publish version:', error);
+			toast.error('Failed to publish version', {
+				description: 'Could not save the version. Please try again.'
+			});
+		} finally {
+			isPublishing = false;
 		}
 	}
 
@@ -658,14 +686,19 @@
 		try {
 			const snapshot = await loadSnapshot(snapshotId);
 			if (snapshot) {
-				// Create a snapshot of current state before restoring
-				const currentSnapshot = createSnapshot(game);
+				// Create a snapshot of current state before restoring (auto-save current state)
+				const plainGame = JSON.parse(JSON.stringify(game)) as Game;
+				const changeSummary = generateChangeSummary(lastPublishedGame, plainGame);
+				const currentSnapshot = createSnapshot(plainGame, 'Auto-saved before restore', changeSummary);
 				await createSnapshotRecord(currentSnapshot);
 
 				// Restore the historical version
 				const restoredGame = JSON.parse(JSON.stringify(snapshot.data)) as Game;
 				restoredGame.updatedAt = new Date().toISOString();
 				game = restoredGame;
+
+				// Update lastPublishedGame to the restored version
+				lastPublishedGame = snapshot.data;
 
 				// Clear undo/redo history since we're at a new state
 				historyState = clearHistory(historyState);
@@ -702,86 +735,98 @@
 
 <div class="canvas-page">
 	<div class="canvas-header">
-		<div class="header-left">
-			{#if isViewingHistory}
-				<Button variant="ghost" size="sm" onclick={exitHistoryView}>
-					<ArrowLeftToLine class="h-4 w-4" />
-					<span class="back-text">Return to Current</span>
-				</Button>
-			{:else}
-				<a href={homeUrl}>
-					<Button variant="ghost" size="sm">
-						<ArrowLeft class="h-4 w-4" />
-						<span class="back-text">Back</span>
+		<div class="canvas-header-content">
+			<div class="header-left">
+				{#if isViewingHistory}
+					<Button variant="ghost" size="sm" onclick={exitHistoryView}>
+						<ArrowLeftToLine class="h-4 w-4" />
+						<span class="back-text">Return to Current</span>
 					</Button>
-				</a>
-			{/if}
-			{#if isViewingHistory && historicalGame}
-				<span class="game-title">{historicalGame.name}</span>
-				<span class="history-indicator">
-					Viewing History
-				</span>
-			{:else if game}
-				<span class="game-title">{game.name}</span>
-				{#if game.focus}
-					<span class="focus-indicator" title="Current Focus: {game.focus.name}">
-						Focus: {game.focus.name}
-					</span>
+				{:else}
+					<a href={homeUrl}>
+						<Button variant="ghost" size="sm">
+							<ArrowLeft class="h-4 w-4" />
+							<span class="back-text">Back</span>
+						</Button>
+					</a>
 				{/if}
-			{/if}
-		</div>
+				{#if isViewingHistory && historicalGame}
+					<span class="game-title">{historicalGame.name}</span>
+					<span class="history-indicator">
+						Viewing History
+					</span>
+				{:else if game}
+					<span class="game-title">{game.name}</span>
+					{#if game.focus}
+						<span class="focus-indicator" title="Current Focus: {game.focus.name}">
+							Focus: {game.focus.name}
+						</span>
+					{/if}
+				{/if}
+			</div>
 
-		<div class="header-right">
-			{#if isViewingHistory && currentSnapshotId}
-				<Button
-					variant="default"
-					size="sm"
-					onclick={() => handleRestoreSnapshot(currentSnapshotId!)}
-				>
-					Restore This Version
-				</Button>
-			{:else if game}
-				<!-- Undo/Redo buttons -->
-				<div class="undo-redo-controls">
+			<div class="header-right">
+				{#if isViewingHistory && currentSnapshotId}
+					<Button
+						variant="default"
+						size="sm"
+						onclick={() => handleRestoreSnapshot(currentSnapshotId!)}
+					>
+						Restore This Version
+					</Button>
+				{:else if game}
+					<!-- Undo/Redo buttons -->
+					<div class="undo-redo-controls">
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={handleUndo}
+							disabled={!canUndoAction}
+							aria-label="Undo"
+							title="Undo (Ctrl+Z)"
+						>
+							<Undo2 class="h-4 w-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={handleRedo}
+							disabled={!canRedoAction}
+							aria-label="Redo"
+							title="Redo (Ctrl+Shift+Z)"
+						>
+							<Redo2 class="h-4 w-4" />
+						</Button>
+					</div>
 					<Button
 						variant="ghost"
 						size="sm"
-						onclick={handleUndo}
-						disabled={!canUndoAction}
-						aria-label="Undo"
-						title="Undo (Ctrl+Z)"
+						onclick={openPublishModal}
+						aria-label="Publish version"
+						title="Publish version"
 					>
-						<Undo2 class="h-4 w-4" />
+						<Bookmark class="h-4 w-4" />
 					</Button>
 					<Button
 						variant="ghost"
 						size="sm"
-						onclick={handleRedo}
-						disabled={!canRedoAction}
-						aria-label="Redo"
-						title="Redo (Ctrl+Shift+Z)"
+						onclick={openHistoryModal}
+						aria-label="Version history"
+						title="Version history"
 					>
-						<Redo2 class="h-4 w-4" />
+						<History class="h-4 w-4" />
 					</Button>
-				</div>
-				<Button
-					variant="ghost"
-					size="sm"
-					onclick={openHistoryModal}
-					aria-label="Version history"
-					title="Version history"
-				>
-					<History class="h-4 w-4" />
-				</Button>
-				<Button
-					variant="ghost"
-					size="sm"
-					onclick={() => (settingsModalOpen = true)}
-					aria-label="Game settings"
-				>
-					<Settings class="h-4 w-4" />
-				</Button>
-			{/if}
+					<ExportMenu {game} />
+					<Button
+						variant="ghost"
+						size="sm"
+						onclick={() => (settingsModalOpen = true)}
+						aria-label="Game settings"
+					>
+						<Settings class="h-4 w-4" />
+					</Button>
+				{/if}
+			</div>
 		</div>
 	</div>
 
@@ -900,6 +945,16 @@
 	onRestore={handleRestoreSnapshot}
 />
 
+<!-- Publish Version Modal -->
+<PublishVersionModal
+	open={publishModalOpen}
+	onOpenChange={(open) => (publishModalOpen = open)}
+	defaultName={getDefaultVersionName()}
+	changeSummary={getCurrentChangeSummary()}
+	onPublish={handlePublishVersion}
+	{isPublishing}
+/>
+
 <style>
 	.canvas-page {
 		flex: 1;
@@ -909,16 +964,31 @@
 		overflow: hidden;
 	}
 
+	/*
+	 * Game header uses a nested structure (.canvas-header > .canvas-header-content)
+	 * to match the global app header pattern. The outer container spans full width
+	 * with centered content, while inner content has max-width: 1400px to align
+	 * with the main Header component in +layout.svelte.
+	 */
 	.canvas-header {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		padding: 0.5rem 1rem;
+		justify-content: center;
+		padding: 0 1rem;
 		border-bottom: 1px solid var(--color-border);
 		background-color: oklch(10% 0.02 265 / 0.5);
 		backdrop-filter: blur(8px);
 		z-index: 10;
 		flex-shrink: 0;
+	}
+
+	.canvas-header-content {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		max-width: 1400px;
+		width: 100%;
+		padding: 0.5rem 0;
 	}
 
 	.header-left {

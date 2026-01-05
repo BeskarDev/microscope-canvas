@@ -6,6 +6,7 @@
 	import History from 'lucide-svelte/icons/history';
 	import RotateCcw from 'lucide-svelte/icons/rotate-ccw';
 	import Eye from 'lucide-svelte/icons/eye';
+	import Bookmark from 'lucide-svelte/icons/bookmark';
 	import type { SnapshotMetadata } from '$lib/types';
 
 	interface Props {
@@ -72,17 +73,30 @@
 				</div>
 			{:else if snapshots.length === 0}
 				<div class="empty-state">
-					<History class="h-12 w-12" />
-					<p>No version history yet</p>
-					<span class="empty-hint">Versions are saved automatically as you make changes.</span>
+					<Bookmark class="h-12 w-12" />
+					<p>No published versions yet</p>
+					<span class="empty-hint"
+						>Click "Publish Version" to save a checkpoint of your current world state.</span
+					>
 				</div>
 			{:else}
 				<ul class="snapshot-list">
-					{#each snapshots as snapshot (snapshot.id)}
-						<li class="snapshot-item">
+					{#each snapshots as snapshot, index (snapshot.id)}
+						<li class="snapshot-item animate-slide-in-up" style="animation-delay: {index * 30}ms">
 							<div class="snapshot-info">
-								<span class="snapshot-date">{formatDate(snapshot.timestamp)}</span>
-								<span class="snapshot-name">{snapshot.gameName}</span>
+								<div class="snapshot-header">
+									{#if snapshot.versionName}
+										<span class="snapshot-version-name">{snapshot.versionName}</span>
+									{:else}
+										<span class="snapshot-date-primary">{formatDate(snapshot.timestamp)}</span>
+									{/if}
+								</div>
+								{#if snapshot.versionName}
+									<span class="snapshot-date">{formatDate(snapshot.timestamp)}</span>
+								{/if}
+								{#if snapshot.changeSummary}
+									<span class="snapshot-changes">{snapshot.changeSummary}</span>
+								{/if}
 							</div>
 							<div class="snapshot-actions">
 								<Button
@@ -175,6 +189,7 @@
 		justify-content: space-between;
 		padding: 0.75rem;
 		border-bottom: 1px solid var(--color-border);
+		opacity: 0;
 	}
 
 	.snapshot-item:last-child {
@@ -185,22 +200,46 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.125rem;
+		flex: 1;
+		min-width: 0;
 	}
 
-	.snapshot-date {
+	.snapshot-header {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.snapshot-version-name {
+		font-size: 0.875rem;
+		font-weight: 600;
+		color: var(--color-foreground);
+	}
+
+	.snapshot-date-primary {
 		font-size: 0.875rem;
 		font-weight: 500;
 		color: var(--color-foreground);
 	}
 
-	.snapshot-name {
+	.snapshot-date {
 		font-size: 0.75rem;
 		color: var(--color-muted-foreground);
+	}
+
+	.snapshot-changes {
+		font-size: 0.75rem;
+		color: var(--color-muted-foreground);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 280px;
 	}
 
 	.snapshot-actions {
 		display: flex;
 		gap: 0.25rem;
+		flex-shrink: 0;
 	}
 
 	/* Animation for spinner */
