@@ -4,6 +4,7 @@
 	interface Props {
 		zoom?: number;
 		onZoomChange?: (newZoom: number) => void;
+		onResetPosition?: () => void;
 		children: Snippet;
 	}
 
@@ -19,6 +20,16 @@
 	// Internal pan state - start with some offset to show content centered
 	let internalPanX = $state(50);
 	let internalPanY = $state(50);
+
+	// Default position values
+	const DEFAULT_PAN_X = 50;
+	const DEFAULT_PAN_Y = 50;
+
+	// Export method to reset position
+	export function resetPosition() {
+		internalPanX = DEFAULT_PAN_X;
+		internalPanY = DEFAULT_PAN_Y;
+	}
 
 	// For zooming, we use CSS custom property --canvas-zoom for all sizing.
 	// This avoids blurry text/elements when scaling above 100%.

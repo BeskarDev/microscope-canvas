@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
+	import { Textarea } from '$lib/components/ui/textarea';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { toast } from '$lib/components/ui/sonner';
@@ -11,6 +12,7 @@
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import Loader2 from 'lucide-svelte/icons/loader-2';
 	import FileJson from 'lucide-svelte/icons/file-json';
+	import Dices from 'lucide-svelte/icons/dices';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import {
@@ -27,6 +29,7 @@
 		createSnapshotRecord
 	} from '$lib/services';
 	import { createNewGame, type GameMetadata } from '$lib/types';
+	import { generateNameInspiration, generateHistorySeed } from '$lib/utils/oracle/index';
 
 	// State
 	let games: GameMetadata[] = $state([]);
@@ -36,6 +39,7 @@
 	// Create game dialog state
 	let createDialogOpen = $state(false);
 	let newGameName = $state('');
+	let newBigPicture = $state('');
 	let isCreating = $state(false);
 
 	// Delete confirmation state
@@ -64,11 +68,11 @@
 				loadError =
 					'Local storage is not available. Please check your browser settings or try a different browser.';
 			} else if (error instanceof PersistenceError) {
-				loadError = 'Failed to load your games. Please refresh the page to try again.';
+				loadError = 'Failed to load your histories. Please refresh the page to try again.';
 			} else {
 				loadError = 'An unexpected error occurred. Please refresh the page.';
 			}
-			console.error('Failed to load games:', error);
+			console.error('Failed to load histories:', error);
 		} finally {
 			isLoading = false;
 		}
@@ -76,13 +80,14 @@
 
 	function openCreateDialog() {
 		newGameName = '';
+		newBigPicture = '';
 		createDialogOpen = true;
 	}
 
 	async function handleCreateGame() {
 		const trimmedName = newGameName.trim();
 		if (!trimmedName) {
-			toast.error('Please enter a game name');
+			toast.error('Please enter a history name');
 			return;
 		}
 
@@ -90,22 +95,39 @@
 
 		try {
 			const game = createNewGame(trimmedName);
+			
+			// Add Big Picture if provided
+			const trimmedBigPicture = newBigPicture.trim();
+			if (trimmedBigPicture) {
+				game.bigPicture = {
+					premise: trimmedBigPicture
+				};
+			}
+			
 			await persistCreateGame(game);
 
-			toast.success('Game created!', {
+			toast.success('History created!', {
 				description: `"${trimmedName}" is ready for worldbuilding.`
 			});
 
 			createDialogOpen = false;
 			goto(resolve('/game/[id]', { id: game.id }));
 		} catch (error) {
-			console.error('Failed to create game:', error);
-			toast.error('Failed to create game', {
+			console.error('Failed to create history:', error);
+			toast.error('Failed to create history', {
 				description: 'Please try again. If the problem persists, check your browser storage.'
 			});
 		} finally {
 			isCreating = false;
 		}
+	}
+
+	function handleGenerateName() {
+		newGameName = generateNameInspiration();
+	}
+
+	function handleGenerateBigPicture() {
+		newBigPicture = generateHistorySeed();
 	}
 
 	function handleImportGame() {
@@ -152,11 +174,11 @@
 				newHistory.length > 0
 					? ` Restored ${newHistory.length} version${newHistory.length > 1 ? 's' : ''} from history.`
 					: '';
-			toast.success('Game imported!', {
-				description: `"${newGame.name}" has been added to your games.${historyNote}`
+			toast.success('History imported!', {
+				description: `"${newGame.name}" has been added to your histories.${historyNote}`
 			});
 
-			// Navigate to the new game
+			// Navigate to the new history
 			goto(resolve('/game/[id]', { id: newGame.id }));
 		} catch (error) {
 			console.error('Import failed:', error);
@@ -234,15 +256,15 @@
 			await persistDeleteGame(gameId);
 			games = games.filter((g) => g.id !== gameId);
 
-			toast.success('Game deleted', {
+			toast.success('History deleted', {
 				description: `"${gameName}" has been permanently deleted.`
 			});
 
 			deleteDialogOpen = false;
 			gameToDelete = null;
 		} catch (error) {
-			console.error('Failed to delete game:', error);
-			toast.error('Failed to delete game', {
+			console.error('Failed to delete history:', error);
+			toast.error('Failed to delete history', {
 				description: 'Please try again.'
 			});
 		} finally {
@@ -310,7 +332,7 @@
 	<section class="actions-section">
 		<Button onclick={openCreateDialog} size="lg" class="action-button" disabled={isImporting}>
 			<Plus class="h-5 w-5" />
-			Create New Game
+			Create New History
 		</Button>
 		<Button
 			onclick={handleImportGame}
@@ -324,18 +346,18 @@
 				Importing...
 			{:else}
 				<Upload class="h-5 w-5" />
-				Import Game
+				Import History
 			{/if}
 		</Button>
 	</section>
 
 	<section class="games-section">
-		<h2 class="section-title">Your Games</h2>
+		<h2 class="section-title">Your Histories</h2>
 
 		{#if isLoading}
 			<div class="loading-state">
 				<Loader2 class="h-8 w-8 animate-spin" />
-				<p>Loading your games...</p>
+				<p>Loading your histories...</p>
 			</div>
 		{:else if loadError}
 			<div class="error-state">
@@ -360,8 +382,8 @@
 						<path d="M12 8v8" />
 					</svg>
 				</div>
-				<p class="empty-text">No games yet</p>
-				<p class="empty-subtext">Create a new game to begin your worldbuilding journey</p>
+				<p class="empty-text">No histories yet</p>
+				<p class="empty-subtext">Create a new history to begin your worldbuilding journey</p>
 			</div>
 		{:else}
 			<ul class="games-list">
@@ -394,26 +416,66 @@
 	</section>
 </div>
 
-<!-- Create Game Dialog -->
+<!-- Create History Dialog -->
 <Dialog.Root bind:open={createDialogOpen}>
 	<Dialog.Content>
 		<Dialog.Header>
-			<Dialog.Title>Create New Game</Dialog.Title>
+			<Dialog.Title>Create New History</Dialog.Title>
 			<Dialog.Description>Give your Microscope history a name to get started.</Dialog.Description>
 		</Dialog.Header>
 		<div class="create-form">
-			<label for="game-name" class="form-label">Game Name</label>
-			<Input
-				id="game-name"
-				bind:value={newGameName}
-				placeholder="e.g., Rise and Fall of the Star Empire"
-				disabled={isCreating}
-				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === 'Enter' && !isCreating) {
-						handleCreateGame();
-					}
-				}}
-			/>
+			<div class="form-field">
+				<div class="form-label-row">
+					<label for="game-name" class="form-label">History Name</label>
+					<Button
+						variant="ghost"
+						size="icon"
+						class="oracle-btn"
+						onclick={handleGenerateName}
+						disabled={isCreating}
+						title="Generate random name"
+						type="button"
+					>
+						<Dices class="h-4 w-4" />
+					</Button>
+				</div>
+				<Input
+					id="game-name"
+					bind:value={newGameName}
+					placeholder="e.g., Rise and Fall of the Star Empire"
+					disabled={isCreating}
+					onkeydown={(e: KeyboardEvent) => {
+						if (e.key === 'Enter' && !isCreating) {
+							handleCreateGame();
+						}
+					}}
+				/>
+			</div>
+
+			<div class="form-field">
+				<div class="form-label-row">
+					<label for="big-picture" class="form-label">Big Picture / Concept</label>
+					<Button
+						variant="ghost"
+						size="icon"
+						class="oracle-btn"
+						onclick={handleGenerateBigPicture}
+						disabled={isCreating}
+						title="Generate random concept"
+						type="button"
+					>
+						<Dices class="h-4 w-4" />
+					</Button>
+				</div>
+				<Textarea
+					id="big-picture"
+					bind:value={newBigPicture}
+					placeholder="The rise and fall of a galactic civilization..."
+					disabled={isCreating}
+					rows={3}
+				/>
+				<p class="form-hint">What is this history about? What is the overarching theme?</p>
+			</div>
 		</div>
 		<Dialog.Footer>
 			<Button variant="secondary" onclick={() => (createDialogOpen = false)} disabled={isCreating}>
@@ -424,7 +486,7 @@
 					<Loader2 class="h-4 w-4 animate-spin" />
 					Creating...
 				{:else}
-					Create Game
+					Create History
 				{/if}
 			</Button>
 		</Dialog.Footer>
@@ -435,7 +497,7 @@
 <AlertDialog.Root bind:open={deleteDialogOpen}>
 	<AlertDialog.Content>
 		<AlertDialog.Header>
-			<AlertDialog.Title>Delete Game?</AlertDialog.Title>
+			<AlertDialog.Title>Delete History?</AlertDialog.Title>
 			<AlertDialog.Description>
 				This will permanently delete "{gameToDelete?.name}". This action cannot be undone.
 			</AlertDialog.Description>
@@ -691,14 +753,42 @@
 	.create-form {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5rem;
+		gap: 1rem;
 		padding: 1rem 0;
+	}
+
+	.form-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.form-label-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
 	}
 
 	.form-label {
 		font-size: 0.875rem;
 		font-weight: 500;
 		color: var(--color-foreground);
+	}
+
+	.form-hint {
+		font-size: 0.75rem;
+		color: var(--color-muted-foreground);
+		margin: 0;
+	}
+
+	.create-form :global(.oracle-btn) {
+		width: 1.75rem;
+		height: 1.75rem;
+		color: var(--color-muted-foreground);
+	}
+
+	.create-form :global(.oracle-btn:hover) {
+		color: var(--color-primary);
 	}
 
 	/* Animation for spinner */

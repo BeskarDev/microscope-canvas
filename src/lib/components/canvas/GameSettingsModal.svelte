@@ -161,8 +161,8 @@
 <Dialog.Root {open} {onOpenChange}>
 	<Dialog.Content class="settings-dialog">
 		<Dialog.Header>
-			<Dialog.Title>Game Settings</Dialog.Title>
-			<Dialog.Description>Configure your game's players, focuses, and legacies.</Dialog.Description>
+			<Dialog.Title>History Settings</Dialog.Title>
+			<Dialog.Description>Configure your history's players, focuses, and legacies.</Dialog.Description>
 		</Dialog.Header>
 
 		<form
@@ -173,11 +173,11 @@
 			}}
 		>
 			<div class="form-field">
-				<label for="game-name" class="form-label">Game Name</label>
+				<label for="game-name" class="form-label">History Name</label>
 				<Input
 					id="game-name"
 					bind:value={name}
-					placeholder="Enter game name"
+					placeholder="Enter history name"
 					oninput={() => validateName()}
 				/>
 				{#if nameError}

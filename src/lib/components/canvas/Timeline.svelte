@@ -38,43 +38,14 @@
 		onReorderScenes
 	}: Props = $props();
 
-	// Configuration for dnd-action
+	// Configuration for dnd-action - shorter delay for mobile touch
 	const flipDurationMs = 200;
 
 	// Track original indices for reorder callbacks
-	let draggedPeriodOriginalIndex = -1;
 	let draggedEventOriginalIndex = -1;
 	let draggedSceneOriginalIndex = -1;
 	let currentDragPeriodId: string | null = null;
 	let currentDragEventId: string | null = null;
-
-	// Period drag handlers
-	function handlePeriodConsider(e: CustomEvent<{ items: Period[]; info: { trigger: string; id: string } }>) {
-		const { items, info } = e.detail;
-		
-		// Track the original index when drag starts
-		if (info.trigger === TRIGGERS.DRAG_STARTED) {
-			draggedPeriodOriginalIndex = game.periods.findIndex(p => p.id === info.id);
-		}
-		
-		// Update the game periods reactively
-		game.periods = items;
-	}
-
-	function handlePeriodFinalize(e: CustomEvent<{ items: Period[]; info: { trigger: string; id: string } }>) {
-		const { items, info } = e.detail;
-		game.periods = items;
-		
-		// Call the reorder callback with original and new indices
-		if (info.trigger === TRIGGERS.DROPPED_INTO_ZONE && onReorderPeriods && draggedPeriodOriginalIndex !== -1) {
-			const newIndex = items.findIndex(p => p.id === info.id);
-			if (newIndex !== -1 && newIndex !== draggedPeriodOriginalIndex) {
-				onReorderPeriods(draggedPeriodOriginalIndex, newIndex);
-			}
-		}
-		
-		draggedPeriodOriginalIndex = -1;
-	}
 
 	// Event drag handlers
 	function handleEventConsider(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string } }>) {
@@ -163,97 +134,83 @@
 		onclick={() => onAddPeriod(0)}
 	/>
 
-	<!-- Periods zone -->
-	<div
-		class="periods-zone"
-		use:dndzone={{
-			items: game.periods,
-			flipDurationMs,
-			type: 'periods',
-			dropTargetStyle: {},
-			dropTargetClasses: ['drop-target'],
-			dragDisabled: false
-		}}
-		onconsider={(e) => handlePeriodConsider(e)}
-		onfinalize={(e) => handlePeriodFinalize(e)}
-	>
-		{#each game.periods as period, periodIndex (period.id)}
-			<div class="period-column" animate:flip={{ duration: flipDurationMs }}>
-				<!-- Period card -->
-				<div class="period-section">
-					<PeriodCard {period} onclick={() => onSelectPeriod(period)} />
-				</div>
-
-				<!-- Events under this period -->
-				<div 
-					class="events-section"
-					use:dndzone={{
-						items: period.events,
-						flipDurationMs,
-						type: `events-${period.id}`,
-						dropTargetStyle: {},
-						dropTargetClasses: ['drop-target'],
-						dragDisabled: false
-					}}
-					onconsider={(e) => handleEventConsider(period.id, e)}
-					onfinalize={(e) => handleEventFinalize(period.id, e)}
-				>
-					{#each period.events as event (event.id)}
-						<div class="event-column" animate:flip={{ duration: flipDurationMs }}>
-							<!-- Event card -->
-							<div class="event-wrapper">
-								<EventCard {event} onclick={() => onSelectEvent(period.id, event)} />
-							</div>
-
-							<!-- Scenes under this event -->
-							<div 
-								class="scenes-section"
-								use:dndzone={{
-									items: event.scenes,
-									flipDurationMs,
-									type: `scenes-${period.id}-${event.id}`,
-									dropTargetStyle: {},
-									dropTargetClasses: ['drop-target'],
-									dragDisabled: false
-								}}
-								onconsider={(e) => handleSceneConsider(period.id, event.id, e)}
-								onfinalize={(e) => handleSceneFinalize(period.id, event.id, e)}
-							>
-								{#each event.scenes as scene (scene.id)}
-									<div class="scene-wrapper" animate:flip={{ duration: flipDurationMs }}>
-										<SceneCard {scene} onclick={() => onSelectScene(period.id, event.id, scene)} />
-									</div>
-								{/each}
-							</div>
-
-							<!-- Add scene button -->
-							<AddButton
-								label="Add scene to this event"
-								orientation="vertical"
-								onclick={() => onAddScene(period.id, event.id)}
-							/>
-						</div>
-					{/each}
-				</div>
-
-				<!-- Add event button -->
-				<AddButton
-					label="Add event to this period"
-					orientation="vertical"
-					onclick={() => onAddEvent(period.id)}
-				/>
-
-				<!-- Add button between periods -->
-				<div class="period-add-button">
-					<AddButton
-						label="Add period here"
-						orientation="horizontal"
-						onclick={() => onAddPeriod(periodIndex + 1)}
-					/>
-				</div>
+	<!-- Periods - each column with period + events + scenes -->
+	{#each game.periods as period, periodIndex (period.id)}
+		<div class="period-column">
+			<!-- Period card (not draggable for now - focus on fixing events/scenes first) -->
+			<div class="period-section">
+				<PeriodCard {period} onclick={() => onSelectPeriod(period)} />
 			</div>
-		{/each}
-	</div>
+
+			<!-- Events under this period -->
+			<div 
+				class="events-section"
+				use:dndzone={{
+					items: period.events,
+					flipDurationMs,
+					type: `events-${period.id}`,
+					dropTargetStyle: {},
+					dropTargetClasses: ['drop-target'],
+					dragDisabled: false,
+					centreDraggedOnCursor: true
+				}}
+				onconsider={(e) => handleEventConsider(period.id, e)}
+				onfinalize={(e) => handleEventFinalize(period.id, e)}
+			>
+				{#each period.events as event (event.id)}
+					<div class="event-column" animate:flip={{ duration: flipDurationMs }}>
+						<!-- Event card -->
+						<div class="event-wrapper">
+							<EventCard {event} onclick={() => onSelectEvent(period.id, event)} />
+						</div>
+
+						<!-- Scenes under this event -->
+						<div 
+							class="scenes-section"
+							use:dndzone={{
+								items: event.scenes,
+								flipDurationMs,
+								type: `scenes-${period.id}-${event.id}`,
+								dropTargetStyle: {},
+								dropTargetClasses: ['drop-target'],
+								dragDisabled: false,
+								centreDraggedOnCursor: true
+							}}
+							onconsider={(e) => handleSceneConsider(period.id, event.id, e)}
+							onfinalize={(e) => handleSceneFinalize(period.id, event.id, e)}
+						>
+							{#each event.scenes as scene (scene.id)}
+								<div class="scene-wrapper" animate:flip={{ duration: flipDurationMs }}>
+									<SceneCard {scene} onclick={() => onSelectScene(period.id, event.id, scene)} />
+								</div>
+							{/each}
+						</div>
+
+						<!-- Add scene button -->
+						<AddButton
+							label="Add scene to this event"
+							orientation="vertical"
+							onclick={() => onAddScene(period.id, event.id)}
+						/>
+					</div>
+				{/each}
+			</div>
+
+			<!-- Add event button -->
+			<AddButton
+				label="Add event to this period"
+				orientation="vertical"
+				onclick={() => onAddEvent(period.id)}
+			/>
+		</div>
+
+		<!-- Add button between periods (outside period-column) -->
+		<AddButton
+			label="Add period here"
+			orientation="horizontal"
+			onclick={() => onAddPeriod(periodIndex + 1)}
+		/>
+	{/each}
 
 	{#if game.periods.length === 0}
 		<!-- Show message when no periods exist -->
@@ -274,23 +231,11 @@
 		min-width: max-content;
 	}
 
-	.periods-zone {
-		display: flex;
-		flex-direction: row;
-		align-items: flex-start;
-		gap: 0;
-	}
-
 	.period-column {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: calc(1rem * max(var(--canvas-zoom, 1), 1));
-		cursor: grab;
-	}
-
-	.period-column:active {
-		cursor: grabbing;
 	}
 
 	.period-section {
@@ -311,16 +256,16 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		cursor: grab;
-	}
-
-	.event-column:active {
-		cursor: grabbing;
 	}
 
 	.event-wrapper {
 		flex-shrink: 0;
 		position: relative;
+		cursor: grab;
+	}
+
+	.event-wrapper:active {
+		cursor: grabbing;
 	}
 
 	.scenes-section {
@@ -341,10 +286,6 @@
 
 	.scene-wrapper:active {
 		cursor: grabbing;
-	}
-
-	.period-add-button {
-		margin-top: calc(0.5rem * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.empty-timeline {

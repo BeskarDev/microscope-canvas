@@ -30,12 +30,12 @@
 					? ` Includes ${history.length} version${history.length > 1 ? 's' : ''} in history.`
 					: '';
 			toast.success('Export complete', {
-				description: `Your game has been exported as JSON.${historyNote}`
+				description: `Your history has been exported as JSON.${historyNote}`
 			});
 		} catch (error) {
 			console.error('Export failed:', error);
 			toast.error('Export failed', {
-				description: 'Could not export the game. Please try again.'
+				description: 'Could not export the history. Please try again.'
 			});
 		}
 		menuOpen = false;
@@ -45,12 +45,12 @@
 		try {
 			downloadGameAsMarkdown(game);
 			toast.success('Export complete', {
-				description: 'Your game has been exported as Markdown.'
+				description: 'Your history has been exported as Markdown.'
 			});
 		} catch (error) {
 			console.error('Export failed:', error);
 			toast.error('Export failed', {
-				description: 'Could not export the game. Please try again.'
+				description: 'Could not export the history. Please try again.'
 			});
 		}
 		menuOpen = false;

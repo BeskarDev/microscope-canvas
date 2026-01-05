@@ -181,11 +181,11 @@
 				</Button>
 			</div>
 
-			<!-- History -->
-			{#if history.length > 1}
-				<div class="history-section">
-					<h4 class="history-title">Previous Results</h4>
-					<div class="history-list">
+			<!-- History - always shown with fixed height -->
+			<div class="history-section">
+				<h4 class="history-title">Previous Results</h4>
+				<div class="history-list">
+					{#if history.length > 1}
 						{#each history.slice(1) as item, index (index)}
 							<div class="history-item" class:light={item.tone === 'light'} class:dark={item.tone === 'dark'}>
 								{#if item.tone}
@@ -213,9 +213,13 @@
 								</Button>
 							</div>
 						{/each}
-					</div>
+					{:else}
+						<div class="history-empty">
+							<span>Generated results will appear here</span>
+						</div>
+					{/if}
 				</div>
-			{/if}
+			</div>
 		</div>
 
 		<Dialog.Footer>
@@ -369,6 +373,19 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.375rem;
+		/* Fixed height for ~5-7 entries */
+		height: 180px;
+		overflow-y: auto;
+	}
+
+	.history-empty {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 100%;
+		color: var(--color-muted-foreground);
+		font-size: 0.8125rem;
+		font-style: italic;
 	}
 
 	.history-item {
@@ -379,6 +396,7 @@
 		background-color: oklch(from var(--color-muted) l c h / 0.5);
 		border-radius: var(--radius);
 		font-size: 0.8125rem;
+		flex-shrink: 0;
 	}
 
 	.history-item.light {

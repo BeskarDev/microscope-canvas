@@ -2,6 +2,7 @@
 	import Plus from 'lucide-svelte/icons/plus';
 	import Minus from 'lucide-svelte/icons/minus';
 	import RotateCcw from 'lucide-svelte/icons/rotate-ccw';
+	import Home from 'lucide-svelte/icons/home';
 
 	interface Props {
 		zoom: number;
@@ -10,9 +11,10 @@
 		onZoomIn?: () => void;
 		onZoomOut?: () => void;
 		onReset?: () => void;
+		onResetPosition?: () => void;
 	}
 
-	let { zoom, minZoom = 0.25, maxZoom = 1, onZoomIn, onZoomOut, onReset }: Props = $props();
+	let { zoom, minZoom = 0.25, maxZoom = 1, onZoomIn, onZoomOut, onReset, onResetPosition }: Props = $props();
 
 	const canZoomIn = $derived(zoom < maxZoom);
 	const canZoomOut = $derived(zoom > minZoom);
@@ -51,6 +53,17 @@
 	>
 		<RotateCcw class="zoom-icon" />
 	</button>
+	{#if onResetPosition}
+		<button
+			type="button"
+			class="zoom-button home"
+			onclick={onResetPosition}
+			aria-label="Return to start"
+			title="Return to start"
+		>
+			<Home class="zoom-icon" />
+		</button>
+	{/if}
 </div>
 
 <style>
@@ -101,6 +114,11 @@
 	}
 
 	.zoom-button.reset :global(.zoom-icon) {
+		width: 1rem;
+		height: 1rem;
+	}
+
+	.zoom-button.home :global(.zoom-icon) {
 		width: 1rem;
 		height: 1rem;
 	}
