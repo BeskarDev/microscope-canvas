@@ -38,7 +38,7 @@
 		onReorderScenes
 	}: Props = $props();
 
-	// Configuration for dnd-action - shorter delay for mobile touch
+	// Configuration for dnd-action
 	const flipDurationMs = 200;
 
 	// Track original indices for reorder callbacks
@@ -47,31 +47,33 @@
 	let currentDragPeriodId: string | null = null;
 	let currentDragEventId: string | null = null;
 
-	// Event drag handlers
+	// Event drag handlers - svelte-dnd-action expects us to update the items array
 	function handleEventConsider(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string } }>) {
 		const { items, info } = e.detail;
-		const period = game.periods.find(p => p.id === periodId);
-		if (!period) return;
+		const periodIndex = game.periods.findIndex(p => p.id === periodId);
+		if (periodIndex === -1) return;
 
 		// Track the original index when drag starts
 		if (info.trigger === TRIGGERS.DRAG_STARTED) {
-			draggedEventOriginalIndex = period.events.findIndex(ev => ev.id === info.id);
+			draggedEventOriginalIndex = game.periods[periodIndex].events.findIndex(ev => ev.id === info.id);
 			currentDragPeriodId = periodId;
 		}
 
-		period.events = items;
+		// Update the events array for this period - use spread to trigger reactivity
+		game.periods[periodIndex].events = items;
 		game.periods = [...game.periods];
 	}
 
 	function handleEventFinalize(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string } }>) {
 		const { items, info } = e.detail;
-		const period = game.periods.find(p => p.id === periodId);
-		if (!period) return;
+		const periodIndex = game.periods.findIndex(p => p.id === periodId);
+		if (periodIndex === -1) return;
 
-		period.events = items;
+		// Update the events array
+		game.periods[periodIndex].events = items;
 		game.periods = [...game.periods];
-
-		// Call the reorder callback
+		
+		// Call the reorder callback with original and new indices
 		if (info.trigger === TRIGGERS.DROPPED_INTO_ZONE && onReorderEvents && 
 			currentDragPeriodId === periodId && draggedEventOriginalIndex !== -1) {
 			const newIndex = items.findIndex(ev => ev.id === info.id);
@@ -87,28 +89,34 @@
 	// Scene drag handlers
 	function handleSceneConsider(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string } }>) {
 		const { items, info } = e.detail;
-		const period = game.periods.find(p => p.id === periodId);
-		const event = period?.events.find(ev => ev.id === eventId);
-		if (!event) return;
+		const periodIndex = game.periods.findIndex(p => p.id === periodId);
+		if (periodIndex === -1) return;
+		
+		const eventIndex = game.periods[periodIndex].events.findIndex(ev => ev.id === eventId);
+		if (eventIndex === -1) return;
 
 		// Track the original index when drag starts
 		if (info.trigger === TRIGGERS.DRAG_STARTED) {
-			draggedSceneOriginalIndex = event.scenes.findIndex(s => s.id === info.id);
+			draggedSceneOriginalIndex = game.periods[periodIndex].events[eventIndex].scenes.findIndex(s => s.id === info.id);
 			currentDragPeriodId = periodId;
 			currentDragEventId = eventId;
 		}
 
-		event.scenes = items;
+		// Update the scenes array - use spread to trigger reactivity
+		game.periods[periodIndex].events[eventIndex].scenes = items;
 		game.periods = [...game.periods];
 	}
 
 	function handleSceneFinalize(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string } }>) {
 		const { items, info } = e.detail;
-		const period = game.periods.find(p => p.id === periodId);
-		const event = period?.events.find(ev => ev.id === eventId);
-		if (!event) return;
+		const periodIndex = game.periods.findIndex(p => p.id === periodId);
+		if (periodIndex === -1) return;
+		
+		const eventIndex = game.periods[periodIndex].events.findIndex(ev => ev.id === eventId);
+		if (eventIndex === -1) return;
 
-		event.scenes = items;
+		// Update the scenes array
+		game.periods[periodIndex].events[eventIndex].scenes = items;
 		game.periods = [...game.periods];
 
 		// Call the reorder callback
