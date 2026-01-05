@@ -18,6 +18,7 @@
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import User from 'lucide-svelte/icons/user';
 	import Target from 'lucide-svelte/icons/target';
+	import Palette from 'lucide-svelte/icons/palette';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
@@ -54,7 +55,11 @@
 		type DeleteSceneAction,
 		type EditSceneAction,
 		type EditGameMetadataAction,
-		type SnapshotMetadata
+		type SnapshotMetadata,
+		type Palette as PaletteType,
+		type ReorderPeriodsAction,
+		type ReorderEventsAction,
+		type ReorderScenesAction
 	} from '$lib/types';
 	import {
 		createHistoryState,
@@ -76,7 +81,8 @@
 		DeleteConfirmModal,
 		HistoryModal,
 		PublishVersionModal,
-		ExportMenu
+		ExportMenu,
+		PaletteSheet
 	} from '$lib/components/canvas';
 	import { toast } from '$lib/components/ui/sonner';
 
@@ -132,6 +138,9 @@
 
 	// Mobile menu state
 	let mobileMenuOpen = $state(false);
+
+	// Palette sheet state
+	let paletteSheetOpen = $state(false);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -404,6 +413,88 @@
 		};
 
 		event.scenes.push(scene);
+		game = game;
+		recordGameAction(action);
+	}
+
+	// Reorder handlers
+	function handleReorderPeriods(fromIndex: number, toIndex: number) {
+		if (!game) return;
+		if (fromIndex === toIndex) return;
+
+		const previousOrder = game.periods.map((p) => p.id);
+		const newPeriods = [...game.periods];
+		const [movedPeriod] = newPeriods.splice(fromIndex, 1);
+		newPeriods.splice(toIndex, 0, movedPeriod);
+		const newOrder = newPeriods.map((p) => p.id);
+
+		const action: ReorderPeriodsAction = {
+			type: 'REORDER_PERIODS',
+			timestamp: new Date().toISOString(),
+			previousOrder,
+			newOrder
+		};
+
+		game.periods = newPeriods;
+		game = game;
+		recordGameAction(action);
+	}
+
+	function handleReorderEvents(periodId: string, fromIndex: number, toIndex: number) {
+		if (!game) return;
+		if (fromIndex === toIndex) return;
+
+		const period = game.periods.find((p) => p.id === periodId);
+		if (!period) return;
+
+		const previousOrder = period.events.map((e) => e.id);
+		const newEvents = [...period.events];
+		const [movedEvent] = newEvents.splice(fromIndex, 1);
+		newEvents.splice(toIndex, 0, movedEvent);
+		const newOrder = newEvents.map((e) => e.id);
+
+		const action: ReorderEventsAction = {
+			type: 'REORDER_EVENTS',
+			timestamp: new Date().toISOString(),
+			periodId,
+			previousOrder,
+			newOrder
+		};
+
+		period.events = newEvents;
+		game = game;
+		recordGameAction(action);
+	}
+
+	function handleReorderScenes(
+		periodId: string,
+		eventId: string,
+		fromIndex: number,
+		toIndex: number
+	) {
+		if (!game) return;
+		if (fromIndex === toIndex) return;
+
+		const period = game.periods.find((p) => p.id === periodId);
+		const event = period?.events.find((e) => e.id === eventId);
+		if (!event) return;
+
+		const previousOrder = event.scenes.map((s) => s.id);
+		const newScenes = [...event.scenes];
+		const [movedScene] = newScenes.splice(fromIndex, 1);
+		newScenes.splice(toIndex, 0, movedScene);
+		const newOrder = newScenes.map((s) => s.id);
+
+		const action: ReorderScenesAction = {
+			type: 'REORDER_SCENES',
+			timestamp: new Date().toISOString(),
+			periodId,
+			eventId,
+			previousOrder,
+			newOrder
+		};
+
+		event.scenes = newScenes;
 		game = game;
 		recordGameAction(action);
 	}
@@ -855,6 +946,19 @@
 		closeMobileMenu();
 		settingsModalOpen = true;
 	}
+
+	function handleMobilePalette() {
+		closeMobileMenu();
+		paletteSheetOpen = true;
+	}
+
+	// Palette handler
+	function handleSavePalette(palette: PaletteType) {
+		handleSaveGameSettings({ palette });
+	}
+
+	// Get current palette with defaults
+	const currentPalette = $derived<PaletteType>(game?.palette ?? { yes: [], no: [] });
 </script>
 
 <svelte:window onkeydown={handleGlobalKeyDown} />
@@ -1002,6 +1106,15 @@
 						<Button
 							variant="ghost"
 							size="sm"
+							onclick={() => (paletteSheetOpen = true)}
+							aria-label="Palette"
+							title="Palette - Yes/No list"
+						>
+							<Palette class="h-4 w-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
 							onclick={openPublishModal}
 							aria-label="Publish version"
 							title="Publish version"
@@ -1023,6 +1136,7 @@
 							size="sm"
 							onclick={() => (settingsModalOpen = true)}
 							aria-label="Game settings"
+							title="Game settings"
 						>
 							<Settings class="h-4 w-4" />
 						</Button>
@@ -1049,6 +1163,15 @@
 								onkeydown={(e) => e.key === 'Escape' && closeMobileMenu()}
 							></div>
 							<div class="mobile-dropdown" role="menu">
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobilePalette}
+									role="menuitem"
+								>
+									<Palette class="h-4 w-4" />
+									<span>Palette</span>
+								</button>
 								<button
 									type="button"
 									class="mobile-menu-item"
@@ -1162,6 +1285,9 @@
 					onSelectPeriod={handleSelectPeriod}
 					onSelectEvent={handleSelectEvent}
 					onSelectScene={handleSelectScene}
+					onReorderPeriods={handleReorderPeriods}
+					onReorderEvents={handleReorderEvents}
+					onReorderScenes={handleReorderScenes}
 				/>
 			</Canvas>
 
@@ -1227,6 +1353,14 @@
 	changeSummary={getCurrentChangeSummary()}
 	onPublish={handlePublishVersion}
 	{isPublishing}
+/>
+
+<!-- Palette Sheet -->
+<PaletteSheet
+	open={paletteSheetOpen}
+	onOpenChange={(open) => (paletteSheetOpen = open)}
+	palette={currentPalette}
+	onSave={handleSavePalette}
 />
 
 <style>
