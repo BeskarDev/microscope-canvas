@@ -8,17 +8,26 @@
 	import Settings from 'lucide-svelte/icons/settings';
 	import Undo2 from 'lucide-svelte/icons/undo-2';
 	import Redo2 from 'lucide-svelte/icons/redo-2';
+	import History from 'lucide-svelte/icons/history';
+	import ArrowLeftToLine from 'lucide-svelte/icons/arrow-left-to-line';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
 		DatabaseUnavailableError,
 		PersistenceError,
-		createAutosave
+		createAutosave,
+		createSnapshotRecord,
+		loadSnapshot,
+		listSnapshotsForGame,
+		enforceSnapshotLimit,
+		getLatestSnapshot
 	} from '$lib/services';
 	import {
 		createNewPeriod,
 		createNewEvent,
 		createNewScene,
+		createSnapshot,
+		areGamesEqual,
 		type Game,
 		type Period,
 		type Event as GameEvent,
@@ -33,7 +42,8 @@
 		type CreateSceneAction,
 		type DeleteSceneAction,
 		type EditSceneAction,
-		type EditGameMetadataAction
+		type EditGameMetadataAction,
+		type SnapshotMetadata
 	} from '$lib/types';
 	import {
 		createHistoryState,
@@ -42,6 +52,7 @@
 		popRedo,
 		canUndo,
 		canRedo,
+		clearHistory,
 		type HistoryState
 	} from '$lib/stores';
 	import { applyAction, reverseAction } from '$lib/utils';
@@ -51,7 +62,8 @@
 		ZoomControls,
 		EditItemModal,
 		GameSettingsModal,
-		DeleteConfirmModal
+		DeleteConfirmModal,
+		HistoryModal
 	} from '$lib/components/canvas';
 	import { toast } from '$lib/components/ui/sonner';
 
@@ -88,6 +100,20 @@
 	let deleteItemType = $state<'period' | 'event' | 'scene'>('period');
 	let deleteItemName = $state('');
 	let deleteItemHasChildren = $state(false);
+
+	// History modal state
+	let historyModalOpen = $state(false);
+	let snapshots = $state<SnapshotMetadata[]>([]);
+	let snapshotsLoading = $state(false);
+	let snapshotsError = $state<string | null>(null);
+
+	// Historical view state
+	let isViewingHistory = $state(false);
+	let historicalGame = $state<Game | null>(null);
+	let currentSnapshotId = $state<string | null>(null);
+
+	// Track last saved state for duplicate detection
+	let lastSavedState = $state<string | null>(null);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -135,10 +161,49 @@
 		if (game) {
 			// Create a plain object copy to avoid issues with Svelte proxies in IndexedDB
 			// Use JSON round-trip to ensure we get a plain object without Svelte proxies
-			const plainGame = JSON.parse(JSON.stringify(game));
+			const plainGame = JSON.parse(JSON.stringify(game)) as Game;
 			// Update timestamp on the plain copy
 			plainGame.updatedAt = new Date().toISOString();
 			autosave.save(plainGame);
+
+			// Create snapshot if state changed significantly
+			createSnapshotIfNeeded(plainGame);
+		}
+	}
+
+	/**
+	 * Creates a snapshot if the game state has changed since last snapshot
+	 */
+	async function createSnapshotIfNeeded(plainGame: Game) {
+		const currentState = JSON.stringify({
+			...plainGame,
+			createdAt: '',
+			updatedAt: ''
+		});
+
+		// Skip if no change from last saved state
+		if (lastSavedState === currentState) {
+			return;
+		}
+
+		// Check if different from latest snapshot
+		try {
+			const latestSnapshot = await getLatestSnapshot(plainGame.id);
+			if (latestSnapshot && areGamesEqual(latestSnapshot.data, plainGame)) {
+				lastSavedState = currentState;
+				return;
+			}
+
+			// Create new snapshot
+			const snapshot = createSnapshot(plainGame);
+			await createSnapshotRecord(snapshot);
+			lastSavedState = currentState;
+
+			// Enforce limit
+			await enforceSnapshotLimit(plainGame.id);
+		} catch (error) {
+			console.error('Failed to create snapshot:', error);
+			// Don't show toast for snapshot errors - they're not critical
 		}
 	}
 
@@ -547,6 +612,84 @@
 		game = game;
 		recordGameAction(action);
 	}
+
+	// History modal handlers
+	async function openHistoryModal() {
+		historyModalOpen = true;
+		snapshotsLoading = true;
+		snapshotsError = null;
+
+		try {
+			snapshots = await listSnapshotsForGame(gameId);
+		} catch (error) {
+			console.error('Failed to load snapshots:', error);
+			snapshotsError = 'Failed to load version history. Please try again.';
+		} finally {
+			snapshotsLoading = false;
+		}
+	}
+
+	async function handleViewSnapshot(snapshotId: string) {
+		try {
+			const snapshot = await loadSnapshot(snapshotId);
+			if (snapshot) {
+				isViewingHistory = true;
+				historicalGame = snapshot.data;
+				currentSnapshotId = snapshotId;
+				historyModalOpen = false;
+			}
+		} catch (error) {
+			console.error('Failed to load snapshot:', error);
+			toast.error('Failed to load version', {
+				description: 'Could not load the selected version. Please try again.'
+			});
+		}
+	}
+
+	async function handleRestoreSnapshot(snapshotId: string) {
+		if (!game) return;
+
+		try {
+			const snapshot = await loadSnapshot(snapshotId);
+			if (snapshot) {
+				// Create a snapshot of current state before restoring
+				const currentSnapshot = createSnapshot(game);
+				await createSnapshotRecord(currentSnapshot);
+
+				// Restore the historical version
+				const restoredGame = JSON.parse(JSON.stringify(snapshot.data)) as Game;
+				restoredGame.updatedAt = new Date().toISOString();
+				game = restoredGame;
+
+				// Clear undo/redo history since we're at a new state
+				historyState = clearHistory(historyState);
+
+				// Trigger autosave
+				triggerAutosave();
+
+				// Close modals and return to editing
+				historyModalOpen = false;
+				isViewingHistory = false;
+				historicalGame = null;
+				currentSnapshotId = null;
+
+				toast.success('Version restored', {
+					description: 'The selected version has been restored. Your previous state was saved.'
+				});
+			}
+		} catch (error) {
+			console.error('Failed to restore snapshot:', error);
+			toast.error('Failed to restore version', {
+				description: 'Could not restore the selected version. Please try again.'
+			});
+		}
+	}
+
+	function exitHistoryView() {
+		isViewingHistory = false;
+		historicalGame = null;
+		currentSnapshotId = null;
+	}
 </script>
 
 <svelte:window onkeydown={handleGlobalKeyDown} />
@@ -554,13 +697,25 @@
 <div class="canvas-page">
 	<div class="canvas-header">
 		<div class="header-left">
-			<a href={homeUrl}>
-				<Button variant="ghost" size="sm">
-					<ArrowLeft class="h-4 w-4" />
-					<span class="back-text">Back</span>
+			{#if isViewingHistory}
+				<Button variant="ghost" size="sm" onclick={exitHistoryView}>
+					<ArrowLeftToLine class="h-4 w-4" />
+					<span class="back-text">Return to Current</span>
 				</Button>
-			</a>
-			{#if game}
+			{:else}
+				<a href={homeUrl}>
+					<Button variant="ghost" size="sm">
+						<ArrowLeft class="h-4 w-4" />
+						<span class="back-text">Back</span>
+					</Button>
+				</a>
+			{/if}
+			{#if isViewingHistory && historicalGame}
+				<span class="game-title">{historicalGame.name}</span>
+				<span class="history-indicator">
+					Viewing History
+				</span>
+			{:else if game}
 				<span class="game-title">{game.name}</span>
 				{#if game.focus}
 					<span class="focus-indicator" title="Current Focus: {game.focus.name}">
@@ -571,7 +726,15 @@
 		</div>
 
 		<div class="header-right">
-			{#if game}
+			{#if isViewingHistory && currentSnapshotId}
+				<Button
+					variant="default"
+					size="sm"
+					onclick={() => handleRestoreSnapshot(currentSnapshotId!)}
+				>
+					Restore This Version
+				</Button>
+			{:else if game}
 				<!-- Undo/Redo buttons -->
 				<div class="undo-redo-controls">
 					<Button
@@ -598,6 +761,15 @@
 				<Button
 					variant="ghost"
 					size="sm"
+					onclick={openHistoryModal}
+					aria-label="Version history"
+					title="Version history"
+				>
+					<History class="h-4 w-4" />
+				</Button>
+				<Button
+					variant="ghost"
+					size="sm"
 					onclick={() => (settingsModalOpen = true)}
 					aria-label="Game settings"
 				>
@@ -607,7 +779,7 @@
 		</div>
 	</div>
 
-	<div class="canvas-area">
+	<div class="canvas-area" class:historical-view={isViewingHistory}>
 		{#if isLoading}
 			<div class="loading-state">
 				<Loader2 class="h-12 w-12 animate-spin" />
@@ -624,6 +796,36 @@
 						<Button variant="default">Return Home</Button>
 					</a>
 				</div>
+			</div>
+		{:else if isViewingHistory && historicalGame}
+			<!-- Historical view (read-only) -->
+			<Canvas {zoom} onZoomChange={handleZoomChange}>
+				<Timeline
+					game={historicalGame}
+					onAddPeriod={() => {}}
+					onAddEvent={() => {}}
+					onAddScene={() => {}}
+					onSelectPeriod={() => {}}
+					onSelectEvent={() => {}}
+					onSelectScene={() => {}}
+				/>
+			</Canvas>
+
+			<!-- Historical view overlay -->
+			<div class="historical-overlay">
+				<span class="historical-label">Read-Only Historical View</span>
+			</div>
+
+			<!-- Zoom controls -->
+			<div class="zoom-controls-container">
+				<ZoomControls
+					{zoom}
+					minZoom={MIN_ZOOM}
+					maxZoom={MAX_ZOOM}
+					onZoomIn={handleZoomIn}
+					onZoomOut={handleZoomOut}
+					onReset={handleZoomReset}
+				/>
 			</div>
 		{:else if game}
 			<Canvas {zoom} onZoomChange={handleZoomChange}>
@@ -679,6 +881,17 @@
 	itemName={deleteItemName}
 	hasChildren={deleteItemHasChildren}
 	onConfirm={handleConfirmDelete}
+/>
+
+<!-- History Modal -->
+<HistoryModal
+	open={historyModalOpen}
+	onOpenChange={(open) => (historyModalOpen = open)}
+	{snapshots}
+	isLoading={snapshotsLoading}
+	error={snapshotsError}
+	onView={handleViewSnapshot}
+	onRestore={handleRestoreSnapshot}
 />
 
 <style>
@@ -737,6 +950,15 @@
 		border-radius: var(--radius);
 	}
 
+	.history-indicator {
+		font-size: 0.75rem;
+		color: oklch(85% 0.15 50);
+		padding: 0.125rem 0.5rem;
+		background-color: oklch(45% 0.15 50 / 0.2);
+		border: 1px solid oklch(45% 0.15 50 / 0.4);
+		border-radius: var(--radius);
+	}
+
 	.back-text {
 		display: none;
 	}
@@ -745,6 +967,31 @@
 		flex: 1;
 		position: relative;
 		overflow: hidden;
+	}
+
+	.canvas-area.historical-view {
+		background-color: oklch(from var(--color-background) calc(l + 0.03) c h);
+	}
+
+	.historical-overlay {
+		position: absolute;
+		bottom: 1rem;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 10;
+		padding: 0.5rem 1rem;
+		background-color: oklch(45% 0.15 50 / 0.9);
+		color: white;
+		border-radius: var(--radius);
+		font-size: 0.875rem;
+		font-weight: 500;
+		pointer-events: none;
+	}
+
+	.historical-label {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 	.loading-state {

@@ -3,7 +3,7 @@
  * These types define the structure of undoable operations
  */
 
-import type { Game, Focus, Legacy } from './game';
+import type { Game, Focus, Legacy, Period, Event as GameEvent, Scene } from './game';
 
 /**
  * Base action interface
@@ -51,7 +51,7 @@ export interface CreateEventAction extends BaseAction {
 	periodId: string;
 	eventId: string;
 	index: number;
-	event: Event;
+	event: GameEvent;
 }
 
 /**
@@ -62,7 +62,7 @@ export interface DeleteEventAction extends BaseAction {
 	periodId: string;
 	eventId: string;
 	index: number;
-	event: Event;
+	event: GameEvent;
 }
 
 /**
@@ -72,8 +72,8 @@ export interface EditEventAction extends BaseAction {
 	type: 'EDIT_EVENT';
 	periodId: string;
 	eventId: string;
-	previousValues: Partial<Event>;
-	newValues: Partial<Event>;
+	previousValues: Partial<GameEvent>;
+	newValues: Partial<GameEvent>;
 }
 
 /**

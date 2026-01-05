@@ -13,3 +13,4 @@ export { default as ToneToggle } from './ToneToggle.svelte';
 export { default as EditItemModal } from './EditItemModal.svelte';
 export { default as GameSettingsModal } from './GameSettingsModal.svelte';
 export { default as DeleteConfirmModal } from './DeleteConfirmModal.svelte';
+export { default as HistoryModal } from './HistoryModal.svelte';
