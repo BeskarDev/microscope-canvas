@@ -4,8 +4,9 @@
 	import EventCard from './EventCard.svelte';
 	import SceneCard from './SceneCard.svelte';
 	import AddButton from './AddButton.svelte';
-	import { dndzone, TRIGGERS, SOURCES } from 'svelte-dnd-action';
+	import { dndzone, SOURCES } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
+	import { SvelteMap } from 'svelte/reactivity';
 
 	interface Props {
 		game: Game;
@@ -43,8 +44,8 @@
 
 	// Local state for drag and drop - these are used for the preview during dragging
 	let localPeriods = $state<Period[]>([]);
-	let localEventsMap = $state<Map<string, GameEvent[]>>(new Map());
-	let localScenesMap = $state<Map<string, Scene[]>>(new Map());
+	let localEventsMap = new SvelteMap<string, GameEvent[]>();
+	let localScenesMap = new SvelteMap<string, Scene[]>();
 
 	// Sync local state with props
 	$effect(() => {
@@ -91,7 +92,7 @@
 		const { items } = e.detail;
 		// Update local state for drag preview
 		localEventsMap.set(periodId, items);
-		localEventsMap = new Map(localEventsMap);
+		localEventsMap = new SvelteMap(localEventsMap);
 	}
 
 	function handleEventFinalize(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string; source: string } }>) {
@@ -99,7 +100,7 @@
 		
 		// Update local state
 		localEventsMap.set(periodId, items);
-		localEventsMap = new Map(localEventsMap);
+		localEventsMap = new SvelteMap(localEventsMap);
 		
 		// Call reorder callback if position changed
 		if (info.source === SOURCES.POINTER && onReorderEvents) {
@@ -121,7 +122,7 @@
 		const key = `${periodId}-${eventId}`;
 		// Update local state for drag preview
 		localScenesMap.set(key, items);
-		localScenesMap = new Map(localScenesMap);
+		localScenesMap = new SvelteMap(localScenesMap);
 	}
 
 	function handleSceneFinalize(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string; source: string } }>) {
@@ -130,7 +131,7 @@
 		
 		// Update local state
 		localScenesMap.set(key, items);
-		localScenesMap = new Map(localScenesMap);
+		localScenesMap = new SvelteMap(localScenesMap);
 		
 		// Call reorder callback if position changed
 		if (info.source === SOURCES.POINTER && onReorderScenes) {
