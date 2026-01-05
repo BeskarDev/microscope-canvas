@@ -41,32 +41,41 @@
 	// Configuration for dnd-action
 	const flipDurationMs = 200;
 
-	// Track original indices for reorder callbacks
+	// Track original indices and cached period/event indices for performance
+	// Note: Period reordering is disabled because svelte-dnd-action's horizontal layout
+	// behavior was causing visual issues with the add buttons between periods.
+	// Events and scenes within a period can still be reordered.
 	let draggedEventOriginalIndex = -1;
 	let draggedSceneOriginalIndex = -1;
 	let currentDragPeriodId: string | null = null;
 	let currentDragEventId: string | null = null;
+	let cachedPeriodIndex = -1;
+	let cachedEventIndex = -1;
 
 	// Event drag handlers - svelte-dnd-action expects us to update the items array
 	function handleEventConsider(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string } }>) {
 		const { items, info } = e.detail;
-		const periodIndex = game.periods.findIndex(p => p.id === periodId);
-		if (periodIndex === -1) return;
-
-		// Track the original index when drag starts
+		
+		// Cache period index when drag starts
 		if (info.trigger === TRIGGERS.DRAG_STARTED) {
-			draggedEventOriginalIndex = game.periods[periodIndex].events.findIndex(ev => ev.id === info.id);
+			cachedPeriodIndex = game.periods.findIndex(p => p.id === periodId);
+			if (cachedPeriodIndex === -1) return;
+			draggedEventOriginalIndex = game.periods[cachedPeriodIndex].events.findIndex(ev => ev.id === info.id);
 			currentDragPeriodId = periodId;
 		}
+		
+		if (cachedPeriodIndex === -1) return;
 
 		// Update the events array for this period - use spread to trigger reactivity
-		game.periods[periodIndex].events = items;
+		game.periods[cachedPeriodIndex].events = items;
 		game.periods = [...game.periods];
 	}
 
 	function handleEventFinalize(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string } }>) {
 		const { items, info } = e.detail;
-		const periodIndex = game.periods.findIndex(p => p.id === periodId);
+		
+		// Use cached index if available, otherwise look it up
+		const periodIndex = cachedPeriodIndex !== -1 ? cachedPeriodIndex : game.periods.findIndex(p => p.id === periodId);
 		if (periodIndex === -1) return;
 
 		// Update the events array
@@ -82,37 +91,42 @@
 			}
 		}
 
+		// Clear cached state
 		draggedEventOriginalIndex = -1;
 		currentDragPeriodId = null;
+		cachedPeriodIndex = -1;
 	}
 
 	// Scene drag handlers
 	function handleSceneConsider(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string } }>) {
 		const { items, info } = e.detail;
-		const periodIndex = game.periods.findIndex(p => p.id === periodId);
-		if (periodIndex === -1) return;
 		
-		const eventIndex = game.periods[periodIndex].events.findIndex(ev => ev.id === eventId);
-		if (eventIndex === -1) return;
-
-		// Track the original index when drag starts
+		// Cache indices when drag starts
 		if (info.trigger === TRIGGERS.DRAG_STARTED) {
-			draggedSceneOriginalIndex = game.periods[periodIndex].events[eventIndex].scenes.findIndex(s => s.id === info.id);
+			cachedPeriodIndex = game.periods.findIndex(p => p.id === periodId);
+			if (cachedPeriodIndex === -1) return;
+			cachedEventIndex = game.periods[cachedPeriodIndex].events.findIndex(ev => ev.id === eventId);
+			if (cachedEventIndex === -1) return;
+			draggedSceneOriginalIndex = game.periods[cachedPeriodIndex].events[cachedEventIndex].scenes.findIndex(s => s.id === info.id);
 			currentDragPeriodId = periodId;
 			currentDragEventId = eventId;
 		}
+		
+		if (cachedPeriodIndex === -1 || cachedEventIndex === -1) return;
 
 		// Update the scenes array - use spread to trigger reactivity
-		game.periods[periodIndex].events[eventIndex].scenes = items;
+		game.periods[cachedPeriodIndex].events[cachedEventIndex].scenes = items;
 		game.periods = [...game.periods];
 	}
 
 	function handleSceneFinalize(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string } }>) {
 		const { items, info } = e.detail;
-		const periodIndex = game.periods.findIndex(p => p.id === periodId);
+		
+		// Use cached indices if available, otherwise look them up
+		const periodIndex = cachedPeriodIndex !== -1 ? cachedPeriodIndex : game.periods.findIndex(p => p.id === periodId);
 		if (periodIndex === -1) return;
 		
-		const eventIndex = game.periods[periodIndex].events.findIndex(ev => ev.id === eventId);
+		const eventIndex = cachedEventIndex !== -1 ? cachedEventIndex : game.periods[periodIndex].events.findIndex(ev => ev.id === eventId);
 		if (eventIndex === -1) return;
 
 		// Update the scenes array
@@ -128,9 +142,12 @@
 			}
 		}
 
+		// Clear cached state
 		draggedSceneOriginalIndex = -1;
 		currentDragPeriodId = null;
 		currentDragEventId = null;
+		cachedPeriodIndex = -1;
+		cachedEventIndex = -1;
 	}
 </script>
 
