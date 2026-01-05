@@ -3,4 +3,4 @@
  * Re-export all stores from here for easy imports
  */
 
-// Stores will be exported here as they are created
+export * from './history';
