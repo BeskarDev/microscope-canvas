@@ -100,7 +100,7 @@
 		flex-direction: row;
 		align-items: flex-start;
 		gap: 0;
-		padding: 2rem;
+		padding: calc(2rem * max(var(--canvas-zoom, 1), 1));
 		min-width: max-content;
 	}
 
@@ -108,7 +108,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 1rem;
+		gap: calc(1rem * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.period-section {
@@ -119,8 +119,8 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.75rem;
-		min-width: 180px;
+		gap: calc(0.75rem * max(var(--canvas-zoom, 1), 1));
+		min-width: calc(180px * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.event-column {
@@ -137,9 +137,9 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.5rem;
-		margin-top: 0.5rem;
-		padding-left: 1.5rem;
+		gap: calc(0.5rem * max(var(--canvas-zoom, 1), 1));
+		margin-top: calc(0.5rem * max(var(--canvas-zoom, 1), 1));
+		padding-left: calc(1.5rem * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.scene-wrapper {
@@ -151,19 +151,19 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		padding: 4rem 2rem;
+		padding: calc(4rem * max(var(--canvas-zoom, 1), 1)) calc(2rem * max(var(--canvas-zoom, 1), 1));
 		text-align: center;
 	}
 
 	.empty-text {
-		font-size: 1.125rem;
+		font-size: calc(1.125rem * max(var(--canvas-zoom, 1), 1));
 		font-weight: 500;
 		color: var(--color-foreground);
-		margin: 0 0 0.5rem 0;
+		margin: 0 0 calc(0.5rem * max(var(--canvas-zoom, 1), 1)) 0;
 	}
 
 	.empty-subtext {
-		font-size: 0.875rem;
+		font-size: calc(0.875rem * max(var(--canvas-zoom, 1), 1));
 		color: var(--color-muted-foreground);
 		margin: 0;
 	}

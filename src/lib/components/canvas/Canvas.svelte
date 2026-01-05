@@ -20,6 +20,13 @@
 	let internalPanX = $state(50);
 	let internalPanY = $state(50);
 
+	// For zooming, we use CSS custom property --canvas-zoom for all sizing.
+	// This avoids blurry text/elements when scaling above 100%.
+	// At 100% zoom, --canvas-zoom = 1, and all card sizes use this as a multiplier.
+	// CSS scale() is only used for values <1 (zoom out), keeping content crisp at larger sizes.
+	// For zoom >1, we use --canvas-zoom to increase actual element sizes (no scale transform).
+	const effectiveScale = $derived(zoom <= 1 ? zoom : 1);
+
 	function handlePointerDown(e: PointerEvent) {
 		// Only pan if it's a left click
 		if (e.button !== 0) return;
@@ -107,7 +114,8 @@
 >
 	<div
 		class="canvas-content"
-		style:transform="translate({internalPanX}px, {internalPanY}px) scale({zoom})"
+		style:--canvas-zoom={zoom}
+		style:transform="translate({internalPanX}px, {internalPanY}px) scale({effectiveScale})"
 	>
 		{@render children()}
 	</div>

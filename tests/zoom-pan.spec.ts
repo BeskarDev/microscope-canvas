@@ -76,8 +76,16 @@ test.describe('Canvas Zoom Controls', () => {
 		await expect(page.getByText('100%')).toBeVisible();
 	});
 
-	test('should disable zoom in at 100%', async ({ page }) => {
-		// At 100%, zoom in should be disabled
+	test('should disable zoom in at 200%', async ({ page }) => {
+		// Zoom in to maximum (200%)
+		await page.getByRole('button', { name: 'Zoom in' }).click(); // 125%
+		await page.getByRole('button', { name: 'Zoom in' }).click(); // 150%
+		await page.getByRole('button', { name: 'Zoom in' }).click(); // 175%
+		await page.getByRole('button', { name: 'Zoom in' }).click(); // 200%
+
+		await expect(page.getByText('200%')).toBeVisible();
+
+		// At 200%, zoom in should be disabled
 		const zoomInButton = page.getByRole('button', { name: 'Zoom in' });
 		await expect(zoomInButton).toBeDisabled();
 	});
