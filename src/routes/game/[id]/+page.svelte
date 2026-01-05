@@ -11,6 +11,9 @@
 	import History from 'lucide-svelte/icons/history';
 	import Bookmark from 'lucide-svelte/icons/bookmark';
 	import ArrowLeftToLine from 'lucide-svelte/icons/arrow-left-to-line';
+	import Menu from 'lucide-svelte/icons/menu';
+	import FileJson from 'lucide-svelte/icons/file-json';
+	import FileText from 'lucide-svelte/icons/file-text';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
@@ -21,7 +24,10 @@
 		loadSnapshot,
 		listSnapshotsForGame,
 		enforceSnapshotLimit,
-		getLatestSnapshot
+		getLatestSnapshot,
+		loadAllSnapshotsForGame,
+		downloadGameAsJSON,
+		downloadGameAsMarkdown
 	} from '$lib/services';
 	import {
 		createNewPeriod,
@@ -119,6 +125,9 @@
 	let publishModalOpen = $state(false);
 	let isPublishing = $state(false);
 	let lastPublishedGame = $state<Game | null>(null);
+
+	// Mobile menu state
+	let mobileMenuOpen = $state(false);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -733,6 +742,62 @@
 		historicalGame = null;
 		currentSnapshotId = null;
 	}
+
+	// Mobile menu handlers
+	function closeMobileMenu() {
+		mobileMenuOpen = false;
+	}
+
+	async function handleMobileExportJSON() {
+		if (!game) return;
+		closeMobileMenu();
+		try {
+			const history = await loadAllSnapshotsForGame(game.id);
+			downloadGameAsJSON(game, history);
+			const historyNote = history.length > 0 
+				? ` Includes ${history.length} version${history.length > 1 ? 's' : ''} in history.`
+				: '';
+			toast.success('Export complete', {
+				description: `Your game has been exported as JSON.${historyNote}`
+			});
+		} catch (error) {
+			console.error('Export failed:', error);
+			toast.error('Export failed', {
+				description: 'Could not export the game. Please try again.'
+			});
+		}
+	}
+
+	function handleMobileExportMarkdown() {
+		if (!game) return;
+		closeMobileMenu();
+		try {
+			downloadGameAsMarkdown(game);
+			toast.success('Export complete', {
+				description: 'Your game has been exported as Markdown.'
+			});
+		} catch (error) {
+			console.error('Export failed:', error);
+			toast.error('Export failed', {
+				description: 'Could not export the game. Please try again.'
+			});
+		}
+	}
+
+	function handleMobilePublish() {
+		closeMobileMenu();
+		openPublishModal();
+	}
+
+	function handleMobileHistory() {
+		closeMobileMenu();
+		openHistoryModal();
+	}
+
+	function handleMobileSettings() {
+		closeMobileMenu();
+		settingsModalOpen = true;
+	}
 </script>
 
 <svelte:window onkeydown={handleGlobalKeyDown} />
@@ -779,7 +844,7 @@
 						Restore This Version
 					</Button>
 				{:else if game}
-					<!-- Undo/Redo buttons -->
+					<!-- Undo/Redo buttons (always visible) -->
 					<div class="undo-redo-controls">
 						<Button
 							variant="ghost"
@@ -802,33 +867,84 @@
 							<Redo2 class="h-4 w-4" />
 						</Button>
 					</div>
-					<Button
-						variant="ghost"
-						size="sm"
-						onclick={openPublishModal}
-						aria-label="Publish version"
-						title="Publish version"
-					>
-						<Bookmark class="h-4 w-4" />
-					</Button>
-					<Button
-						variant="ghost"
-						size="sm"
-						onclick={openHistoryModal}
-						aria-label="Version history"
-						title="Version history"
-					>
-						<History class="h-4 w-4" />
-					</Button>
-					<ExportMenu {game} />
-					<Button
-						variant="ghost"
-						size="sm"
-						onclick={() => (settingsModalOpen = true)}
-						aria-label="Game settings"
-					>
-						<Settings class="h-4 w-4" />
-					</Button>
+					
+					<!-- Desktop controls (hidden on mobile) -->
+					<div class="desktop-controls">
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={openPublishModal}
+							aria-label="Publish version"
+							title="Publish version"
+						>
+							<Bookmark class="h-4 w-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={openHistoryModal}
+							aria-label="Version history"
+							title="Version history"
+						>
+							<History class="h-4 w-4" />
+						</Button>
+						<ExportMenu {game} />
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={() => (settingsModalOpen = true)}
+							aria-label="Game settings"
+						>
+							<Settings class="h-4 w-4" />
+						</Button>
+					</div>
+
+					<!-- Mobile menu button (hidden on desktop) -->
+					<div class="mobile-menu-container">
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
+							aria-label="Menu"
+							aria-haspopup="menu"
+							aria-expanded={mobileMenuOpen}
+						>
+							<Menu class="h-4 w-4" />
+						</Button>
+
+						{#if mobileMenuOpen}
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<div 
+								class="mobile-menu-backdrop" 
+								onclick={closeMobileMenu}
+								onkeydown={(e) => e.key === 'Escape' && closeMobileMenu()}
+							></div>
+							<div class="mobile-dropdown" role="menu">
+								<button type="button" class="mobile-menu-item" onclick={handleMobilePublish} role="menuitem">
+									<Bookmark class="h-4 w-4" />
+									<span>Publish Version</span>
+								</button>
+								<button type="button" class="mobile-menu-item" onclick={handleMobileHistory} role="menuitem">
+									<History class="h-4 w-4" />
+									<span>Version History</span>
+								</button>
+								<div class="mobile-menu-divider"></div>
+								<button type="button" class="mobile-menu-item" onclick={handleMobileExportJSON} role="menuitem">
+									<FileJson class="h-4 w-4" />
+									<span>Export as JSON</span>
+								</button>
+								<button type="button" class="mobile-menu-item" onclick={handleMobileExportMarkdown} role="menuitem">
+									<FileText class="h-4 w-4" />
+									<span>Export as Markdown</span>
+								</button>
+								<div class="mobile-menu-divider"></div>
+								<button type="button" class="mobile-menu-item" onclick={handleMobileSettings} role="menuitem">
+									<Settings class="h-4 w-4" />
+									<span>Game Settings</span>
+								</button>
+							</div>
+						{/if}
+					</div>
 				{/if}
 			</div>
 		</div>
@@ -1016,6 +1132,67 @@
 		margin-right: 0.25rem;
 	}
 
+	.desktop-controls {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.mobile-menu-container {
+		display: none;
+		position: relative;
+	}
+
+	.mobile-menu-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 40;
+	}
+
+	.mobile-dropdown {
+		position: absolute;
+		top: 100%;
+		right: 0;
+		margin-top: 0.25rem;
+		min-width: 200px;
+		background-color: var(--color-popover);
+		border: 1px solid var(--color-border);
+		border-radius: var(--radius);
+		box-shadow: 0 4px 12px oklch(0% 0 0 / 0.3);
+		z-index: 50;
+		overflow: hidden;
+	}
+
+	.mobile-menu-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		width: 100%;
+		padding: 0.75rem 1rem;
+		background: none;
+		border: none;
+		text-align: left;
+		color: var(--color-popover-foreground);
+		font-size: 0.875rem;
+		cursor: pointer;
+		transition: background-color 0.15s;
+	}
+
+	.mobile-menu-item:hover {
+		background-color: var(--color-accent);
+	}
+
+	.mobile-menu-item :global(svg) {
+		flex-shrink: 0;
+		color: var(--color-muted-foreground);
+	}
+
+	.mobile-menu-divider {
+		height: 1px;
+		background-color: var(--color-border);
+		margin: 0.25rem 0;
+	}
+
 	.game-title {
 		font-size: 0.9375rem;
 		font-weight: 600;
@@ -1173,6 +1350,14 @@
 
 		.focus-indicator {
 			display: none;
+		}
+
+		.desktop-controls {
+			display: none;
+		}
+
+		.mobile-menu-container {
+			display: block;
 		}
 
 		.zoom-controls-container {
