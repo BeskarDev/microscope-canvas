@@ -128,8 +128,14 @@
 
 <style>
 	:global(.history-modal) {
-		max-width: 500px;
+		max-width: 600px;
 		max-height: 80vh;
+	}
+
+	@media (max-width: 640px) {
+		:global(.history-modal) {
+			max-width: calc(100vw - 2rem);
+		}
 	}
 
 	:global(.history-title) {

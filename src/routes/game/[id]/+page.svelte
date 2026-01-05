@@ -1000,6 +1000,7 @@
 								class="nav-btn"
 								onclick={handlePreviousPlayer}
 								aria-label="Previous player"
+								title="Previous player"
 								disabled={game.players.length <= 1}
 							>
 								<ChevronLeft class="h-3.5 w-3.5" />
@@ -1018,6 +1019,7 @@
 								class="nav-btn"
 								onclick={handleNextPlayer}
 								aria-label="Next player"
+								title="Next player"
 								disabled={game.players.length <= 1}
 							>
 								<ChevronRight class="h-3.5 w-3.5" />
@@ -1034,6 +1036,7 @@
 								class="nav-btn"
 								onclick={handlePreviousFocus}
 								aria-label="Previous focus"
+								title="Previous focus"
 								disabled={game.focuses.length <= 1}
 							>
 								<ChevronLeft class="h-3.5 w-3.5" />
@@ -1052,6 +1055,7 @@
 								class="nav-btn"
 								onclick={handleNextFocus}
 								aria-label="Next focus"
+								title="Next focus"
 								disabled={game.focuses.length <= 1}
 							>
 								<ChevronRight class="h-3.5 w-3.5" />
@@ -1226,6 +1230,37 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Mobile floating indicators for player and focus -->
+	{#if !isViewingHistory && game}
+		<div class="mobile-info-bar">
+			{#if game.players && game.players.length > 0}
+				<button type="button" class="mobile-info-item player-info" onclick={handleNextPlayer}>
+					<User class="h-3.5 w-3.5" />
+					<span class="info-label">
+						{game.activePlayerIndex >= 0 && game.players[game.activePlayerIndex]
+							? game.players[game.activePlayerIndex].name
+							: 'No player'}
+					</span>
+				</button>
+			{/if}
+			{#if game.focuses && game.focuses.length > 0}
+				<button type="button" class="mobile-info-item focus-info" onclick={handleNextFocus}>
+					<Target class="h-3.5 w-3.5" />
+					<span class="info-label">
+						{game.currentFocusIndex >= 0 && game.focuses[game.currentFocusIndex]
+							? game.focuses[game.currentFocusIndex].name
+							: 'No focus'}
+					</span>
+				</button>
+			{:else if game.focus}
+				<div class="mobile-info-item focus-info">
+					<Target class="h-3.5 w-3.5" />
+					<span class="info-label">{game.focus.name}</span>
+				</div>
+			{/if}
+		</div>
+	{/if}
 
 	<div class="canvas-area" class:historical-view={isViewingHistory}>
 		{#if isLoading}
@@ -1668,6 +1703,12 @@
 		z-index: 10;
 	}
 
+	/* Mobile info bar for player/focus - hidden on desktop */
+	.mobile-info-bar {
+		display: none;
+		flex-shrink: 0;
+	}
+
 	/* Animation for spinner */
 	:global(.animate-spin) {
 		animation: spin 1s linear infinite;
@@ -1711,6 +1752,52 @@
 
 		.mobile-menu-container {
 			display: block;
+		}
+
+		.mobile-info-bar {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.5rem;
+			padding: 0.5rem 0.75rem;
+			background-color: oklch(10% 0.02 265 / 0.8);
+			backdrop-filter: blur(8px);
+			border-bottom: 1px solid var(--color-border);
+			flex-shrink: 0;
+		}
+
+		.mobile-info-item {
+			display: flex;
+			align-items: center;
+			gap: 0.375rem;
+			padding: 0.375rem 0.625rem;
+			background-color: var(--color-muted);
+			border: none;
+			border-radius: var(--radius);
+			font-size: 0.75rem;
+			font-weight: 500;
+			color: var(--color-foreground);
+			cursor: pointer;
+			transition: background-color 0.15s;
+		}
+
+		.mobile-info-item:hover {
+			background-color: var(--color-accent);
+		}
+
+		.mobile-info-item.player-info :global(svg) {
+			color: oklch(70% 0.15 200);
+		}
+
+		.mobile-info-item.focus-info :global(svg) {
+			color: oklch(70% 0.15 50);
+		}
+
+		.info-label {
+			max-width: 100px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 
 		.zoom-controls-container {

@@ -383,6 +383,7 @@
 								openDeleteDialog(game);
 							}}
 							aria-label={`Delete ${game.name}`}
+							title={`Delete ${game.name}`}
 						>
 							<Trash2 class="h-4 w-4" />
 						</Button>

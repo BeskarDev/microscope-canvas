@@ -20,7 +20,7 @@
 		<Dialog.Root bind:open={helpOpen}>
 			<Dialog.Trigger>
 				{#snippet child({ props })}
-					<Button {...props} variant="ghost" size="icon" aria-label="Help">
+					<Button {...props} variant="ghost" size="icon" aria-label="Help" title="Help & Guide">
 						<HelpCircle class="h-5 w-5" />
 					</Button>
 				{/snippet}
@@ -247,6 +247,7 @@
 
 	/* Help dialog responsive sizing */
 	:global(.help-dialog-content) {
+		max-width: 600px;
 		max-height: calc(100vh - 2rem);
 		max-height: calc(100dvh - 2rem);
 		display: flex;
@@ -267,6 +268,10 @@
 
 		.header-content {
 			padding: 0.5rem 0.75rem;
+		}
+
+		:global(.help-dialog-content) {
+			max-width: calc(100vw - 2rem);
 		}
 	}
 </style>
