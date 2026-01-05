@@ -18,6 +18,7 @@
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import User from 'lucide-svelte/icons/user';
 	import Target from 'lucide-svelte/icons/target';
+	import Palette from 'lucide-svelte/icons/palette';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
@@ -54,7 +55,11 @@
 		type DeleteSceneAction,
 		type EditSceneAction,
 		type EditGameMetadataAction,
-		type SnapshotMetadata
+		type SnapshotMetadata,
+		type Palette as PaletteType,
+		type ReorderPeriodsAction,
+		type ReorderEventsAction,
+		type ReorderScenesAction
 	} from '$lib/types';
 	import {
 		createHistoryState,
@@ -76,7 +81,8 @@
 		DeleteConfirmModal,
 		HistoryModal,
 		PublishVersionModal,
-		ExportMenu
+		ExportMenu,
+		PaletteSheet
 	} from '$lib/components/canvas';
 	import { toast } from '$lib/components/ui/sonner';
 
@@ -132,6 +138,9 @@
 
 	// Mobile menu state
 	let mobileMenuOpen = $state(false);
+
+	// Palette sheet state
+	let paletteSheetOpen = $state(false);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -404,6 +413,88 @@
 		};
 
 		event.scenes.push(scene);
+		game = game;
+		recordGameAction(action);
+	}
+
+	// Reorder handlers
+	function handleReorderPeriods(fromIndex: number, toIndex: number) {
+		if (!game) return;
+		if (fromIndex === toIndex) return;
+
+		const previousOrder = game.periods.map((p) => p.id);
+		const newPeriods = [...game.periods];
+		const [movedPeriod] = newPeriods.splice(fromIndex, 1);
+		newPeriods.splice(toIndex, 0, movedPeriod);
+		const newOrder = newPeriods.map((p) => p.id);
+
+		const action: ReorderPeriodsAction = {
+			type: 'REORDER_PERIODS',
+			timestamp: new Date().toISOString(),
+			previousOrder,
+			newOrder
+		};
+
+		game.periods = newPeriods;
+		game = game;
+		recordGameAction(action);
+	}
+
+	function handleReorderEvents(periodId: string, fromIndex: number, toIndex: number) {
+		if (!game) return;
+		if (fromIndex === toIndex) return;
+
+		const period = game.periods.find((p) => p.id === periodId);
+		if (!period) return;
+
+		const previousOrder = period.events.map((e) => e.id);
+		const newEvents = [...period.events];
+		const [movedEvent] = newEvents.splice(fromIndex, 1);
+		newEvents.splice(toIndex, 0, movedEvent);
+		const newOrder = newEvents.map((e) => e.id);
+
+		const action: ReorderEventsAction = {
+			type: 'REORDER_EVENTS',
+			timestamp: new Date().toISOString(),
+			periodId,
+			previousOrder,
+			newOrder
+		};
+
+		period.events = newEvents;
+		game = game;
+		recordGameAction(action);
+	}
+
+	function handleReorderScenes(
+		periodId: string,
+		eventId: string,
+		fromIndex: number,
+		toIndex: number
+	) {
+		if (!game) return;
+		if (fromIndex === toIndex) return;
+
+		const period = game.periods.find((p) => p.id === periodId);
+		const event = period?.events.find((e) => e.id === eventId);
+		if (!event) return;
+
+		const previousOrder = event.scenes.map((s) => s.id);
+		const newScenes = [...event.scenes];
+		const [movedScene] = newScenes.splice(fromIndex, 1);
+		newScenes.splice(toIndex, 0, movedScene);
+		const newOrder = newScenes.map((s) => s.id);
+
+		const action: ReorderScenesAction = {
+			type: 'REORDER_SCENES',
+			timestamp: new Date().toISOString(),
+			periodId,
+			eventId,
+			previousOrder,
+			newOrder
+		};
+
+		event.scenes = newScenes;
 		game = game;
 		recordGameAction(action);
 	}
@@ -855,6 +946,19 @@
 		closeMobileMenu();
 		settingsModalOpen = true;
 	}
+
+	function handleMobilePalette() {
+		closeMobileMenu();
+		paletteSheetOpen = true;
+	}
+
+	// Palette handler
+	function handleSavePalette(palette: PaletteType) {
+		handleSaveGameSettings({ palette });
+	}
+
+	// Get current palette with defaults
+	const currentPalette = $derived<PaletteType>(game?.palette ?? { yes: [], no: [] });
 </script>
 
 <svelte:window onkeydown={handleGlobalKeyDown} />
@@ -896,6 +1000,7 @@
 								class="nav-btn"
 								onclick={handlePreviousPlayer}
 								aria-label="Previous player"
+								title="Previous player"
 								disabled={game.players.length <= 1}
 							>
 								<ChevronLeft class="h-3.5 w-3.5" />
@@ -914,6 +1019,7 @@
 								class="nav-btn"
 								onclick={handleNextPlayer}
 								aria-label="Next player"
+								title="Next player"
 								disabled={game.players.length <= 1}
 							>
 								<ChevronRight class="h-3.5 w-3.5" />
@@ -930,6 +1036,7 @@
 								class="nav-btn"
 								onclick={handlePreviousFocus}
 								aria-label="Previous focus"
+								title="Previous focus"
 								disabled={game.focuses.length <= 1}
 							>
 								<ChevronLeft class="h-3.5 w-3.5" />
@@ -948,6 +1055,7 @@
 								class="nav-btn"
 								onclick={handleNextFocus}
 								aria-label="Next focus"
+								title="Next focus"
 								disabled={game.focuses.length <= 1}
 							>
 								<ChevronRight class="h-3.5 w-3.5" />
@@ -1002,6 +1110,15 @@
 						<Button
 							variant="ghost"
 							size="sm"
+							onclick={() => (paletteSheetOpen = true)}
+							aria-label="Palette"
+							title="Palette - Yes/No list"
+						>
+							<Palette class="h-4 w-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
 							onclick={openPublishModal}
 							aria-label="Publish version"
 							title="Publish version"
@@ -1023,6 +1140,7 @@
 							size="sm"
 							onclick={() => (settingsModalOpen = true)}
 							aria-label="Game settings"
+							title="Game settings"
 						>
 							<Settings class="h-4 w-4" />
 						</Button>
@@ -1049,6 +1167,15 @@
 								onkeydown={(e) => e.key === 'Escape' && closeMobileMenu()}
 							></div>
 							<div class="mobile-dropdown" role="menu">
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobilePalette}
+									role="menuitem"
+								>
+									<Palette class="h-4 w-4" />
+									<span>Palette</span>
+								</button>
 								<button
 									type="button"
 									class="mobile-menu-item"
@@ -1103,6 +1230,37 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Mobile floating indicators for player and focus -->
+	{#if !isViewingHistory && game}
+		<div class="mobile-info-bar">
+			{#if game.players && game.players.length > 0}
+				<button type="button" class="mobile-info-item player-info" onclick={handleNextPlayer}>
+					<User class="h-3.5 w-3.5" />
+					<span class="info-label">
+						{game.activePlayerIndex >= 0 && game.players[game.activePlayerIndex]
+							? game.players[game.activePlayerIndex].name
+							: 'No player'}
+					</span>
+				</button>
+			{/if}
+			{#if game.focuses && game.focuses.length > 0}
+				<button type="button" class="mobile-info-item focus-info" onclick={handleNextFocus}>
+					<Target class="h-3.5 w-3.5" />
+					<span class="info-label">
+						{game.currentFocusIndex >= 0 && game.focuses[game.currentFocusIndex]
+							? game.focuses[game.currentFocusIndex].name
+							: 'No focus'}
+					</span>
+				</button>
+			{:else if game.focus}
+				<div class="mobile-info-item focus-info">
+					<Target class="h-3.5 w-3.5" />
+					<span class="info-label">{game.focus.name}</span>
+				</div>
+			{/if}
+		</div>
+	{/if}
 
 	<div class="canvas-area" class:historical-view={isViewingHistory}>
 		{#if isLoading}
@@ -1162,6 +1320,9 @@
 					onSelectPeriod={handleSelectPeriod}
 					onSelectEvent={handleSelectEvent}
 					onSelectScene={handleSelectScene}
+					onReorderPeriods={handleReorderPeriods}
+					onReorderEvents={handleReorderEvents}
+					onReorderScenes={handleReorderScenes}
 				/>
 			</Canvas>
 
@@ -1227,6 +1388,14 @@
 	changeSummary={getCurrentChangeSummary()}
 	onPublish={handlePublishVersion}
 	{isPublishing}
+/>
+
+<!-- Palette Sheet -->
+<PaletteSheet
+	open={paletteSheetOpen}
+	onOpenChange={(open) => (paletteSheetOpen = open)}
+	palette={currentPalette}
+	onSave={handleSavePalette}
 />
 
 <style>
@@ -1534,6 +1703,12 @@
 		z-index: 10;
 	}
 
+	/* Mobile info bar for player/focus - hidden on desktop */
+	.mobile-info-bar {
+		display: none;
+		flex-shrink: 0;
+	}
+
 	/* Animation for spinner */
 	:global(.animate-spin) {
 		animation: spin 1s linear infinite;
@@ -1577,6 +1752,52 @@
 
 		.mobile-menu-container {
 			display: block;
+		}
+
+		.mobile-info-bar {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.5rem;
+			padding: 0.5rem 0.75rem;
+			background-color: oklch(10% 0.02 265 / 0.8);
+			backdrop-filter: blur(8px);
+			border-bottom: 1px solid var(--color-border);
+			flex-shrink: 0;
+		}
+
+		.mobile-info-item {
+			display: flex;
+			align-items: center;
+			gap: 0.375rem;
+			padding: 0.375rem 0.625rem;
+			background-color: var(--color-muted);
+			border: none;
+			border-radius: var(--radius);
+			font-size: 0.75rem;
+			font-weight: 500;
+			color: var(--color-foreground);
+			cursor: pointer;
+			transition: background-color 0.15s;
+		}
+
+		.mobile-info-item:hover {
+			background-color: var(--color-accent);
+		}
+
+		.mobile-info-item.player-info :global(svg) {
+			color: oklch(70% 0.15 200);
+		}
+
+		.mobile-info-item.focus-info :global(svg) {
+			color: oklch(70% 0.15 50);
+		}
+
+		.info-label {
+			max-width: 100px;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 
 		.zoom-controls-container {

@@ -324,9 +324,24 @@ function validateGameStructure(data: unknown): data is Game {
 }
 
 /**
+ * Result of parsing a game export JSON, including both game and history
+ */
+export interface ParsedGameExport {
+	game: Game;
+	history: GameSnapshot[];
+}
+
+/**
  * Parses and validates a JSON string as a game export
  */
 export function parseGameJSON(jsonString: string): Game {
+	return parseGameExportJSON(jsonString).game;
+}
+
+/**
+ * Parses and validates a JSON string as a game export, including history
+ */
+export function parseGameExportJSON(jsonString: string): ParsedGameExport {
 	let data: unknown;
 
 	// Parse JSON
@@ -345,7 +360,7 @@ export function parseGameJSON(jsonString: string): Game {
 	}
 
 	// Check schema version - data is now validated as Game type
-	const gameData = data as Game;
+	const gameData = data as GameExportData;
 
 	// Validate schema version if present
 	if (gameData.schemaVersion !== undefined && typeof gameData.schemaVersion === 'number') {
@@ -362,7 +377,14 @@ export function parseGameJSON(jsonString: string): Game {
 		gameData.schemaVersion = SCHEMA_VERSION;
 	}
 
-	return gameData;
+	// Extract history if present
+	const history = Array.isArray(gameData.history) ? gameData.history : [];
+
+	// Create clean game object without export-only fields using destructuring
+	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+	const { history: _history, exportedAt: _exportedAt, ...game } = gameData as GameExportData;
+
+	return { game: game as Game, history };
 }
 
 /**
@@ -387,6 +409,54 @@ export function createGameFromImport(importedGame: Game): Game {
 	// as they're only used within this game and don't conflict
 
 	return newGame;
+}
+
+/**
+ * Result of creating a game and its history from import
+ */
+export interface ImportedGameWithHistory {
+	game: Game;
+	history: GameSnapshot[];
+}
+
+/**
+ * Creates a new game and remapped history from imported data
+ * All IDs are regenerated to avoid conflicts, and history snapshots
+ * are updated to reference the new game ID
+ */
+export function createGameAndHistoryFromImport(
+	importedGame: Game,
+	importedHistory: GameSnapshot[]
+): ImportedGameWithHistory {
+	const now = new Date().toISOString();
+
+	// Generate new game ID
+	const newGameId = crypto.randomUUID();
+
+	// Deep clone and update game
+	const newGame: Game = {
+		...JSON.parse(JSON.stringify(importedGame)),
+		id: newGameId,
+		schemaVersion: SCHEMA_VERSION,
+		createdAt: now,
+		updatedAt: now
+	};
+
+	// Remap history to use the new game ID and generate new snapshot IDs
+	const newHistory: GameSnapshot[] = importedHistory.map((snapshot) => {
+		const newSnapshot: GameSnapshot = {
+			...JSON.parse(JSON.stringify(snapshot)),
+			id: crypto.randomUUID(),
+			gameId: newGameId
+		};
+		// Also update the gameId inside the snapshot's data
+		if (newSnapshot.data) {
+			newSnapshot.data.id = newGameId;
+		}
+		return newSnapshot;
+	});
+
+	return { game: newGame, history: newHistory };
 }
 
 /**

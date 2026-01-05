@@ -19,11 +19,12 @@
 		deleteGame as persistDeleteGame,
 		DatabaseUnavailableError,
 		PersistenceError,
-		parseGameJSON,
-		createGameFromImport,
+		parseGameExportJSON,
+		createGameAndHistoryFromImport,
 		readFileAsText,
 		isJSONFile,
-		ImportError
+		ImportError,
+		createSnapshotRecord
 	} from '$lib/services';
 	import { createNewGame, type GameMetadata } from '$lib/types';
 
@@ -134,13 +135,25 @@
 
 		try {
 			const content = await readFileAsText(file);
-			const importedData = parseGameJSON(content);
-			const newGame = createGameFromImport(importedData);
+			const { game: importedGame, history: importedHistory } = parseGameExportJSON(content);
+			const { game: newGame, history: newHistory } = createGameAndHistoryFromImport(
+				importedGame,
+				importedHistory
+			);
 
 			await persistCreateGame(newGame);
 
+			// Also save the imported history if present
+			for (const snapshot of newHistory) {
+				await createSnapshotRecord(snapshot);
+			}
+
+			const historyNote =
+				newHistory.length > 0
+					? ` Restored ${newHistory.length} version${newHistory.length > 1 ? 's' : ''} from history.`
+					: '';
 			toast.success('Game imported!', {
-				description: `"${newGame.name}" has been added to your games.`
+				description: `"${newGame.name}" has been added to your games.${historyNote}`
 			});
 
 			// Navigate to the new game
@@ -370,6 +383,7 @@
 								openDeleteDialog(game);
 							}}
 							aria-label={`Delete ${game.name}`}
+							title={`Delete ${game.name}`}
 						>
 							<Trash2 class="h-4 w-4" />
 						</Button>

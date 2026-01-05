@@ -623,6 +623,12 @@
 	}
 
 	:global(.settings-dialog) {
-		max-width: 500px;
+		max-width: 600px;
+	}
+
+	@media (max-width: 640px) {
+		:global(.settings-dialog) {
+			max-width: calc(100vw - 2rem);
+		}
 	}
 </style>
