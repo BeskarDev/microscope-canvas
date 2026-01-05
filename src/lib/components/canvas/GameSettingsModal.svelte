@@ -5,6 +5,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
+	import OracleDiceButton from './OracleDiceButton.svelte';
 	import Plus from 'lucide-svelte/icons/plus';
 	import X from 'lucide-svelte/icons/x';
 	import Shuffle from 'lucide-svelte/icons/shuffle';
@@ -160,8 +161,8 @@
 <Dialog.Root {open} {onOpenChange}>
 	<Dialog.Content class="settings-dialog">
 		<Dialog.Header>
-			<Dialog.Title>Game Settings</Dialog.Title>
-			<Dialog.Description>Configure your game's players, focuses, and legacies.</Dialog.Description>
+			<Dialog.Title>History Settings</Dialog.Title>
+			<Dialog.Description>Configure your history's players, focuses, and legacies.</Dialog.Description>
 		</Dialog.Header>
 
 		<form
@@ -172,11 +173,11 @@
 			}}
 		>
 			<div class="form-field">
-				<label for="game-name" class="form-label">Game Name</label>
+				<label for="game-name" class="form-label">History Name</label>
 				<Input
 					id="game-name"
 					bind:value={name}
-					placeholder="Enter game name"
+					placeholder="Enter history name"
 					oninput={() => validateName()}
 				/>
 				{#if nameError}
@@ -301,16 +302,23 @@
 				{/if}
 
 				<div class="add-focus-fields">
-					<Input
-						bind:value={newFocusName}
-						placeholder="Focus name (e.g., The Lost City)"
-						onkeydown={(e) => {
-							if (e.key === 'Enter' && newFocusName.trim()) {
-								e.preventDefault();
-								handleAddFocus();
-							}
-						}}
-					/>
+					<div class="input-with-oracle">
+						<Input
+							bind:value={newFocusName}
+							placeholder="Focus name (e.g., The Lost City)"
+							onkeydown={(e) => {
+								if (e.key === 'Enter' && newFocusName.trim()) {
+									e.preventDefault();
+									handleAddFocus();
+								}
+							}}
+						/>
+						<OracleDiceButton 
+							category="focus" 
+							onResult={(result) => { newFocusName = result; }}
+							title="Generate random focus"
+						/>
+					</div>
 					<Textarea
 						bind:value={newFocusDescription}
 						placeholder="Description (optional)"
@@ -368,16 +376,23 @@
 
 				<!-- Add new legacy -->
 				<div class="add-legacy-row">
-					<Input
-						bind:value={newLegacyName}
-						placeholder="New legacy name"
-						onkeydown={(e) => {
-							if (e.key === 'Enter') {
-								e.preventDefault();
-								handleAddLegacy();
-							}
-						}}
-					/>
+					<div class="input-with-oracle legacy-input-wrapper">
+						<Input
+							bind:value={newLegacyName}
+							placeholder="New legacy name"
+							onkeydown={(e) => {
+								if (e.key === 'Enter') {
+									e.preventDefault();
+									handleAddLegacy();
+								}
+							}}
+						/>
+						<OracleDiceButton 
+							category="legacy" 
+							onResult={(result) => { newLegacyName = result; }}
+							title="Generate random legacy"
+						/>
+					</div>
 					<Button
 						type="button"
 						variant="secondary"
@@ -406,7 +421,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
-		padding: 1rem 0;
+		padding: 1rem 0.75rem;
 		max-height: 60vh;
 		overflow-y: auto;
 	}
@@ -415,6 +430,20 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+	}
+
+	.input-with-oracle {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.input-with-oracle :global(input) {
+		flex: 1;
+	}
+
+	.legacy-input-wrapper {
+		flex: 1;
 	}
 
 	.form-label {

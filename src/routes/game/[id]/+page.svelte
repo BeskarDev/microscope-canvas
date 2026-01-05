@@ -100,6 +100,10 @@
 	let loadError = $state<string | null>(null);
 	let zoom = $state(1);
 
+	// Canvas ref for reset position
+	let canvasRef = $state<{ resetPosition: () => void } | null>(null);
+	let historicalCanvasRef = $state<{ resetPosition: () => void } | null>(null);
+
 	// Undo/Redo history state
 	let historyState = $state<HistoryState>(createHistoryState());
 	const canUndoAction = $derived(canUndo(historyState));
@@ -167,7 +171,7 @@
 		try {
 			game = await loadGame(gameId);
 			if (!game) {
-				loadError = 'Game not found. It may have been deleted or the link is invalid.';
+				loadError = 'History not found. It may have been deleted or the link is invalid.';
 			} else {
 				// Load the latest snapshot to track changes since last publish
 				const latestSnapshot = await getLatestSnapshot(gameId);
@@ -180,11 +184,11 @@
 				loadError =
 					'Local storage is not available. Please check your browser settings or try a different browser.';
 			} else if (error instanceof PersistenceError) {
-				loadError = 'Failed to load the game. Please try again.';
+				loadError = 'Failed to load the history. Please try again.';
 			} else {
 				loadError = 'An unexpected error occurred. Please try again.';
 			}
-			console.error('Failed to load game:', error);
+			console.error('Failed to load history:', error);
 		} finally {
 			isLoading = false;
 		}
@@ -346,6 +350,14 @@
 
 	function handleZoomChange(newZoom: number) {
 		zoom = newZoom;
+	}
+
+	function handleResetPosition() {
+		if (isViewingHistory && historicalCanvasRef) {
+			historicalCanvasRef.resetPosition();
+		} else if (canvasRef) {
+			canvasRef.resetPosition();
+		}
 	}
 
 	// Add item handlers
@@ -906,12 +918,12 @@
 					? ` Includes ${history.length} version${history.length > 1 ? 's' : ''} in history.`
 					: '';
 			toast.success('Export complete', {
-				description: `Your game has been exported as JSON.${historyNote}`
+				description: `Your history has been exported as JSON.${historyNote}`
 			});
 		} catch (error) {
 			console.error('Export failed:', error);
 			toast.error('Export failed', {
-				description: 'Could not export the game. Please try again.'
+				description: 'Could not export the history. Please try again.'
 			});
 		}
 	}
@@ -922,12 +934,12 @@
 		try {
 			downloadGameAsMarkdown(game);
 			toast.success('Export complete', {
-				description: 'Your game has been exported as Markdown.'
+				description: 'Your history has been exported as Markdown.'
 			});
 		} catch (error) {
 			console.error('Export failed:', error);
 			toast.error('Export failed', {
-				description: 'Could not export the game. Please try again.'
+				description: 'Could not export the history. Please try again.'
 			});
 		}
 	}
@@ -1139,8 +1151,8 @@
 							variant="ghost"
 							size="sm"
 							onclick={() => (settingsModalOpen = true)}
-							aria-label="Game settings"
-							title="Game settings"
+							aria-label="History settings"
+							title="History settings"
 						>
 							<Settings class="h-4 w-4" />
 						</Button>
@@ -1221,7 +1233,7 @@
 									role="menuitem"
 								>
 									<Settings class="h-4 w-4" />
-									<span>Game Settings</span>
+									<span>History Settings</span>
 								</button>
 							</div>
 						{/if}
@@ -1266,12 +1278,12 @@
 		{#if isLoading}
 			<div class="loading-state">
 				<Loader2 class="h-12 w-12 animate-spin" />
-				<p class="loading-text">Loading game...</p>
+				<p class="loading-text">Loading history...</p>
 			</div>
 		{:else if loadError}
 			<div class="error-state">
 				<AlertTriangle class="h-12 w-12 error-icon" />
-				<h2 class="error-title">Unable to Load Game</h2>
+				<h2 class="error-title">Unable to Load History</h2>
 				<p class="error-text">{loadError}</p>
 				<div class="error-actions">
 					<Button onclick={fetchGame} variant="secondary">Try Again</Button>
@@ -1282,7 +1294,7 @@
 			</div>
 		{:else if isViewingHistory && historicalGame}
 			<!-- Historical view (read-only) -->
-			<Canvas {zoom} onZoomChange={handleZoomChange}>
+			<Canvas bind:this={historicalCanvasRef} {zoom} onZoomChange={handleZoomChange}>
 				<Timeline
 					game={historicalGame}
 					onAddPeriod={() => {}}
@@ -1308,10 +1320,11 @@
 					onZoomIn={handleZoomIn}
 					onZoomOut={handleZoomOut}
 					onReset={handleZoomReset}
+					onResetPosition={handleResetPosition}
 				/>
 			</div>
 		{:else if game}
-			<Canvas {zoom} onZoomChange={handleZoomChange}>
+			<Canvas bind:this={canvasRef} {zoom} onZoomChange={handleZoomChange}>
 				<Timeline
 					{game}
 					onAddPeriod={handleAddPeriod}
@@ -1335,6 +1348,7 @@
 					onZoomIn={handleZoomIn}
 					onZoomOut={handleZoomOut}
 					onReset={handleZoomReset}
+					onResetPosition={handleResetPosition}
 				/>
 			</div>
 		{/if}

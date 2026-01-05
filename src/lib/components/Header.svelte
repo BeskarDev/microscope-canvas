@@ -1,11 +1,14 @@
 <script lang="ts">
 	import HelpCircle from 'lucide-svelte/icons/help-circle';
 	import Compass from 'lucide-svelte/icons/compass';
+	import Dices from 'lucide-svelte/icons/dices';
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
+	import OracleDialog from './canvas/OracleDialog.svelte';
 	import { resolve } from '$app/paths';
 
 	let helpOpen = $state(false);
+	let oracleOpen = $state(false);
 
 	const homeUrl = resolve('/');
 </script>
@@ -17,22 +20,33 @@
 			<span class="logo-text">Microscope Canvas</span>
 		</a>
 
-		<Dialog.Root bind:open={helpOpen}>
-			<Dialog.Trigger>
-				{#snippet child({ props })}
-					<Button {...props} variant="ghost" size="icon" aria-label="Help" title="Help & Guide">
-						<HelpCircle class="h-5 w-5" />
-					</Button>
-				{/snippet}
-			</Dialog.Trigger>
-			<Dialog.Content class="help-dialog-content">
-				<Dialog.Header>
-					<Dialog.Title>Help & Guide</Dialog.Title>
-					<Dialog.Description>Learn about Microscope and how to use this app</Dialog.Description>
-				</Dialog.Header>
+		<div class="header-actions">
+			<Button
+				variant="ghost"
+				size="icon"
+				aria-label="Oracle"
+				title="Oracle - Get inspiration"
+				onclick={() => (oracleOpen = true)}
+			>
+				<Dices class="h-5 w-5" />
+			</Button>
 
-				<div class="help-content">
-					<section class="help-section">
+			<Dialog.Root bind:open={helpOpen}>
+				<Dialog.Trigger>
+					{#snippet child({ props })}
+						<Button {...props} variant="ghost" size="icon" aria-label="Help" title="Help & Guide">
+							<HelpCircle class="h-5 w-5" />
+						</Button>
+					{/snippet}
+				</Dialog.Trigger>
+				<Dialog.Content class="help-dialog-content">
+					<Dialog.Header>
+						<Dialog.Title>Help & Guide</Dialog.Title>
+						<Dialog.Description>Learn about Microscope and how to use this app</Dialog.Description>
+					</Dialog.Header>
+
+					<div class="help-content">
+						<section class="help-section">
 						<h3>What is Microscope?</h3>
 						<p>
 							Microscope is a collaborative worldbuilding game where you create the epic history of
@@ -149,8 +163,11 @@
 				</Dialog.Footer>
 			</Dialog.Content>
 		</Dialog.Root>
+		</div>
 	</div>
 </header>
+
+<OracleDialog open={oracleOpen} onOpenChange={(v) => (oracleOpen = v)} />
 
 <style>
 	.header {
@@ -170,6 +187,12 @@
 		max-width: 1400px;
 		margin: 0 auto;
 		padding: 0.75rem 1rem;
+	}
+
+	.header-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.25rem;
 	}
 
 	.logo-link {
@@ -201,7 +224,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.5rem;
-		padding: 1rem 0;
+		padding: 1rem 0.75rem;
 	}
 
 	.help-section h3 {

@@ -5,9 +5,10 @@
 		label: string;
 		onclick: () => void;
 		orientation?: 'horizontal' | 'vertical';
+		size?: 'small' | 'medium' | 'large';
 	}
 
-	let { label, onclick, orientation = 'vertical' }: Props = $props();
+	let { label, onclick, orientation = 'vertical', size = 'medium' }: Props = $props();
 </script>
 
 <button
@@ -15,6 +16,9 @@
 	class="add-button"
 	class:horizontal={orientation === 'horizontal'}
 	class:vertical={orientation === 'vertical'}
+	class:small={size === 'small'}
+	class:medium={size === 'medium'}
+	class:large={size === 'large'}
 	{onclick}
 	aria-label={label}
 	title={label}
@@ -45,9 +49,22 @@
 		margin: 0 calc(0.5rem * max(var(--canvas-zoom, 1), 1));
 	}
 
-	.add-button.vertical {
+	/* Vertical button sizes */
+	.add-button.vertical.small {
+		width: calc(120px * max(var(--canvas-zoom, 1), 1));
+		height: calc(24px * max(var(--canvas-zoom, 1), 1));
+		margin: calc(0.25rem * max(var(--canvas-zoom, 1), 1)) 0;
+	}
+
+	.add-button.vertical.medium {
 		width: 100%;
 		height: calc(32px * max(var(--canvas-zoom, 1), 1));
+		margin: calc(0.5rem * max(var(--canvas-zoom, 1), 1)) 0;
+	}
+
+	.add-button.vertical.large {
+		width: 100%;
+		height: calc(40px * max(var(--canvas-zoom, 1), 1));
 		margin: calc(0.5rem * max(var(--canvas-zoom, 1), 1)) 0;
 	}
 
@@ -69,5 +86,10 @@
 	.add-button :global(.add-icon) {
 		width: calc(1.25rem * max(var(--canvas-zoom, 1), 1));
 		height: calc(1.25rem * max(var(--canvas-zoom, 1), 1));
+	}
+
+	.add-button.small :global(.add-icon) {
+		width: calc(1rem * max(var(--canvas-zoom, 1), 1));
+		height: calc(1rem * max(var(--canvas-zoom, 1), 1));
 	}
 </style>

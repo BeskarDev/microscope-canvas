@@ -12,9 +12,9 @@ test.describe('Game Save Functionality', () => {
 
 	test('should persist newly created game', async ({ page }) => {
 		// Create a new game
-		await page.getByRole('button', { name: 'Create New Game' }).click();
-		await page.getByRole('textbox', { name: 'Game Name' }).fill('Test Persistence Game');
-		await page.getByRole('button', { name: 'Create Game' }).click();
+		await page.getByRole('button', { name: 'Create New History' }).click();
+		await page.getByRole('textbox', { name: 'History Name' }).fill('Test Persistence Game');
+		await page.getByRole('button', { name: 'Create History' }).click();
 
 		// Wait for navigation to game page
 		await expect(page).toHaveURL(/\/game\//);
@@ -36,9 +36,9 @@ test.describe('Game Save Functionality', () => {
 
 	test('should persist added periods', async ({ page }) => {
 		// Create a new game
-		await page.getByRole('button', { name: 'Create New Game' }).click();
-		await page.getByRole('textbox', { name: 'Game Name' }).fill('Period Test Game');
-		await page.getByRole('button', { name: 'Create Game' }).click();
+		await page.getByRole('button', { name: 'Create New History' }).click();
+		await page.getByRole('textbox', { name: 'History Name' }).fill('Period Test Game');
+		await page.getByRole('button', { name: 'Create History' }).click();
 		await expect(page).toHaveURL(/\/game\//);
 
 		// Add a period
@@ -58,9 +58,9 @@ test.describe('Game Save Functionality', () => {
 
 	test('should persist added events', async ({ page }) => {
 		// Create game with a period
-		await page.getByRole('button', { name: 'Create New Game' }).click();
-		await page.getByRole('textbox', { name: 'Game Name' }).fill('Event Test Game');
-		await page.getByRole('button', { name: 'Create Game' }).click();
+		await page.getByRole('button', { name: 'Create New History' }).click();
+		await page.getByRole('textbox', { name: 'History Name' }).fill('Event Test Game');
+		await page.getByRole('button', { name: 'Create History' }).click();
 		await page.getByRole('button', { name: 'Add period at beginning' }).click();
 
 		// Add an event to the period
@@ -80,9 +80,9 @@ test.describe('Game Save Functionality', () => {
 
 	test('should persist added scenes', async ({ page }) => {
 		// Create game with period and event
-		await page.getByRole('button', { name: 'Create New Game' }).click();
-		await page.getByRole('textbox', { name: 'Game Name' }).fill('Scene Test Game');
-		await page.getByRole('button', { name: 'Create Game' }).click();
+		await page.getByRole('button', { name: 'Create New History' }).click();
+		await page.getByRole('textbox', { name: 'History Name' }).fill('Scene Test Game');
+		await page.getByRole('button', { name: 'Create History' }).click();
 		await page.getByRole('button', { name: 'Add period at beginning' }).click();
 		await page.getByRole('button', { name: 'Add event to this period' }).click();
 
@@ -103,9 +103,9 @@ test.describe('Game Save Functionality', () => {
 
 	test('should persist edited period', async ({ page }) => {
 		// Create game with a period
-		await page.getByRole('button', { name: 'Create New Game' }).click();
-		await page.getByRole('textbox', { name: 'Game Name' }).fill('Edit Test Game');
-		await page.getByRole('button', { name: 'Create Game' }).click();
+		await page.getByRole('button', { name: 'Create New History' }).click();
+		await page.getByRole('textbox', { name: 'History Name' }).fill('Edit Test Game');
+		await page.getByRole('button', { name: 'Create History' }).click();
 		await page.getByRole('button', { name: 'Add period at beginning' }).click();
 
 		// Edit the period
@@ -129,9 +129,9 @@ test.describe('Game Save Functionality', () => {
 
 	test('should persist deleted period', async ({ page }) => {
 		// Create game with two periods
-		await page.getByRole('button', { name: 'Create New Game' }).click();
-		await page.getByRole('textbox', { name: 'Game Name' }).fill('Delete Test Game');
-		await page.getByRole('button', { name: 'Create Game' }).click();
+		await page.getByRole('button', { name: 'Create New History' }).click();
+		await page.getByRole('textbox', { name: 'History Name' }).fill('Delete Test Game');
+		await page.getByRole('button', { name: 'Create History' }).click();
 		await page.getByRole('button', { name: 'Add period at beginning' }).click();
 		await page.getByRole('button', { name: 'Add period here' }).first().click();
 
@@ -160,9 +160,9 @@ test.describe('Game Save Functionality', () => {
 
 	test('should handle rapid consecutive saves', async ({ page }) => {
 		// Create game
-		await page.getByRole('button', { name: 'Create New Game' }).click();
-		await page.getByRole('textbox', { name: 'Game Name' }).fill('Rapid Save Test');
-		await page.getByRole('button', { name: 'Create Game' }).click();
+		await page.getByRole('button', { name: 'Create New History' }).click();
+		await page.getByRole('textbox', { name: 'History Name' }).fill('Rapid Save Test');
+		await page.getByRole('button', { name: 'Create History' }).click();
 
 		// Rapidly add multiple periods
 		for (let i = 0; i < 5; i++) {

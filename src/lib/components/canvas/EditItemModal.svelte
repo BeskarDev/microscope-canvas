@@ -6,6 +6,7 @@
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
 	import ToneToggle from './ToneToggle.svelte';
+	import OracleDiceButton from './OracleDiceButton.svelte';
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 
 	type ItemType = 'period' | 'event' | 'scene';
@@ -218,12 +219,19 @@
 		>
 			<div class="form-field">
 				<label for="item-name" class="form-label">Name</label>
-				<Input
-					id="item-name"
-					bind:value={name}
-					placeholder={`Enter ${itemType} name`}
-					oninput={() => validateName()}
-				/>
+				<div class="input-with-oracle">
+					<Input
+						id="item-name"
+						bind:value={name}
+						placeholder={`Enter ${itemType} name`}
+						oninput={() => validateName()}
+					/>
+					<OracleDiceButton 
+						category="name" 
+						onResult={(result) => { name = result; validateName(); }}
+						title="Generate random name"
+					/>
+				</div>
 				{#if nameError}
 					<p class="error-message">{nameError}</p>
 				{/if}
@@ -236,22 +244,36 @@
 
 			<div class="form-field">
 				<label for="item-description" class="form-label">Description</label>
-				<Textarea
-					id="item-description"
-					bind:value={description}
-					placeholder="Add notes or description..."
-					rows={3}
-				/>
+				<div class="input-with-oracle">
+					<Textarea
+						id="item-description"
+						bind:value={description}
+						placeholder="Add notes or description..."
+						rows={3}
+					/>
+					<OracleDiceButton 
+						category="seed" 
+						onResult={(result) => { description = result; }}
+						title="Generate random inspiration"
+					/>
+				</div>
 			</div>
 
 			{#if itemType === 'scene'}
 				<div class="form-field">
 					<label for="scene-question" class="form-label">Question</label>
-					<Input
-						id="scene-question"
-						bind:value={question}
-						placeholder="What question does this scene explore?"
-					/>
+					<div class="input-with-oracle">
+						<Input
+							id="scene-question"
+							bind:value={question}
+							placeholder="What question does this scene explore?"
+						/>
+						<OracleDiceButton 
+							category="scene" 
+							onResult={(result) => { question = result; }}
+							title="Generate random scene question"
+						/>
+					</div>
 				</div>
 
 				<div class="form-field">
@@ -313,6 +335,17 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+	}
+
+	.input-with-oracle {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.5rem;
+	}
+
+	.input-with-oracle :global(input),
+	.input-with-oracle :global(textarea) {
+		flex: 1;
 	}
 
 	.tone-fieldset {
