@@ -24,6 +24,9 @@
 
 	let { open, onOpenChange }: Props = $props();
 
+	// Maximum number of history items to keep
+	const MAX_HISTORY_ITEMS = 10;
+
 	type OracleTab = 'seed' | 'focus' | 'palette' | 'scene' | 'legacy' | 'name';
 	let activeTab = $state<OracleTab>('seed');
 	let result = $state('');
@@ -64,8 +67,8 @@
 		result = newResult;
 		resultTone = tone;
 
-		// Add to history (most recent first, limit to 10)
-		history = [{ text: newResult, tone: tone ?? undefined }, ...history.slice(0, 9)];
+		// Add to history (most recent first)
+		history = [{ text: newResult, tone: tone ?? undefined }, ...history.slice(0, MAX_HISTORY_ITEMS - 1)];
 	}
 
 	function handleTabChange(tab: OracleTab) {

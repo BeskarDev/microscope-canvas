@@ -82,17 +82,9 @@
 		const dy = Math.abs(e.clientY - dragStartPos.y);
 
 		// For mouse, start drag after threshold
-		if (!isDragging && e.pointerType === 'mouse' && (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD)) {
-			// Cancel long press timer if exists
-			if (longPressTimer) {
-				clearTimeout(longPressTimer);
-				longPressTimer = null;
-			}
-			// Can't start drag from pointermove for mouse - need to use native drag
-		}
-
+		// For mouse, use native HTML5 drag-and-drop (handled by ondragstart)
 		// For touch, cancel long press if moved too much
-		if (e.pointerType === 'touch' && (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD)) {
+		if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
 			if (longPressTimer) {
 				clearTimeout(longPressTimer);
 				longPressTimer = null;
@@ -147,8 +139,12 @@
 		element.classList.add('dragging');
 
 		// Add haptic feedback on mobile if available
-		if (navigator.vibrate) {
-			navigator.vibrate(50);
+		try {
+			if (navigator.vibrate) {
+				navigator.vibrate(50);
+			}
+		} catch {
+			// Vibration API not supported or blocked
 		}
 	}
 
