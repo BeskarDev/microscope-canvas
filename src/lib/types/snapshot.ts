@@ -87,6 +87,7 @@ export function areGamesEqual(game1: Game, game2: Game): boolean {
 
 /**
  * Generates a summary of changes between two game states
+ * Uses Map objects for O(n) lookups instead of O(n²) nested loops
  */
 export function generateChangeSummary(oldGame: Game | null, newGame: Game): string {
 	if (!oldGame) {
@@ -109,12 +110,13 @@ export function generateChangeSummary(oldGame: Game | null, newGame: Game): stri
 		}
 	}
 
-	// Check periods
-	const oldPeriodIds = new Set(oldGame.periods.map((p) => p.id));
-	const newPeriodIds = new Set(newGame.periods.map((p) => p.id));
+	// Build Maps for O(1) lookups
+	const oldPeriodMap = new Map(oldGame.periods.map((p) => [p.id, p]));
+	const newPeriodMap = new Map(newGame.periods.map((p) => [p.id, p]));
 
-	const addedPeriods = newGame.periods.filter((p) => !oldPeriodIds.has(p.id));
-	const removedPeriods = oldGame.periods.filter((p) => !newPeriodIds.has(p.id));
+	// Check periods
+	const addedPeriods = newGame.periods.filter((p) => !oldPeriodMap.has(p.id));
+	const removedPeriods = oldGame.periods.filter((p) => !newPeriodMap.has(p.id));
 
 	if (addedPeriods.length > 0) {
 		changes.push(
@@ -125,26 +127,28 @@ export function generateChangeSummary(oldGame: Game | null, newGame: Game): stri
 		changes.push(`Removed ${removedPeriods.length} period${removedPeriods.length > 1 ? 's' : ''}`);
 	}
 
-	// Check events (count total changes)
+	// Check events and scenes (count total changes)
 	let addedEvents = 0;
 	let removedEvents = 0;
 	let addedScenes = 0;
 	let removedScenes = 0;
 
 	for (const newPeriod of newGame.periods) {
-		const oldPeriod = oldGame.periods.find((p) => p.id === newPeriod.id);
+		const oldPeriod = oldPeriodMap.get(newPeriod.id);
 		if (!oldPeriod) continue;
 
-		const oldEventIds = new Set(oldPeriod.events.map((e) => e.id));
-		const newEventIds = new Set(newPeriod.events.map((e) => e.id));
+		// Build event maps for this period
+		const oldEventMap = new Map(oldPeriod.events.map((e) => [e.id, e]));
+		const newEventMap = new Map(newPeriod.events.map((e) => [e.id, e]));
 
-		addedEvents += newPeriod.events.filter((e) => !oldEventIds.has(e.id)).length;
-		removedEvents += oldPeriod.events.filter((e) => !newEventIds.has(e.id)).length;
+		addedEvents += newPeriod.events.filter((e) => !oldEventMap.has(e.id)).length;
+		removedEvents += oldPeriod.events.filter((e) => !newEventMap.has(e.id)).length;
 
 		for (const newEvent of newPeriod.events) {
-			const oldEvent = oldPeriod.events.find((e) => e.id === newEvent.id);
+			const oldEvent = oldEventMap.get(newEvent.id);
 			if (!oldEvent) continue;
 
+			// Build scene sets for this event
 			const oldSceneIds = new Set(oldEvent.scenes.map((s) => s.id));
 			const newSceneIds = new Set(newEvent.scenes.map((s) => s.id));
 

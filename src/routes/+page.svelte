@@ -163,17 +163,21 @@
 	}
 
 	// Drag and drop handlers
+	// Track drag enter count to handle nested elements correctly
+	let dragEnterCount = 0;
+
 	function handleDragEnter(event: DragEvent) {
 		event.preventDefault();
-		isDragOver = true;
+		dragEnterCount++;
+		if (dragEnterCount === 1) {
+			isDragOver = true;
+		}
 	}
 
 	function handleDragLeave(event: DragEvent) {
 		event.preventDefault();
-		// Only set false if we're leaving the container, not entering a child
-		const relatedTarget = event.relatedTarget as HTMLElement | null;
-		const currentTarget = event.currentTarget as HTMLElement | null;
-		if (!relatedTarget || !currentTarget?.contains(relatedTarget)) {
+		dragEnterCount--;
+		if (dragEnterCount === 0) {
 			isDragOver = false;
 		}
 	}
@@ -187,6 +191,7 @@
 
 	function handleDrop(event: DragEvent) {
 		event.preventDefault();
+		dragEnterCount = 0;
 		isDragOver = false;
 
 		const file = event.dataTransfer?.files?.[0];

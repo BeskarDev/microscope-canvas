@@ -964,6 +964,12 @@
 		overflow: hidden;
 	}
 
+	/*
+	 * Game header uses a nested structure (.canvas-header > .canvas-header-content)
+	 * to match the global app header pattern. The outer container spans full width
+	 * with centered content, while inner content has max-width: 1400px to align
+	 * with the main Header component in +layout.svelte.
+	 */
 	.canvas-header {
 		display: flex;
 		align-items: center;

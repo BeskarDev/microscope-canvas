@@ -300,6 +300,8 @@ export function parseGameJSON(jsonString: string): Game {
 
 	// Check schema version - data is now validated as Game type
 	const gameData = data as Game;
+	
+	// Validate schema version if present
 	if (gameData.schemaVersion !== undefined && typeof gameData.schemaVersion === 'number') {
 		if (gameData.schemaVersion > SCHEMA_VERSION) {
 			throw new ImportError(
@@ -308,6 +310,10 @@ export function parseGameJSON(jsonString: string): Game {
 			);
 		}
 		// Future: handle migrations for older schema versions here
+	} else {
+		// If no schema version, assume it's version 1 (current version)
+		// This handles exports from before schemaVersion was added
+		gameData.schemaVersion = SCHEMA_VERSION;
 	}
 
 	return gameData;
