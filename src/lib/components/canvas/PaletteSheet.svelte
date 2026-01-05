@@ -2,10 +2,12 @@
 	import type { Palette } from '$lib/types';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
+	import { generatePaletteElement } from '$lib/utils/oracle/index';
 	import X from 'lucide-svelte/icons/x';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Check from 'lucide-svelte/icons/check';
 	import Ban from 'lucide-svelte/icons/ban';
+	import Dices from 'lucide-svelte/icons/dices';
 
 	interface Props {
 		open: boolean;
@@ -46,6 +48,16 @@
 		noItems = [...noItems, trimmed];
 		newNoItem = '';
 		saveChanges();
+	}
+
+	function handleGenerateYes() {
+		const result = generatePaletteElement('light');
+		newYesItem = result.text;
+	}
+
+	function handleGenerateNo() {
+		const result = generatePaletteElement('dark');
+		newNoItem = result.text;
 	}
 
 	function handleRemoveYes(index: number) {
@@ -143,6 +155,14 @@
 							}}
 						/>
 						<Button
+							variant="ghost"
+							size="icon"
+							onclick={handleGenerateYes}
+							title="Generate random suggestion"
+						>
+							<Dices class="h-4 w-4" />
+						</Button>
+						<Button
 							variant="secondary"
 							size="sm"
 							onclick={handleAddYes}
@@ -193,6 +213,14 @@
 								}
 							}}
 						/>
+						<Button
+							variant="ghost"
+							size="icon"
+							onclick={handleGenerateNo}
+							title="Generate random suggestion"
+						>
+							<Dices class="h-4 w-4" />
+						</Button>
 						<Button
 							variant="secondary"
 							size="sm"

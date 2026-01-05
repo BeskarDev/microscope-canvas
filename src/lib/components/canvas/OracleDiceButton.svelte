@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Button } from '$lib/components/ui/button';
 	import Dices from 'lucide-svelte/icons/dices';
-	import { generateOracleResult, type OracleCategory } from '$lib/utils/oracle';
+	import { generateOracleResult, type OracleCategory } from '$lib/utils/oracle/index';
 
 	interface Props {
 		category: OracleCategory;

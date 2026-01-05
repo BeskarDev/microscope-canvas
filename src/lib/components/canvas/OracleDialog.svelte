@@ -8,7 +8,7 @@
 		generateSceneQuestion,
 		generateLegacy,
 		generateNameInspiration
-	} from '$lib/utils/oracle';
+	} from '$lib/utils/oracle/index';
 	import Dices from 'lucide-svelte/icons/dices';
 	import RefreshCw from 'lucide-svelte/icons/refresh-cw';
 	import Copy from 'lucide-svelte/icons/copy';
@@ -243,11 +243,10 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
-		padding: 1rem 0;
+		padding: 1rem 0.75rem;
 		overflow-y: auto;
 		flex: 1;
 		min-height: 0;
-		padding-right: 0.75rem;
 	}
 
 	.tab-list {

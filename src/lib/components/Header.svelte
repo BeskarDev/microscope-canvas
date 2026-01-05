@@ -224,8 +224,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1.5rem;
-		padding: 1rem 0;
-		padding-right: 0.75rem;
+		padding: 1rem 0.75rem;
 	}
 
 	.help-section h3 {
