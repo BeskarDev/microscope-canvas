@@ -198,8 +198,31 @@ export function exportGameToMarkdown(game: Game): string {
 		lines.push('');
 	}
 
-	// Focus
-	if (game.focus) {
+	// Players
+	if (game.players && game.players.length > 0) {
+		lines.push('## Players');
+		lines.push('');
+		game.players.forEach((player, idx) => {
+			const isActive = idx === game.activePlayerIndex;
+			lines.push(`${idx + 1}. ${escapeMarkdown(player.name)}${isActive ? ' *(active)*' : ''}`);
+		});
+		lines.push('');
+	}
+
+	// Focuses
+	if (game.focuses && game.focuses.length > 0) {
+		lines.push('## Focuses');
+		lines.push('');
+		game.focuses.forEach((focus, idx) => {
+			const isCurrent = idx === game.currentFocusIndex;
+			lines.push(`- **${escapeMarkdown(focus.name)}**${isCurrent ? ' *(current)*' : ''}`);
+			if (focus.description) {
+				lines.push(`  - ${escapeMarkdown(focus.description)}`);
+			}
+		});
+		lines.push('');
+	} else if (game.focus) {
+		// Fallback for legacy focus field
 		lines.push(`**Current Focus:** ${escapeMarkdown(game.focus.name)}`);
 		if (game.focus.description) {
 			lines.push(`> ${escapeMarkdown(game.focus.description)}`);

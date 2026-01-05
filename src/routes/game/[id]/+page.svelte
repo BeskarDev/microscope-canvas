@@ -14,6 +14,10 @@
 	import Menu from 'lucide-svelte/icons/menu';
 	import FileJson from 'lucide-svelte/icons/file-json';
 	import FileText from 'lucide-svelte/icons/file-text';
+	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
+	import ChevronRight from 'lucide-svelte/icons/chevron-right';
+	import User from 'lucide-svelte/icons/user';
+	import Target from 'lucide-svelte/icons/target';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
@@ -647,6 +651,22 @@
 			previousValues.legacies = JSON.parse(JSON.stringify(game.legacies));
 			newValues.legacies = updates.legacies;
 		}
+		if (updates.players !== undefined) {
+			previousValues.players = JSON.parse(JSON.stringify(game.players));
+			newValues.players = updates.players;
+		}
+		if (updates.activePlayerIndex !== undefined) {
+			previousValues.activePlayerIndex = game.activePlayerIndex;
+			newValues.activePlayerIndex = updates.activePlayerIndex;
+		}
+		if (updates.focuses !== undefined) {
+			previousValues.focuses = JSON.parse(JSON.stringify(game.focuses));
+			newValues.focuses = updates.focuses;
+		}
+		if (updates.currentFocusIndex !== undefined) {
+			previousValues.currentFocusIndex = game.currentFocusIndex;
+			newValues.currentFocusIndex = updates.currentFocusIndex;
+		}
 
 		const action: EditGameMetadataAction = {
 			type: 'EDIT_GAME_METADATA',
@@ -658,6 +678,42 @@
 		Object.assign(game, updates);
 		game = game;
 		recordGameAction(action);
+	}
+
+	// Player navigation
+	function handlePreviousPlayer() {
+		if (!game || game.players.length === 0) return;
+		const newIndex = game.activePlayerIndex <= 0 
+			? game.players.length - 1 
+			: game.activePlayerIndex - 1;
+		handleSaveGameSettings({ activePlayerIndex: newIndex });
+	}
+
+	function handleNextPlayer() {
+		if (!game || game.players.length === 0) return;
+		const newIndex = (game.activePlayerIndex + 1) % game.players.length;
+		handleSaveGameSettings({ activePlayerIndex: newIndex });
+	}
+
+	// Focus navigation  
+	function handlePreviousFocus() {
+		if (!game || game.focuses.length === 0) return;
+		const newIndex = game.currentFocusIndex <= 0 
+			? game.focuses.length - 1 
+			: game.currentFocusIndex - 1;
+		handleSaveGameSettings({ 
+			currentFocusIndex: newIndex,
+			focus: game.focuses[newIndex]
+		});
+	}
+
+	function handleNextFocus() {
+		if (!game || game.focuses.length === 0) return;
+		const newIndex = (game.currentFocusIndex + 1) % game.focuses.length;
+		handleSaveGameSettings({ 
+			currentFocusIndex: newIndex,
+			focus: game.focuses[newIndex]
+		});
 	}
 
 	// History modal handlers
@@ -826,13 +882,87 @@
 					</span>
 				{:else if game}
 					<span class="game-title">{game.name}</span>
-					{#if game.focus}
-						<span class="focus-indicator" title="Current Focus: {game.focus.name}">
-							Focus: {game.focus.name}
-						</span>
-					{/if}
 				{/if}
 			</div>
+
+			<!-- Player and Focus navigation (center section) -->
+			{#if !isViewingHistory && game}
+				<div class="header-center">
+					<!-- Active Player -->
+					{#if game.players && game.players.length > 0}
+						<div class="nav-control player-control" title="Active Player">
+							<Button
+								variant="ghost"
+								size="icon"
+								class="nav-btn"
+								onclick={handlePreviousPlayer}
+								aria-label="Previous player"
+								disabled={game.players.length <= 1}
+							>
+								<ChevronLeft class="h-3.5 w-3.5" />
+							</Button>
+							<div class="nav-label">
+								<User class="h-3.5 w-3.5 nav-icon" />
+								<span class="nav-text">
+									{game.activePlayerIndex >= 0 && game.players[game.activePlayerIndex]
+										? game.players[game.activePlayerIndex].name
+										: 'No player'}
+								</span>
+							</div>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="nav-btn"
+								onclick={handleNextPlayer}
+								aria-label="Next player"
+								disabled={game.players.length <= 1}
+							>
+								<ChevronRight class="h-3.5 w-3.5" />
+							</Button>
+						</div>
+					{/if}
+
+					<!-- Current Focus -->
+					{#if game.focuses && game.focuses.length > 0}
+						<div class="nav-control focus-control" title="Current Focus">
+							<Button
+								variant="ghost"
+								size="icon"
+								class="nav-btn"
+								onclick={handlePreviousFocus}
+								aria-label="Previous focus"
+								disabled={game.focuses.length <= 1}
+							>
+								<ChevronLeft class="h-3.5 w-3.5" />
+							</Button>
+							<div class="nav-label">
+								<Target class="h-3.5 w-3.5 nav-icon" />
+								<span class="nav-text">
+									{game.currentFocusIndex >= 0 && game.focuses[game.currentFocusIndex]
+										? game.focuses[game.currentFocusIndex].name
+										: 'No focus'}
+								</span>
+							</div>
+							<Button
+								variant="ghost"
+								size="icon"
+								class="nav-btn"
+								onclick={handleNextFocus}
+								aria-label="Next focus"
+								disabled={game.focuses.length <= 1}
+							>
+								<ChevronRight class="h-3.5 w-3.5" />
+							</Button>
+						</div>
+					{:else if game.focus}
+						<!-- Fallback for legacy focus field -->
+						<div class="focus-indicator" title="Current Focus: {game.focus.name}">
+							<Target class="h-3.5 w-3.5" />
+							{game.focus.name}
+						</div>
+					{/if}
+				</div>
+			{/if}
 
 			<div class="header-right">
 				{#if isViewingHistory && currentSnapshotId}
@@ -1138,6 +1268,59 @@
 		gap: 0.5rem;
 	}
 
+	/* Center section with player/focus navigation */
+	.header-center {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.nav-control {
+		display: flex;
+		align-items: center;
+		gap: 0.125rem;
+		background-color: var(--color-muted);
+		border-radius: var(--radius);
+		padding: 0.125rem;
+	}
+
+	.nav-control :global(.nav-btn) {
+		width: 1.5rem;
+		height: 1.5rem;
+		padding: 0;
+	}
+
+	.nav-label {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
+		padding: 0.25rem 0.5rem;
+		min-width: 0;
+	}
+
+	.nav-label :global(.nav-icon) {
+		flex-shrink: 0;
+		color: var(--color-muted-foreground);
+	}
+
+	.player-control :global(.nav-icon) {
+		color: oklch(70% 0.15 200);
+	}
+
+	.focus-control :global(.nav-icon) {
+		color: oklch(70% 0.15 50);
+	}
+
+	.nav-text {
+		font-size: 0.75rem;
+		font-weight: 500;
+		color: var(--color-foreground);
+		max-width: 100px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
 	.mobile-menu-container {
 		display: none;
 		position: relative;
@@ -1200,11 +1383,19 @@
 	}
 
 	.focus-indicator {
+		display: flex;
+		align-items: center;
+		gap: 0.375rem;
 		font-size: 0.75rem;
 		color: var(--color-muted-foreground);
-		padding: 0.125rem 0.5rem;
+		padding: 0.25rem 0.5rem;
 		background-color: var(--color-muted);
 		border-radius: var(--radius);
+	}
+
+	.focus-indicator :global(svg) {
+		flex-shrink: 0;
+		color: oklch(70% 0.15 50);
 	}
 
 	.history-indicator {
@@ -1352,6 +1543,10 @@
 			display: none;
 		}
 
+		.header-center {
+			display: none;
+		}
+
 		.desktop-controls {
 			display: none;
 		}
@@ -1373,6 +1568,23 @@
 		.error-actions :global(button),
 		.error-actions :global(a) {
 			width: 100%;
+		}
+	}
+
+	/* Show header center on tablets */
+	@media (min-width: 768px) {
+		.header-center {
+			display: flex;
+		}
+
+		.nav-text {
+			max-width: 120px;
+		}
+	}
+
+	@media (min-width: 1024px) {
+		.nav-text {
+			max-width: 160px;
 		}
 	}
 </style>

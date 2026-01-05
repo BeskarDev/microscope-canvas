@@ -25,6 +25,14 @@ export interface Focus {
 }
 
 /**
+ * A Player represents a participant in the game
+ */
+export interface Player {
+	id: string;
+	name: string;
+}
+
+/**
  * A Legacy is a recurring element that persists through history
  * (character, place, organization, etc.)
  */
@@ -106,7 +114,16 @@ export interface Game {
 	name: string;
 	bigPicture?: BigPicture;
 	palette?: Palette;
+	/** List of all focuses for the game */
+	focuses: Focus[];
+	/** Index of the current focus in the focuses array (-1 if none) */
+	currentFocusIndex: number;
+	/** Current focus (deprecated - use focuses and currentFocusIndex) */
 	focus?: Focus;
+	/** List of players in the game */
+	players: Player[];
+	/** Index of the active player in the players array (-1 if none) */
+	activePlayerIndex: number;
 	legacies: Legacy[];
 	periods: Period[];
 	createdAt: string; // ISO 8601 timestamp
@@ -139,6 +156,10 @@ export function createNewGame(name: string): Game {
 		id: crypto.randomUUID(),
 		schemaVersion: SCHEMA_VERSION,
 		name: trimmedName,
+		focuses: [],
+		currentFocusIndex: -1,
+		players: [],
+		activePlayerIndex: -1,
 		legacies: [],
 		periods: [],
 		createdAt: now,
@@ -204,6 +225,16 @@ export function createNewLegacy(name: string): Legacy {
  * Creates a new focus
  */
 export function createNewFocus(name: string): Focus {
+	return {
+		id: crypto.randomUUID(),
+		name
+	};
+}
+
+/**
+ * Creates a new player
+ */
+export function createNewPlayer(name: string): Player {
 	return {
 		id: crypto.randomUUID(),
 		name
