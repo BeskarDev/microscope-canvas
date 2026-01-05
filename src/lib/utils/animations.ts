@@ -88,17 +88,15 @@ export const ANIMATION_CLASSES = {
 /**
  * Generate a CSS transition string from presets
  */
-export function createTransition(
-	...properties: Array<keyof typeof TRANSITIONS>
-): string {
+export function createTransition(...properties: Array<keyof typeof TRANSITIONS>): string {
 	return properties.map((p) => TRANSITIONS[p]).join(', ');
 }
 
 /**
  * Generate inline style object for transition
  */
-export function transitionStyle(
-	properties: Array<keyof typeof TRANSITIONS>
-): { transition: string } {
+export function transitionStyle(properties: Array<keyof typeof TRANSITIONS>): {
+	transition: string;
+} {
 	return { transition: createTransition(...properties) };
 }

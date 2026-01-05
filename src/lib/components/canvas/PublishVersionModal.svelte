@@ -1,5 +1,12 @@
 <script lang="ts">
-	import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '$lib/components/ui/dialog';
+	import {
+		Dialog,
+		DialogContent,
+		DialogHeader,
+		DialogTitle,
+		DialogFooter,
+		DialogDescription
+	} from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import Loader2 from 'lucide-svelte/icons/loader-2';
@@ -14,14 +21,7 @@
 		isPublishing: boolean;
 	}
 
-	let {
-		open,
-		onOpenChange,
-		defaultName,
-		changeSummary,
-		onPublish,
-		isPublishing
-	}: Props = $props();
+	let { open, onOpenChange, defaultName, changeSummary, onPublish, isPublishing }: Props = $props();
 
 	let versionName = $state('');
 

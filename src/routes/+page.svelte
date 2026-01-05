@@ -269,7 +269,7 @@
 >
 	{#if isDragOver}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div 
+		<div
 			class="drop-overlay animate-fade-in"
 			ondragenter={handleDragEnter}
 			ondragleave={handleDragLeave}

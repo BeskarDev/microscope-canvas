@@ -54,10 +54,7 @@
 		type DeleteSceneAction,
 		type EditSceneAction,
 		type EditGameMetadataAction,
-		type SnapshotMetadata,
-		type ReorderPeriodsAction,
-		type ReorderEventsAction,
-		type ReorderScenesAction
+		type SnapshotMetadata
 	} from '$lib/types';
 	import {
 		createHistoryState,
@@ -300,9 +297,7 @@
 		// Check if user is in a text input
 		const target = e.target as HTMLElement;
 		const isTextInput =
-			target.tagName === 'INPUT' ||
-			target.tagName === 'TEXTAREA' ||
-			target.isContentEditable;
+			target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
 		// Don't intercept when in text input (let browser handle native undo)
 		if (isTextInput) return;
@@ -348,7 +343,7 @@
 	function handleAddPeriod(index: number) {
 		if (!game) return;
 		const period = createNewPeriod('New Period');
-		
+
 		// Create action for undo
 		const action: CreatePeriodAction = {
 			type: 'CREATE_PERIOD',
@@ -686,9 +681,8 @@
 	// Player navigation
 	function handlePreviousPlayer() {
 		if (!game || game.players.length === 0) return;
-		const newIndex = game.activePlayerIndex <= 0 
-			? game.players.length - 1 
-			: game.activePlayerIndex - 1;
+		const newIndex =
+			game.activePlayerIndex <= 0 ? game.players.length - 1 : game.activePlayerIndex - 1;
 		handleSaveGameSettings({ activePlayerIndex: newIndex });
 	}
 
@@ -698,13 +692,12 @@
 		handleSaveGameSettings({ activePlayerIndex: newIndex });
 	}
 
-	// Focus navigation  
+	// Focus navigation
 	function handlePreviousFocus() {
 		if (!game || game.focuses.length === 0) return;
-		const newIndex = game.currentFocusIndex <= 0 
-			? game.focuses.length - 1 
-			: game.currentFocusIndex - 1;
-		handleSaveGameSettings({ 
+		const newIndex =
+			game.currentFocusIndex <= 0 ? game.focuses.length - 1 : game.currentFocusIndex - 1;
+		handleSaveGameSettings({
 			currentFocusIndex: newIndex,
 			focus: game.focuses[newIndex]
 		});
@@ -713,7 +706,7 @@
 	function handleNextFocus() {
 		if (!game || game.focuses.length === 0) return;
 		const newIndex = (game.currentFocusIndex + 1) % game.focuses.length;
-		handleSaveGameSettings({ 
+		handleSaveGameSettings({
 			currentFocusIndex: newIndex,
 			focus: game.focuses[newIndex]
 		});
@@ -761,7 +754,11 @@
 				// Create a snapshot of current state before restoring (auto-save current state)
 				const plainGame = JSON.parse(JSON.stringify(game)) as Game;
 				const changeSummary = generateChangeSummary(lastPublishedGame, plainGame);
-				const currentSnapshot = createSnapshot(plainGame, 'Auto-saved before restore', changeSummary);
+				const currentSnapshot = createSnapshot(
+					plainGame,
+					'Auto-saved before restore',
+					changeSummary
+				);
 				await createSnapshotRecord(currentSnapshot);
 
 				// Restore the historical version
@@ -813,9 +810,10 @@
 		try {
 			const history = await loadAllSnapshotsForGame(game.id);
 			downloadGameAsJSON(game, history);
-			const historyNote = history.length > 0 
-				? ` Includes ${history.length} version${history.length > 1 ? 's' : ''} in history.`
-				: '';
+			const historyNote =
+				history.length > 0
+					? ` Includes ${history.length} version${history.length > 1 ? 's' : ''} in history.`
+					: '';
 			toast.success('Export complete', {
 				description: `Your game has been exported as JSON.${historyNote}`
 			});
@@ -880,9 +878,7 @@
 				{/if}
 				{#if isViewingHistory && historicalGame}
 					<span class="game-title">{historicalGame.name}</span>
-					<span class="history-indicator">
-						Viewing History
-					</span>
+					<span class="history-indicator"> Viewing History </span>
 				{:else if game}
 					<span class="game-title">{game.name}</span>
 				{/if}
@@ -1000,7 +996,7 @@
 							<Redo2 class="h-4 w-4" />
 						</Button>
 					</div>
-					
+
 					<!-- Desktop controls (hidden on mobile) -->
 					<div class="desktop-controls">
 						<Button
@@ -1047,31 +1043,56 @@
 
 						{#if mobileMenuOpen}
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div 
-								class="mobile-menu-backdrop" 
+							<div
+								class="mobile-menu-backdrop"
 								onclick={closeMobileMenu}
 								onkeydown={(e) => e.key === 'Escape' && closeMobileMenu()}
 							></div>
 							<div class="mobile-dropdown" role="menu">
-								<button type="button" class="mobile-menu-item" onclick={handleMobilePublish} role="menuitem">
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobilePublish}
+									role="menuitem"
+								>
 									<Bookmark class="h-4 w-4" />
 									<span>Publish Version</span>
 								</button>
-								<button type="button" class="mobile-menu-item" onclick={handleMobileHistory} role="menuitem">
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobileHistory}
+									role="menuitem"
+								>
 									<History class="h-4 w-4" />
 									<span>Version History</span>
 								</button>
 								<div class="mobile-menu-divider"></div>
-								<button type="button" class="mobile-menu-item" onclick={handleMobileExportJSON} role="menuitem">
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobileExportJSON}
+									role="menuitem"
+								>
 									<FileJson class="h-4 w-4" />
 									<span>Export as JSON</span>
 								</button>
-								<button type="button" class="mobile-menu-item" onclick={handleMobileExportMarkdown} role="menuitem">
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobileExportMarkdown}
+									role="menuitem"
+								>
 									<FileText class="h-4 w-4" />
 									<span>Export as Markdown</span>
 								</button>
 								<div class="mobile-menu-divider"></div>
-								<button type="button" class="mobile-menu-item" onclick={handleMobileSettings} role="menuitem">
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobileSettings}
+									role="menuitem"
+								>
 									<Settings class="h-4 w-4" />
 									<span>Game Settings</span>
 								</button>

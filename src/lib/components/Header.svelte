@@ -138,8 +138,8 @@
 					<section class="help-section">
 						<h3>Data & Privacy</h3>
 						<p>
-							All your data is stored locally in your browser. Nothing is sent to any server. You can
-							export your games as JSON files for backup or to transfer between devices.
+							All your data is stored locally in your browser. Nothing is sent to any server. You
+							can export your games as JSON files for backup or to transfer between devices.
 						</p>
 					</section>
 				</div>

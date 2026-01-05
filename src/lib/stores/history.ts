@@ -53,7 +53,9 @@ export function recordAction(state: HistoryState, action: GameAction): HistorySt
  * Pops the last action from the undo stack for undoing
  * Returns the action and the new state, or null if stack is empty
  */
-export function popUndo(state: HistoryState): { action: GameAction; newState: HistoryState } | null {
+export function popUndo(
+	state: HistoryState
+): { action: GameAction; newState: HistoryState } | null {
 	if (state.undoStack.length === 0) {
 		return null;
 	}
@@ -75,7 +77,9 @@ export function popUndo(state: HistoryState): { action: GameAction; newState: Hi
  * Pops the last action from the redo stack for redoing
  * Returns the action and the new state, or null if stack is empty
  */
-export function popRedo(state: HistoryState): { action: GameAction; newState: HistoryState } | null {
+export function popRedo(
+	state: HistoryState
+): { action: GameAction; newState: HistoryState } | null {
 	if (state.redoStack.length === 0) {
 		return null;
 	}

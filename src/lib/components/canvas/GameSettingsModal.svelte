@@ -146,7 +146,10 @@
 			focuses: focuses,
 			currentFocusIndex: currentFocusIndex,
 			// Also update the legacy focus field for backwards compatibility
-			focus: currentFocusIndex >= 0 && focuses[currentFocusIndex] ? focuses[currentFocusIndex] : undefined
+			focus:
+				currentFocusIndex >= 0 && focuses[currentFocusIndex]
+					? focuses[currentFocusIndex]
+					: undefined
 		};
 
 		onSave(updates);
@@ -260,7 +263,9 @@
 			<!-- Focuses Section -->
 			<div class="form-section">
 				<h3 class="section-title">Focuses</h3>
-				<p class="section-description">Themes or elements to explore. Click to set the current focus.</p>
+				<p class="section-description">
+					Themes or elements to explore. Click to set the current focus.
+				</p>
 
 				{#if focuses.length > 0}
 					<div class="items-list">

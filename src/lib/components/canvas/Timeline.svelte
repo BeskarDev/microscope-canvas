@@ -16,7 +16,12 @@
 		onSelectScene: (periodId: string, eventId: string, scene: Scene) => void;
 		onReorderPeriods?: (fromIndex: number, toIndex: number) => void;
 		onReorderEvents?: (periodId: string, fromIndex: number, toIndex: number) => void;
-		onReorderScenes?: (periodId: string, eventId: string, fromIndex: number, toIndex: number) => void;
+		onReorderScenes?: (
+			periodId: string,
+			eventId: string,
+			fromIndex: number,
+			toIndex: number
+		) => void;
 	}
 
 	let {
@@ -119,16 +124,18 @@
 	/>
 
 	{#each game.periods as period, periodIndex (period.id)}
-		<div 
+		<div
 			class="period-column"
-			class:drag-over={dragType === 'period' && dropIndex === periodIndex && dragIndex !== periodIndex}
+			class:drag-over={dragType === 'period' &&
+				dropIndex === periodIndex &&
+				dragIndex !== periodIndex}
 			ondragover={handleDragOver('period', periodIndex)}
 			ondragleave={handleDragLeave}
 			ondrop={handleDrop('period', periodIndex)}
 		>
 			<!-- Period card with drag handle -->
-			<div 
-				class="period-section" 
+			<div
+				class="period-section"
 				class:dragging={dragType === 'period' && dragIndex === periodIndex}
 				draggable="true"
 				ondragstart={handleDragStart('period', periodIndex)}
@@ -143,17 +150,22 @@
 			<!-- Events under this period -->
 			<div class="events-section">
 				{#each period.events as event, eventIndex (event.id)}
-					<div 
+					<div
 						class="event-column"
-						class:drag-over={dragType === 'event' && dropIndex === eventIndex && dragIndex !== eventIndex && dragPeriodId === period.id}
+						class:drag-over={dragType === 'event' &&
+							dropIndex === eventIndex &&
+							dragIndex !== eventIndex &&
+							dragPeriodId === period.id}
 						ondragover={handleDragOver('event', eventIndex, period.id)}
 						ondragleave={handleDragLeave}
 						ondrop={handleDrop('event', eventIndex, period.id)}
 					>
 						<!-- Event card with drag handle -->
-						<div 
+						<div
 							class="event-wrapper"
-							class:dragging={dragType === 'event' && dragIndex === eventIndex && dragPeriodId === period.id}
+							class:dragging={dragType === 'event' &&
+								dragIndex === eventIndex &&
+								dragPeriodId === period.id}
 							draggable="true"
 							ondragstart={handleDragStart('event', eventIndex, period.id)}
 							ondragend={handleDragEnd}
@@ -167,10 +179,17 @@
 						<!-- Scenes under this event -->
 						<div class="scenes-section">
 							{#each event.scenes as scene, sceneIndex (scene.id)}
-								<div 
+								<div
 									class="scene-wrapper"
-									class:drag-over={dragType === 'scene' && dropIndex === sceneIndex && dragIndex !== sceneIndex && dragPeriodId === period.id && dragEventId === event.id}
-									class:dragging={dragType === 'scene' && dragIndex === sceneIndex && dragPeriodId === period.id && dragEventId === event.id}
+									class:drag-over={dragType === 'scene' &&
+										dropIndex === sceneIndex &&
+										dragIndex !== sceneIndex &&
+										dragPeriodId === period.id &&
+										dragEventId === event.id}
+									class:dragging={dragType === 'scene' &&
+										dragIndex === sceneIndex &&
+										dragPeriodId === period.id &&
+										dragEventId === event.id}
 									draggable="true"
 									ondragstart={handleDragStart('scene', sceneIndex, period.id, event.id)}
 									ondragover={handleDragOver('scene', sceneIndex, period.id, event.id)}
@@ -320,7 +339,9 @@
 		cursor: grab;
 		color: var(--color-muted-foreground);
 		opacity: 0.5;
-		transition: opacity 0.15s, color 0.15s;
+		transition:
+			opacity 0.15s,
+			color 0.15s;
 		border-radius: var(--radius);
 	}
 

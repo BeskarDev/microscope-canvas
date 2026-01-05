@@ -346,7 +346,7 @@ export function parseGameJSON(jsonString: string): Game {
 
 	// Check schema version - data is now validated as Game type
 	const gameData = data as Game;
-	
+
 	// Validate schema version if present
 	if (gameData.schemaVersion !== undefined && typeof gameData.schemaVersion === 'number') {
 		if (gameData.schemaVersion > SCHEMA_VERSION) {

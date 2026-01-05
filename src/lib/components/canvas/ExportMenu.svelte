@@ -3,7 +3,11 @@
 	import Download from 'lucide-svelte/icons/download';
 	import FileJson from 'lucide-svelte/icons/file-json';
 	import FileText from 'lucide-svelte/icons/file-text';
-	import { downloadGameAsJSON, downloadGameAsMarkdown, loadAllSnapshotsForGame } from '$lib/services';
+	import {
+		downloadGameAsJSON,
+		downloadGameAsMarkdown,
+		loadAllSnapshotsForGame
+	} from '$lib/services';
 	import { toast } from '$lib/components/ui/sonner';
 	import type { Game } from '$lib/types';
 
@@ -20,10 +24,11 @@
 			// Load all snapshots for complete backup
 			const history = await loadAllSnapshotsForGame(game.id);
 			downloadGameAsJSON(game, history);
-			
-			const historyNote = history.length > 0 
-				? ` Includes ${history.length} version${history.length > 1 ? 's' : ''} in history.`
-				: '';
+
+			const historyNote =
+				history.length > 0
+					? ` Includes ${history.length} version${history.length > 1 ? 's' : ''} in history.`
+					: '';
 			toast.success('Export complete', {
 				description: `Your game has been exported as JSON.${historyNote}`
 			});
