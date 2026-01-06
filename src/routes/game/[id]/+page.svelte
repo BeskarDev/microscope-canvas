@@ -60,7 +60,10 @@
 		type Palette as PaletteType,
 		type ReorderPeriodsAction,
 		type ReorderEventsAction,
-		type ReorderScenesAction
+		type ReorderScenesAction,
+		type Player,
+		type Focus,
+		type Legacy
 	} from '$lib/types';
 	import {
 		createHistoryState,

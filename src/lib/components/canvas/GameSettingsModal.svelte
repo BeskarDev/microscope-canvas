@@ -1,5 +1,5 @@
 <script lang="ts">
-import type { Game, BigPicture } from '$lib/types';
+import type { Game } from '$lib/types';
 import * as Dialog from '$lib/components/ui/dialog';
 import { Button } from '$lib/components/ui/button';
 import { Input } from '$lib/components/ui/input';
