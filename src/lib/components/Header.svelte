@@ -44,7 +44,8 @@
 						<Dialog.Title>Help & Guide</Dialog.Title>
 						<Dialog.Description>Learn about how to use this app</Dialog.Description>
 					</Dialog.Header>
-
+	
+					<div class="help-content">
 					<section class="help-section">
 						<h3>Using This App</h3>
 						<ul>
