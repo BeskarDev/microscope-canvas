@@ -288,11 +288,10 @@
 		display: flex;
 		flex-direction: row;
 		align-items: flex-start;
-		/* Allow drag-and-drop to work from anywhere on the card */
-		touch-action: none;
-		user-select: none;
+		/* Add horizontal spacing between periods to make panning easier at high zoom */
+		gap: calc(1rem * max(var(--canvas-zoom, 1), 1));
 	}
-
+	
 	.period-column {
 		display: flex;
 		flex-direction: column;
@@ -304,6 +303,9 @@
 		flex-shrink: 0;
 		position: relative;
 		cursor: grab;
+		/* Allow drag-and-drop to work from the period card */
+		touch-action: none;
+		user-select: none;
 	}
 
 	.period-section:active {
@@ -322,15 +324,15 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		/* Allow drag-and-drop to work from anywhere on the card */
-		touch-action: none;
-		user-select: none;
 	}
 
 	.event-wrapper {
 		flex-shrink: 0;
 		position: relative;
 		cursor: grab;
+		/* Allow drag-and-drop to work from the event card */
+		touch-action: none;
+		user-select: none;
 	}
 
 	.event-wrapper:active {
