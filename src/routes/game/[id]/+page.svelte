@@ -18,6 +18,7 @@
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import User from 'lucide-svelte/icons/user';
 	import Target from 'lucide-svelte/icons/target';
+	import Palette from 'lucide-svelte/icons/palette';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
@@ -955,6 +956,11 @@
 		settingsModalOpen = true;
 	}
 
+	function handleMobilePalette() {
+		closeMobileMenu();
+		paletteSheetOpen = true;
+	}
+
 	// Palette handler
 	function handleSavePalette(palette: PaletteType) {
 		handleSaveGameSettings({ palette });
@@ -1126,6 +1132,15 @@
 						<Button
 							variant="ghost"
 							size="sm"
+							onclick={() => (paletteSheetOpen = true)}
+							aria-label="Palette"
+							title="Palette - Yes/No list"
+						>
+							<Palette class="h-4 w-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
 							onclick={openPublishModal}
 							aria-label="Publish version"
 							title="Publish version"
@@ -1174,6 +1189,15 @@
 								onkeydown={(e) => e.key === 'Escape' && closeMobileMenu()}
 							></div>
 							<div class="mobile-dropdown" role="menu">
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobilePalette}
+									role="menuitem"
+								>
+									<Palette class="h-4 w-4" />
+									<span>Palette</span>
+								</button>
 								<button
 									type="button"
 									class="mobile-menu-item"
