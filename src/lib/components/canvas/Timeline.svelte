@@ -171,84 +171,86 @@
 		onfinalize={handlePeriodFinalize}
 	>
 		{#each localPeriods as period, periodIndex (period.id)}
-			<div class="period-wrapper" animate:flip={{ duration: flipDurationMs }}>
-				<div class="period-column">
-					<!-- Period card -->
-					<div class="period-section">
-						<PeriodCard {period} onclick={() => onSelectPeriod(period)} />
-					</div>
-
-					<!-- Events under this period - only show container if there are events -->
-					{#if (localEventsMap.get(period.id) ?? period.events).length > 0}
-						{@const periodEvents = localEventsMap.get(period.id) ?? period.events}
-						<div 
-							class="events-section"
-							use:dndzone={{
-								items: periodEvents,
-								flipDurationMs,
-								type: `events-${period.id}`,
-								dropTargetStyle: {},
-								dropTargetClasses: ['drop-target-event'],
-								centreDraggedOnCursor: true,
-								dropFromOthersDisabled: true
-							}}
-							onconsider={(e) => handleEventConsider(period.id, e)}
-							onfinalize={(e) => handleEventFinalize(period.id, e)}
-						>
-							{#each periodEvents as event (event.id)}
-								<div class="event-column" animate:flip={{ duration: flipDurationMs }}>
-									<!-- Event card -->
-									<div class="event-wrapper">
-										<EventCard {event} onclick={() => onSelectEvent(period.id, event)} />
-									</div>
-
-									<!-- Scenes under this event -->
-									{#if (localScenesMap.get(`${period.id}-${event.id}`) ?? event.scenes).length > 0}
-										{@const eventScenes = localScenesMap.get(`${period.id}-${event.id}`) ?? event.scenes}
-										<div 
-											class="scenes-section"
-											use:dndzone={{
-												items: eventScenes,
-												flipDurationMs,
-												type: `scenes-${period.id}-${event.id}`,
-												dropTargetStyle: {},
-												dropTargetClasses: ['drop-target-scene'],
-												centreDraggedOnCursor: true,
-												dropFromOthersDisabled: true
-											}}
-											onconsider={(e) => handleSceneConsider(period.id, event.id, e)}
-											onfinalize={(e) => handleSceneFinalize(period.id, event.id, e)}
-										>
-											{#each eventScenes as scene (scene.id)}
-												<div class="scene-wrapper" animate:flip={{ duration: flipDurationMs }}>
-													<SceneCard {scene} onclick={() => onSelectScene(period.id, event.id, scene)} />
-												</div>
-											{/each}
-										</div>
-									{/if}
-
-									<!-- Add scene button - smaller size -->
-									<AddButton
-										label="Add scene to this event"
-										orientation="vertical"
-										size="small"
-										onclick={() => onAddScene(period.id, event.id)}
-									/>
-								</div>
-							{/each}
+			<div class="period-item" animate:flip={{ duration: flipDurationMs }}>
+				<div class="period-wrapper">
+					<div class="period-column">
+						<!-- Period card -->
+						<div class="period-section">
+							<PeriodCard {period} onclick={() => onSelectPeriod(period)} />
 						</div>
-					{/if}
 
-					<!-- Add event button - larger size -->
-					<AddButton
-						label="Add event to this period"
-						orientation="vertical"
-						size="medium"
-						onclick={() => onAddEvent(period.id)}
-					/>
+						<!-- Events under this period - only show container if there are events -->
+						{#if (localEventsMap.get(period.id) ?? period.events).length > 0}
+							{@const periodEvents = localEventsMap.get(period.id) ?? period.events}
+							<div 
+								class="events-section"
+								use:dndzone={{
+									items: periodEvents,
+									flipDurationMs,
+									type: `events-${period.id}`,
+									dropTargetStyle: {},
+									dropTargetClasses: ['drop-target-event'],
+									centreDraggedOnCursor: true,
+									dropFromOthersDisabled: true
+								}}
+								onconsider={(e) => handleEventConsider(period.id, e)}
+								onfinalize={(e) => handleEventFinalize(period.id, e)}
+							>
+								{#each periodEvents as event (event.id)}
+									<div class="event-column" animate:flip={{ duration: flipDurationMs }}>
+										<!-- Event card -->
+										<div class="event-wrapper">
+											<EventCard {event} onclick={() => onSelectEvent(period.id, event)} />
+										</div>
+
+										<!-- Scenes under this event -->
+										{#if (localScenesMap.get(`${period.id}-${event.id}`) ?? event.scenes).length > 0}
+											{@const eventScenes = localScenesMap.get(`${period.id}-${event.id}`) ?? event.scenes}
+											<div 
+												class="scenes-section"
+												use:dndzone={{
+													items: eventScenes,
+													flipDurationMs,
+													type: `scenes-${period.id}-${event.id}`,
+													dropTargetStyle: {},
+													dropTargetClasses: ['drop-target-scene'],
+													centreDraggedOnCursor: true,
+													dropFromOthersDisabled: true
+												}}
+												onconsider={(e) => handleSceneConsider(period.id, event.id, e)}
+												onfinalize={(e) => handleSceneFinalize(period.id, event.id, e)}
+											>
+												{#each eventScenes as scene (scene.id)}
+													<div class="scene-wrapper" animate:flip={{ duration: flipDurationMs }}>
+														<SceneCard {scene} onclick={() => onSelectScene(period.id, event.id, scene)} />
+													</div>
+												{/each}
+											</div>
+										{/if}
+
+										<!-- Add scene button - smaller size -->
+										<AddButton
+											label="Add scene to this event"
+											orientation="vertical"
+											size="small"
+											onclick={() => onAddScene(period.id, event.id)}
+										/>
+									</div>
+								{/each}
+							</div>
+						{/if}
+
+						<!-- Add event button - larger size -->
+						<AddButton
+							label="Add event to this period"
+							orientation="vertical"
+							size="medium"
+							onclick={() => onAddEvent(period.id)}
+						/>
+					</div>
 				</div>
-
-				<!-- Add button between periods (inside period-wrapper for proper spacing) -->
+				
+				<!-- Add button between periods (outside period-wrapper for consistent spacing) -->
 				<AddButton
 					label="Add period here"
 					orientation="horizontal"
@@ -281,22 +283,31 @@
 		display: flex;
 		flex-direction: row;
 		align-items: flex-start;
-		gap: 0;
+		/* Add horizontal spacing between periods and add buttons for consistent spacing */
+		gap: calc(1rem * max(var(--canvas-zoom, 1), 1));
+	}
+
+	.period-item {
+		display: flex;
+		flex-direction: row;
+		align-items: flex-start;
 	}
 
 	.period-wrapper {
 		display: flex;
-		flex-direction: row;
-		align-items: flex-start;
-		/* Add horizontal spacing between periods to make panning easier at high zoom */
-		gap: calc(1rem * max(var(--canvas-zoom, 1), 1));
+		flex-direction: column;
+		align-items: center;
+		/* Prevent drag from empty spaces in wrapper */
+		pointer-events: none;
 	}
-	
+
 	.period-column {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: calc(1rem * max(var(--canvas-zoom, 1), 1));
+		/* Re-enable pointer events for column content */
+		pointer-events: auto;
 	}
 
 	.period-section {
@@ -324,15 +335,15 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		/* Allow drag-and-drop to work from anywhere on the card */
+		touch-action: none;
+		user-select: none;
 	}
 
 	.event-wrapper {
 		flex-shrink: 0;
 		position: relative;
 		cursor: grab;
-		/* Allow drag-and-drop to work from the event card */
-		touch-action: none;
-		user-select: none;
 	}
 
 	.event-wrapper:active {
