@@ -83,7 +83,8 @@
 		HistoryModal,
 		PublishVersionModal,
 		ExportMenu,
-		PaletteSheet
+		PaletteSheet,
+		PlayersSheet
 	} from '$lib/components/canvas';
 	import { toast } from '$lib/components/ui/sonner';
 
@@ -146,6 +147,9 @@
 
 	// Palette sheet state
 	let paletteSheetOpen = $state(false);
+
+	// Players sheet state
+	let playersSheetOpen = $state(false);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -961,13 +965,27 @@
 		paletteSheetOpen = true;
 	}
 
+	function handleMobilePlayers() {
+		closeMobileMenu();
+		playersSheetOpen = true;
+	}
+
 	// Palette handler
 	function handleSavePalette(palette: PaletteType) {
 		handleSaveGameSettings({ palette });
 	}
 
+	// Players handler
+	function handleSavePlayers(players: Player[], activePlayerIndex: number) {
+		handleSaveGameSettings({ players, activePlayerIndex });
+	}
+
 	// Get current palette with defaults
 	const currentPalette = $derived<PaletteType>(game?.palette ?? { yes: [], no: [] });
+
+	// Get current players with defaults
+	const currentPlayers = $derived(game?.players ?? []);
+	const currentActivePlayerIndex = $derived(game?.activePlayerIndex ?? -1);
 
 	// Get page title based on game name
 	const pageTitle = $derived(
@@ -1141,6 +1159,15 @@
 						<Button
 							variant="ghost"
 							size="sm"
+							onclick={() => (playersSheetOpen = true)}
+							aria-label="Players"
+							title="Players - Turn order"
+						>
+							<User class="h-4 w-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
 							onclick={openPublishModal}
 							aria-label="Publish version"
 							title="Publish version"
@@ -1198,6 +1225,16 @@
 									<Palette class="h-4 w-4" />
 									<span>Palette</span>
 								</button>
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobilePlayers}
+									role="menuitem"
+								>
+									<User class="h-4 w-4" />
+									<span>Players</span>
+								</button>
+								<div class="mobile-menu-divider"></div>
 								<button
 									type="button"
 									class="mobile-menu-item"
@@ -1420,6 +1457,15 @@
 	onOpenChange={(open) => (paletteSheetOpen = open)}
 	palette={currentPalette}
 	onSave={handleSavePalette}
+/>
+
+<!-- Players Sheet -->
+<PlayersSheet
+	open={playersSheetOpen}
+	onOpenChange={(open) => (playersSheetOpen = open)}
+	players={currentPlayers}
+	activePlayerIndex={currentActivePlayerIndex}
+	onSave={handleSavePlayers}
 />
 
 <style>

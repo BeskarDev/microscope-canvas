@@ -17,3 +17,4 @@ export { default as HistoryModal } from './HistoryModal.svelte';
 export { default as PublishVersionModal } from './PublishVersionModal.svelte';
 export { default as ExportMenu } from './ExportMenu.svelte';
 export { default as PaletteSheet } from './PaletteSheet.svelte';
+export { default as PlayersSheet } from './PlayersSheet.svelte';
