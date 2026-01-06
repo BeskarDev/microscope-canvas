@@ -54,9 +54,6 @@
 			border-color 0.15s ease;
 		text-align: left;
 		color: var(--color-card-foreground);
-		/* Allow drag-and-drop to work on the entire card */
-		touch-action: none;
-		user-select: none;
 	}
 
 	.event-card:hover {

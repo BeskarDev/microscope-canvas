@@ -41,61 +41,11 @@
 
 	// Configuration for dnd-action
 	const flipDurationMs = 200;
-	const touchDelayMs = 300; // Delay before touch drag starts to prevent accidental drags (300-500ms as requested)
 	
-	// Touch delay state - only applies to touch devices
-	let dragDisabledDuringDelay = $state(false); // Desktop: dragging is enabled by default
-	let touchDelayTimeout: ReturnType<typeof setTimeout> | null = null;
-	let touchStartPos = { x: 0, y: 0 };
-	const MOVE_THRESHOLD = 10; // pixels to move before canceling drag delay
-
 	// Local state for drag and drop - these are used for the preview during dragging
 	let localPeriods = $state<Period[]>([]);
 	let localEventsMap = new SvelteMap<string, GameEvent[]>();
 	let localScenesMap = new SvelteMap<string, Scene[]>();
-	
-	// Handle touch start to implement delay
-	function handleTouchStart(e: TouchEvent) {
-		const touch = e.touches[0];
-		touchStartPos = { x: touch.clientX, y: touch.clientY };
-		dragDisabledDuringDelay = true;
-		
-		// Clear any existing timeout
-		if (touchDelayTimeout) {
-			clearTimeout(touchDelayTimeout);
-		}
-		
-		// Set timeout to enable dragging after delay
-		touchDelayTimeout = setTimeout(() => {
-			dragDisabledDuringDelay = false;
-			touchDelayTimeout = null;
-		}, touchDelayMs);
-	}
-	
-	// Handle touch move to cancel delay if user is panning
-	function handleTouchMove(e: TouchEvent) {
-		if (touchDelayTimeout && dragDisabledDuringDelay) {
-			const touch = e.touches[0];
-			const dx = Math.abs(touch.clientX - touchStartPos.x);
-			const dy = Math.abs(touch.clientY - touchStartPos.y);
-			
-			// If moved more than threshold, cancel the drag delay (user is panning)
-			if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
-				clearTimeout(touchDelayTimeout);
-				touchDelayTimeout = null;
-				dragDisabledDuringDelay = false;
-			}
-		}
-	}
-	
-	// Handle touch end to clean up
-	function handleTouchEnd() {
-		if (touchDelayTimeout) {
-			clearTimeout(touchDelayTimeout);
-			touchDelayTimeout = null;
-		}
-		dragDisabledDuringDelay = false;
-	}
 
 	// Sync local state with props
 	$effect(() => {
@@ -110,14 +60,6 @@
 				localScenesMap.set(`${period.id}-${event.id}`, event.scenes);
 			});
 		});
-		
-		// Cleanup: clear any pending touch timeout when component unmounts
-		return () => {
-			if (touchDelayTimeout) {
-				clearTimeout(touchDelayTimeout);
-				touchDelayTimeout = null;
-			}
-		};
 	});
 
 	// Period drag handlers
@@ -208,12 +150,7 @@
 	}
 </script>
 
-<div class="timeline"
-	ontouchstart={handleTouchStart}
-	ontouchmove={handleTouchMove}
-	ontouchend={handleTouchEnd}
-	ontouchcancel={handleTouchEnd}
->
+<div class="timeline">
 	<!-- Add button before first period -->
 	<AddButton
 		label="Add period at beginning"
@@ -230,10 +167,10 @@
 			type: 'periods',
 			dropTargetStyle: {},
 			dropTargetClasses: ['drop-target-period'],
-			dragDisabled: dragDisabledDuringDelay,
 			centreDraggedOnCursor: true,
 			dropFromOthersDisabled: true,
-			morphDisabled: false
+			morphDisabled: false,
+			touchDelay: 300 // 300ms delay before drag starts on touch (prevents conflicts with panning)
 		}}
 		onconsider={handlePeriodConsider}
 		onfinalize={handlePeriodFinalize}
@@ -257,9 +194,9 @@
 								type: `events-${period.id}`,
 								dropTargetStyle: {},
 								dropTargetClasses: ['drop-target-event'],
-								dragDisabled: dragDisabledDuringDelay,
 								centreDraggedOnCursor: true,
-								dropFromOthersDisabled: true
+								dropFromOthersDisabled: true,
+								touchDelay: 300 // 300ms delay before drag starts on touch
 							}}
 							onconsider={(e) => handleEventConsider(period.id, e)}
 							onfinalize={(e) => handleEventFinalize(period.id, e)}
@@ -282,9 +219,9 @@
 												type: `scenes-${period.id}-${event.id}`,
 												dropTargetStyle: {},
 												dropTargetClasses: ['drop-target-scene'],
-												dragDisabled: dragDisabledDuringDelay,
 												centreDraggedOnCursor: true,
-												dropFromOthersDisabled: true
+												dropFromOthersDisabled: true,
+												touchDelay: 300 // 300ms delay before drag starts on touch
 											}}
 											onconsider={(e) => handleSceneConsider(period.id, event.id, e)}
 											onfinalize={(e) => handleSceneFinalize(period.id, event.id, e)}
@@ -358,6 +295,9 @@
 		display: flex;
 		flex-direction: row;
 		align-items: flex-start;
+		/* Allow drag-and-drop to work from anywhere on the card */
+		touch-action: none;
+		user-select: none;
 	}
 
 	.period-column {
@@ -371,6 +311,9 @@
 		flex-shrink: 0;
 		position: relative;
 		cursor: grab;
+		/* Allow drag-and-drop to work from anywhere on the card */
+		touch-action: none;
+		user-select: none;
 	}
 
 	.period-section:active {
@@ -389,12 +332,18 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		/* Allow drag-and-drop to work from anywhere on the card */
+		touch-action: none;
+		user-select: none;
 	}
 
 	.event-wrapper {
 		flex-shrink: 0;
 		position: relative;
 		cursor: grab;
+		/* Allow drag-and-drop to work from anywhere on the card */
+		touch-action: none;
+		user-select: none;
 	}
 
 	.event-wrapper:active {
@@ -414,6 +363,9 @@
 		flex-shrink: 0;
 		position: relative;
 		cursor: grab;
+		/* Allow drag-and-drop to work from anywhere on the card */
+		touch-action: none;
+		user-select: none;
 	}
 
 	.scene-wrapper:active {
