@@ -19,6 +19,7 @@
 	import User from 'lucide-svelte/icons/user';
 	import Target from 'lucide-svelte/icons/target';
 	import Palette from 'lucide-svelte/icons/palette';
+	import BookMarked from 'lucide-svelte/icons/book-marked';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
@@ -84,7 +85,9 @@
 		PublishVersionModal,
 		ExportMenu,
 		PaletteSheet,
-		PlayersSheet
+		PlayersSheet,
+		FocusesSheet,
+		LegaciesSheet
 	} from '$lib/components/canvas';
 	import { toast } from '$lib/components/ui/sonner';
 
@@ -150,6 +153,12 @@
 
 	// Players sheet state
 	let playersSheetOpen = $state(false);
+
+	// Focuses sheet state
+	let focusesSheetOpen = $state(false);
+
+	// Legacies sheet state
+	let legaciesSheetOpen = $state(false);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -970,6 +979,16 @@
 		playersSheetOpen = true;
 	}
 
+	function handleMobileFocuses() {
+		closeMobileMenu();
+		focusesSheetOpen = true;
+	}
+
+	function handleMobileLegacies() {
+		closeMobileMenu();
+		legaciesSheetOpen = true;
+	}
+
 	// Palette handler
 	function handleSavePalette(palette: PaletteType) {
 		handleSaveGameSettings({ palette });
@@ -980,12 +999,33 @@
 		handleSaveGameSettings({ players, activePlayerIndex });
 	}
 
+	// Focuses handler
+	function handleSaveFocuses(focuses: Focus[], currentFocusIndex: number) {
+		// Also update the legacy focus field for backwards compatibility
+		const focus = currentFocusIndex >= 0 && focuses[currentFocusIndex]
+			? focuses[currentFocusIndex]
+			: undefined;
+		handleSaveGameSettings({ focuses, currentFocusIndex, focus });
+	}
+
+	// Legacies handler
+	function handleSaveLegacies(legacies: Legacy[]) {
+		handleSaveGameSettings({ legacies });
+	}
+
 	// Get current palette with defaults
 	const currentPalette = $derived<PaletteType>(game?.palette ?? { yes: [], no: [] });
 
 	// Get current players with defaults
 	const currentPlayers = $derived(game?.players ?? []);
 	const currentActivePlayerIndex = $derived(game?.activePlayerIndex ?? -1);
+
+	// Get current focuses with defaults
+	const currentFocuses = $derived(game?.focuses ?? []);
+	const currentFocusIndex = $derived(game?.currentFocusIndex ?? -1);
+
+	// Get current legacies with defaults
+	const currentLegacies = $derived(game?.legacies ?? []);
 
 	// Get page title based on game name
 	const pageTitle = $derived(
@@ -1168,6 +1208,24 @@
 						<Button
 							variant="ghost"
 							size="sm"
+							onclick={() => (focusesSheetOpen = true)}
+							aria-label="Focuses"
+							title="Focuses - Themes to explore"
+						>
+							<Target class="h-4 w-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={() => (legaciesSheetOpen = true)}
+							aria-label="Legacies"
+							title="Legacies - Recurring elements"
+						>
+							<BookMarked class="h-4 w-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
 							onclick={openPublishModal}
 							aria-label="Publish version"
 							title="Publish version"
@@ -1233,6 +1291,24 @@
 								>
 									<User class="h-4 w-4" />
 									<span>Players</span>
+								</button>
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobileFocuses}
+									role="menuitem"
+								>
+									<Target class="h-4 w-4" />
+									<span>Focuses</span>
+								</button>
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobileLegacies}
+									role="menuitem"
+								>
+									<BookMarked class="h-4 w-4" />
+									<span>Legacies</span>
 								</button>
 								<div class="mobile-menu-divider"></div>
 								<button
@@ -1466,6 +1542,23 @@
 	players={currentPlayers}
 	activePlayerIndex={currentActivePlayerIndex}
 	onSave={handleSavePlayers}
+/>
+
+<!-- Focuses Sheet -->
+<FocusesSheet
+	open={focusesSheetOpen}
+	onOpenChange={(open) => (focusesSheetOpen = open)}
+	focuses={currentFocuses}
+	currentFocusIndex={currentFocusIndex}
+	onSave={handleSaveFocuses}
+/>
+
+<!-- Legacies Sheet -->
+<LegaciesSheet
+	open={legaciesSheetOpen}
+	onOpenChange={(open) => (legaciesSheetOpen = open)}
+	legacies={currentLegacies}
+	onSave={handleSaveLegacies}
 />
 
 <style>
