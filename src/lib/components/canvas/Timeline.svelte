@@ -308,9 +308,6 @@
 		flex-shrink: 0;
 		position: relative;
 		cursor: grab;
-		/* Allow drag-and-drop to work from anywhere on the card */
-		touch-action: none;
-		user-select: none;
 	}
 
 	.period-section:active {
@@ -338,9 +335,6 @@
 		flex-shrink: 0;
 		position: relative;
 		cursor: grab;
-		/* Allow drag-and-drop to work from anywhere on the card */
-		touch-action: none;
-		user-select: none;
 	}
 
 	.event-wrapper:active {

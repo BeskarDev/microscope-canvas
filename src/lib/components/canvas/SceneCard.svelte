@@ -13,13 +13,20 @@
 	let { scene, onclick }: Props = $props();
 </script>
 
-<button
-	type="button"
+<div
+	role="button"
+	tabindex="0"
 	class="scene-card"
 	class:light={scene.tone === 'light'}
 	class:dark={scene.tone === 'dark'}
 	data-card="scene"
 	{onclick}
+	onkeydown={(e) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			onclick?.();
+		}
+	}}
 >
 	<div class="tone-indicator">
 		{#if scene.tone === 'light'}
@@ -44,7 +51,7 @@
 			<span>{scene.answer}</span>
 		</p>
 	{/if}
-</button>
+</div>
 
 <style>
 	.scene-card {
