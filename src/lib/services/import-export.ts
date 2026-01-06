@@ -5,6 +5,7 @@
 
 import type { Game, Period, Event, Scene, GameSnapshot } from '$lib/types';
 import { SCHEMA_VERSION } from '$lib/types';
+import { deepClone } from '$lib/utils/deep-clone';
 
 /**
  * Extended export data that includes game history (snapshots)
@@ -34,14 +35,14 @@ function sanitizeFilename(name: string): string {
 export function exportGameToJSON(game: Game, history?: GameSnapshot[]): string {
 	// Create a clean copy with schema version
 	const exportData: GameExportData = {
-		...JSON.parse(JSON.stringify(game)),
+		...deepClone(game),
 		schemaVersion: SCHEMA_VERSION,
 		exportedAt: new Date().toISOString()
 	};
 
 	// Include history if provided
 	if (history && history.length > 0) {
-		exportData.history = JSON.parse(JSON.stringify(history));
+		exportData.history = deepClone(history);
 	}
 
 	return JSON.stringify(exportData, null, 2);
@@ -398,7 +399,7 @@ export function createGameFromImport(importedGame: Game): Game {
 
 	// Deep clone and update IDs
 	const newGame: Game = {
-		...JSON.parse(JSON.stringify(importedGame)),
+		...deepClone(importedGame),
 		id: newId,
 		schemaVersion: SCHEMA_VERSION,
 		createdAt: now,
@@ -435,7 +436,7 @@ export function createGameAndHistoryFromImport(
 
 	// Deep clone and update game
 	const newGame: Game = {
-		...JSON.parse(JSON.stringify(importedGame)),
+		...deepClone(importedGame),
 		id: newGameId,
 		schemaVersion: SCHEMA_VERSION,
 		createdAt: now,
@@ -445,7 +446,7 @@ export function createGameAndHistoryFromImport(
 	// Remap history to use the new game ID and generate new snapshot IDs
 	const newHistory: GameSnapshot[] = importedHistory.map((snapshot) => {
 		const newSnapshot: GameSnapshot = {
-			...JSON.parse(JSON.stringify(snapshot)),
+			...deepClone(snapshot),
 			id: crypto.randomUUID(),
 			gameId: newGameId
 		};

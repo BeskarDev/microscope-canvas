@@ -23,12 +23,13 @@ import type {
 	ReorderEventsAction,
 	ReorderScenesAction
 } from '$lib/types/actions';
+import { deepClone } from '$lib/utils/deep-clone';
 
 /**
  * Deep clones a game object to avoid mutation
  */
 function cloneGame(game: Game): Game {
-	return JSON.parse(JSON.stringify(game));
+	return deepClone(game);
 }
 
 /**

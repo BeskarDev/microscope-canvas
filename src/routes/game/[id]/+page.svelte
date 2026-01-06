@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import ArrowLeft from 'lucide-svelte/icons/arrow-left';
@@ -72,6 +72,7 @@
 		type HistoryState
 	} from '$lib/stores';
 	import { applyAction, reverseAction } from '$lib/utils';
+	import { deepClone } from '$lib/utils/deep-clone';
 	import {
 		Canvas,
 		Timeline,
@@ -157,6 +158,11 @@
 	onMount(async () => {
 		await fetchGame();
 	});
+	
+	// Cleanup on unmount
+	onDestroy(() => {
+		autosave.cancel(); // Cancel any pending autosave
+	});
 
 	async function fetchGame() {
 		if (!gameId) {
@@ -197,8 +203,7 @@
 	function triggerAutosave() {
 		if (game) {
 			// Create a plain object copy to avoid issues with Svelte proxies in IndexedDB
-			// Use JSON round-trip to ensure we get a plain object without Svelte proxies
-			const plainGame = JSON.parse(JSON.stringify(game)) as Game;
+			const plainGame = deepClone(game);
 			// Update timestamp on the plain copy
 			plainGame.updatedAt = new Date().toISOString();
 			autosave.save(plainGame);
@@ -243,7 +248,7 @@
 		isPublishing = true;
 
 		try {
-			const plainGame = JSON.parse(JSON.stringify(game)) as Game;
+			const plainGame = deepClone(game);
 			const changeSummary = generateChangeSummary(lastPublishedGame, plainGame);
 			const snapshot = createSnapshot(plainGame, versionName, changeSummary);
 			await createSnapshotRecord(snapshot);
@@ -371,7 +376,7 @@
 			timestamp: new Date().toISOString(),
 			periodId: period.id,
 			index,
-			period: JSON.parse(JSON.stringify(period))
+			period: deepClone(period)
 		};
 
 		game.periods.splice(index, 0, period);
@@ -394,7 +399,7 @@
 			periodId,
 			eventId: event.id,
 			index,
-			event: JSON.parse(JSON.stringify(event))
+			event: deepClone(event)
 		};
 
 		period.events.push(event);
@@ -421,7 +426,7 @@
 			eventId,
 			sceneId: scene.id,
 			index,
-			scene: JSON.parse(JSON.stringify(scene))
+			scene: deepClone(scene)
 		};
 
 		event.scenes.push(scene);
@@ -548,9 +553,7 @@
 				const newValues: Partial<Period> = {};
 				for (const key of Object.keys(periodUpdates) as (keyof Period)[]) {
 					if (key in period && key in periodUpdates) {
-						(previousValues as Record<string, unknown>)[key] = JSON.parse(
-							JSON.stringify(period[key])
-						);
+						(previousValues as Record<string, unknown>)[key] = deepClone(period[key]);
 						(newValues as Record<string, unknown>)[key] = periodUpdates[key];
 					}
 				}
@@ -576,9 +579,7 @@
 				const newValues: Partial<GameEvent> = {};
 				for (const key of Object.keys(eventUpdates) as (keyof GameEvent)[]) {
 					if (key in event && key in eventUpdates) {
-						(previousValues as Record<string, unknown>)[key] = JSON.parse(
-							JSON.stringify(event[key])
-						);
+						(previousValues as Record<string, unknown>)[key] = deepClone(event[key]);
 						(newValues as Record<string, unknown>)[key] = eventUpdates[key];
 					}
 				}
@@ -606,9 +607,7 @@
 				const newValues: Partial<Scene> = {};
 				for (const key of Object.keys(sceneUpdates) as (keyof Scene)[]) {
 					if (key in scene && key in sceneUpdates) {
-						(previousValues as Record<string, unknown>)[key] = JSON.parse(
-							JSON.stringify(scene[key])
-						);
+						(previousValues as Record<string, unknown>)[key] = deepClone(scene[key]);
 						(newValues as Record<string, unknown>)[key] = sceneUpdates[key];
 					}
 				}
@@ -667,7 +666,7 @@
 					timestamp: new Date().toISOString(),
 					periodId: itemId,
 					index: periodIndex,
-					period: JSON.parse(JSON.stringify(period))
+					period: deepClone(period)
 				};
 
 				game.periods = game.periods.filter((p) => p.id !== itemId);
@@ -686,7 +685,7 @@
 						periodId: editItemContext.periodId,
 						eventId: itemId,
 						index: eventIndex,
-						event: JSON.parse(JSON.stringify(event))
+						event: deepClone(event)
 					};
 
 					period.events = period.events.filter((e) => e.id !== itemId);
@@ -708,7 +707,7 @@
 						eventId: editItemContext.eventId,
 						sceneId: itemId,
 						index: sceneIndex,
-						scene: JSON.parse(JSON.stringify(scene))
+						scene: deepClone(scene)
 					};
 
 					event.scenes = event.scenes.filter((s) => s.id !== itemId);
@@ -735,25 +734,23 @@
 			newValues.name = updates.name;
 		}
 		if (updates.focus !== undefined) {
-			previousValues.focus = game.focus ? JSON.parse(JSON.stringify(game.focus)) : undefined;
+			previousValues.focus = game.focus ? deepClone(game.focus) : undefined;
 			newValues.focus = updates.focus;
 		}
 		if (updates.bigPicture !== undefined) {
-			previousValues.bigPicture = game.bigPicture
-				? JSON.parse(JSON.stringify(game.bigPicture))
-				: undefined;
+			previousValues.bigPicture = game.bigPicture ? deepClone(game.bigPicture) : undefined;
 			newValues.bigPicture = updates.bigPicture;
 		}
 		if (updates.palette !== undefined) {
-			previousValues.palette = game.palette ? JSON.parse(JSON.stringify(game.palette)) : undefined;
+			previousValues.palette = game.palette ? deepClone(game.palette) : undefined;
 			newValues.palette = updates.palette;
 		}
 		if (updates.legacies !== undefined) {
-			previousValues.legacies = JSON.parse(JSON.stringify(game.legacies));
+			previousValues.legacies = deepClone(game.legacies);
 			newValues.legacies = updates.legacies;
 		}
 		if (updates.players !== undefined) {
-			previousValues.players = JSON.parse(JSON.stringify(game.players));
+			previousValues.players = deepClone(game.players);
 			newValues.players = updates.players;
 		}
 		if (updates.activePlayerIndex !== undefined) {
@@ -761,7 +758,7 @@
 			newValues.activePlayerIndex = updates.activePlayerIndex;
 		}
 		if (updates.focuses !== undefined) {
-			previousValues.focuses = JSON.parse(JSON.stringify(game.focuses));
+			previousValues.focuses = deepClone(game.focuses);
 			newValues.focuses = updates.focuses;
 		}
 		if (updates.currentFocusIndex !== undefined) {
@@ -855,7 +852,7 @@
 			const snapshot = await loadSnapshot(snapshotId);
 			if (snapshot) {
 				// Create a snapshot of current state before restoring (auto-save current state)
-				const plainGame = JSON.parse(JSON.stringify(game)) as Game;
+				const plainGame = deepClone(game);
 				const changeSummary = generateChangeSummary(lastPublishedGame, plainGame);
 				const currentSnapshot = createSnapshot(
 					plainGame,
@@ -865,7 +862,7 @@
 				await createSnapshotRecord(currentSnapshot);
 
 				// Restore the historical version
-				const restoredGame = JSON.parse(JSON.stringify(snapshot.data)) as Game;
+				const restoredGame = deepClone(snapshot.data);
 				restoredGame.updatedAt = new Date().toISOString();
 				game = restoredGame;
 

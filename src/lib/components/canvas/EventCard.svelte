@@ -11,13 +11,20 @@
 	let { event, onclick }: Props = $props();
 </script>
 
-<button
-	type="button"
+<div
+	role="button"
+	tabindex="0"
 	class="event-card"
 	class:light={event.tone === 'light'}
 	class:dark={event.tone === 'dark'}
 	data-card="event"
 	{onclick}
+	onkeydown={(e) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			onclick?.();
+		}
+	}}
 >
 	<div class="tone-indicator">
 		{#if event.tone === 'light'}
@@ -30,7 +37,7 @@
 	{#if event.description}
 		<p class="card-description">{event.description}</p>
 	{/if}
-</button>
+</div>
 
 <style>
 	.event-card {
@@ -54,6 +61,8 @@
 			border-color 0.15s ease;
 		text-align: left;
 		color: var(--color-card-foreground);
+		/* Prevent card from blocking pointer events to parent wrapper for drag-and-drop */
+		pointer-events: auto;
 	}
 
 	.event-card:hover {

@@ -41,61 +41,11 @@
 
 	// Configuration for dnd-action
 	const flipDurationMs = 200;
-	const touchDelayMs = 500; // Delay before touch drag starts to prevent accidental drags
 	
-	// Touch delay state
-	let dragDisabledDuringDelay = $state(false);
-	let touchDelayTimeout: ReturnType<typeof setTimeout> | null = null;
-	let touchStartPos = { x: 0, y: 0 };
-	const MOVE_THRESHOLD = 10; // pixels to move before canceling drag delay
-
 	// Local state for drag and drop - these are used for the preview during dragging
 	let localPeriods = $state<Period[]>([]);
 	let localEventsMap = new SvelteMap<string, GameEvent[]>();
 	let localScenesMap = new SvelteMap<string, Scene[]>();
-	
-	// Handle touch start to implement delay
-	function handleTouchStart(e: TouchEvent) {
-		const touch = e.touches[0];
-		touchStartPos = { x: touch.clientX, y: touch.clientY };
-		dragDisabledDuringDelay = true;
-		
-		// Clear any existing timeout
-		if (touchDelayTimeout) {
-			clearTimeout(touchDelayTimeout);
-		}
-		
-		// Set timeout to enable dragging after delay
-		touchDelayTimeout = setTimeout(() => {
-			dragDisabledDuringDelay = false;
-			touchDelayTimeout = null;
-		}, touchDelayMs);
-	}
-	
-	// Handle touch move to cancel delay if user is panning
-	function handleTouchMove(e: TouchEvent) {
-		if (touchDelayTimeout && dragDisabledDuringDelay) {
-			const touch = e.touches[0];
-			const dx = Math.abs(touch.clientX - touchStartPos.x);
-			const dy = Math.abs(touch.clientY - touchStartPos.y);
-			
-			// If moved more than threshold, cancel the drag delay (user is panning)
-			if (dx > MOVE_THRESHOLD || dy > MOVE_THRESHOLD) {
-				clearTimeout(touchDelayTimeout);
-				touchDelayTimeout = null;
-				dragDisabledDuringDelay = false;
-			}
-		}
-	}
-	
-	// Handle touch end to clean up
-	function handleTouchEnd() {
-		if (touchDelayTimeout) {
-			clearTimeout(touchDelayTimeout);
-			touchDelayTimeout = null;
-		}
-		dragDisabledDuringDelay = false;
-	}
 
 	// Sync local state with props
 	$effect(() => {
@@ -142,7 +92,6 @@
 		const { items } = e.detail;
 		// Update local state for drag preview
 		localEventsMap.set(periodId, items);
-		localEventsMap = new SvelteMap(localEventsMap);
 	}
 
 	function handleEventFinalize(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string; source: string } }>) {
@@ -150,7 +99,6 @@
 		
 		// Update local state
 		localEventsMap.set(periodId, items);
-		localEventsMap = new SvelteMap(localEventsMap);
 		
 		// Call reorder callback if position changed
 		if (info.source === SOURCES.POINTER && onReorderEvents) {
@@ -172,7 +120,6 @@
 		const key = `${periodId}-${eventId}`;
 		// Update local state for drag preview
 		localScenesMap.set(key, items);
-		localScenesMap = new SvelteMap(localScenesMap);
 	}
 
 	function handleSceneFinalize(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string; source: string } }>) {
@@ -181,7 +128,6 @@
 		
 		// Update local state
 		localScenesMap.set(key, items);
-		localScenesMap = new SvelteMap(localScenesMap);
 		
 		// Call reorder callback if position changed
 		if (info.source === SOURCES.POINTER && onReorderScenes) {
@@ -200,12 +146,7 @@
 	}
 </script>
 
-<div class="timeline"
-	ontouchstart={handleTouchStart}
-	ontouchmove={handleTouchMove}
-	ontouchend={handleTouchEnd}
-	ontouchcancel={handleTouchEnd}
->
+<div class="timeline">
 	<!-- Add button before first period -->
 	<AddButton
 		label="Add period at beginning"
@@ -222,7 +163,6 @@
 			type: 'periods',
 			dropTargetStyle: {},
 			dropTargetClasses: ['drop-target-period'],
-			dragDisabled: dragDisabledDuringDelay,
 			centreDraggedOnCursor: true,
 			dropFromOthersDisabled: true,
 			morphDisabled: false
@@ -249,7 +189,6 @@
 								type: `events-${period.id}`,
 								dropTargetStyle: {},
 								dropTargetClasses: ['drop-target-event'],
-								dragDisabled: dragDisabledDuringDelay,
 								centreDraggedOnCursor: true,
 								dropFromOthersDisabled: true
 							}}
@@ -274,7 +213,6 @@
 												type: `scenes-${period.id}-${event.id}`,
 												dropTargetStyle: {},
 												dropTargetClasses: ['drop-target-scene'],
-												dragDisabled: dragDisabledDuringDelay,
 												centreDraggedOnCursor: true,
 												dropFromOthersDisabled: true
 											}}
@@ -350,6 +288,9 @@
 		display: flex;
 		flex-direction: row;
 		align-items: flex-start;
+		/* Allow drag-and-drop to work from anywhere on the card */
+		touch-action: none;
+		user-select: none;
 	}
 
 	.period-column {
@@ -381,6 +322,9 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
+		/* Allow drag-and-drop to work from anywhere on the card */
+		touch-action: none;
+		user-select: none;
 	}
 
 	.event-wrapper {
@@ -406,6 +350,9 @@
 		flex-shrink: 0;
 		position: relative;
 		cursor: grab;
+		/* Allow drag-and-drop to work from anywhere on the card */
+		touch-action: none;
+		user-select: none;
 	}
 
 	.scene-wrapper:active {
@@ -456,5 +403,27 @@
 	/* Shadow placeholder styling */
 	:global([data-is-dnd-shadow-item-hint]) {
 		opacity: 0.5;
+	}
+
+	/* Ensure dragged items don't get stuck in dragging state */
+	:global([aria-grabbed="true"]) {
+		opacity: 0.5;
+		cursor: grabbing;
+	}
+
+	/* Ensure items being dragged reset properly */
+	:global(.event-column:not([aria-grabbed="true"])) {
+		opacity: 1;
+		transform: none;
+	}
+
+	:global(.period-wrapper:not([aria-grabbed="true"])) {
+		opacity: 1;
+		transform: none;
+	}
+
+	:global(.scene-wrapper:not([aria-grabbed="true"])) {
+		opacity: 1;
+		transform: none;
 	}
 </style>
