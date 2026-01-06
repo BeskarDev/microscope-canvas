@@ -73,6 +73,8 @@
 			border-color 0.15s ease;
 		text-align: left;
 		color: var(--color-card-foreground);
+		/* Prevent card from blocking pointer events to parent wrapper for drag-and-drop */
+		pointer-events: auto;
 	}
 
 	.scene-card:hover {
