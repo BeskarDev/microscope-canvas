@@ -42,44 +42,8 @@
 				<Dialog.Content class="help-dialog-content">
 					<Dialog.Header>
 						<Dialog.Title>Help & Guide</Dialog.Title>
-						<Dialog.Description>Learn about Microscope and how to use this app</Dialog.Description>
+						<Dialog.Description>Learn about how to use this app</Dialog.Description>
 					</Dialog.Header>
-
-					<div class="help-content">
-						<section class="help-section">
-						<h3>What is Microscope?</h3>
-						<p>
-							Microscope is a collaborative worldbuilding game where you create the epic history of
-							a fictional civilization. You explore themes, eras, and key events without worrying
-							about a detailed timeline—history is yours to create.
-						</p>
-					</section>
-
-					<section class="help-section">
-						<h3>Core Concepts</h3>
-						<ul>
-							<li>
-								<strong>Periods</strong> — Large spans of time (eras, ages) that define major phases of
-								your history. They can be Light (positive) or Dark (negative).
-							</li>
-							<li>
-								<strong>Events</strong> — Significant occurrences within a Period. Events shape the narrative
-								and can also be Light or Dark.
-							</li>
-							<li>
-								<strong>Scenes</strong> — Specific moments within Events where you explore details, conversations,
-								and turning points.
-							</li>
-							<li>
-								<strong>Focus</strong> — A theme or element the current player wants to explore, guiding
-								the direction of play.
-							</li>
-							<li>
-								<strong>Legacy</strong> — A recurring element (character, place, organization) that persists
-								through history.
-							</li>
-						</ul>
-					</section>
 
 					<section class="help-section">
 						<h3>Using This App</h3>
