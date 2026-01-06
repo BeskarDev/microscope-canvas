@@ -123,26 +123,6 @@
 					</div>
 					<p class="section-description">Things explicitly allowed in the history.</p>
 
-					{#if yesItems.length > 0}
-						<ul class="palette-list">
-							{#each yesItems as item, index (index)}
-								<li class="palette-item">
-									<span class="item-text">{item}</span>
-									<Button
-										variant="ghost"
-										size="icon"
-										class="remove-btn"
-										onclick={() => handleRemoveYes(index)}
-										aria-label={`Remove "${item}"`}
-										title="Remove"
-									>
-										<X class="h-3 w-3" />
-									</Button>
-								</li>
-							{/each}
-						</ul>
-					{/if}
-
 					<div class="add-item-row">
 						<Input
 							bind:value={newYesItem}
@@ -172,26 +152,17 @@
 							<Plus class="h-4 w-4" />
 						</Button>
 					</div>
-				</section>
 
-				<!-- No Section -->
-				<section class="palette-section no-section">
-					<div class="section-header">
-						<Ban class="h-4 w-4 section-icon" />
-						<h3 class="section-title">No (Banned)</h3>
-					</div>
-					<p class="section-description">Things explicitly banned from the history.</p>
-
-					{#if noItems.length > 0}
+					{#if yesItems.length > 0}
 						<ul class="palette-list">
-							{#each noItems as item, index (index)}
+							{#each yesItems as item, index (index)}
 								<li class="palette-item">
 									<span class="item-text">{item}</span>
 									<Button
 										variant="ghost"
 										size="icon"
 										class="remove-btn"
-										onclick={() => handleRemoveNo(index)}
+										onclick={() => handleRemoveYes(index)}
 										aria-label={`Remove "${item}"`}
 										title="Remove"
 									>
@@ -201,6 +172,15 @@
 							{/each}
 						</ul>
 					{/if}
+				</section>
+
+				<!-- No Section -->
+				<section class="palette-section no-section">
+					<div class="section-header">
+						<Ban class="h-4 w-4 section-icon" />
+						<h3 class="section-title">No (Banned)</h3>
+					</div>
+					<p class="section-description">Things explicitly banned from the history.</p>
 
 					<div class="add-item-row">
 						<Input
@@ -231,6 +211,26 @@
 							<Plus class="h-4 w-4" />
 						</Button>
 					</div>
+
+					{#if noItems.length > 0}
+						<ul class="palette-list">
+							{#each noItems as item, index (index)}
+								<li class="palette-item">
+									<span class="item-text">{item}</span>
+									<Button
+										variant="ghost"
+										size="icon"
+										class="remove-btn"
+										onclick={() => handleRemoveNo(index)}
+										aria-label={`Remove "${item}"`}
+										title="Remove"
+									>
+										<X class="h-3 w-3" />
+									</Button>
+								</li>
+							{/each}
+						</ul>
+					{/if}
 				</section>
 			</div>
 		</div>
@@ -398,6 +398,9 @@
 		display: flex;
 		gap: 0.5rem;
 		align-items: center;
+		margin-bottom: 0.75rem;
+		padding-bottom: 0.75rem;
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.add-item-row :global(input) {

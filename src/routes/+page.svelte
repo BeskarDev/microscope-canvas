@@ -282,6 +282,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Home | Microscope Canvas</title>
+</svelte:head>
+
 <!-- Hidden file input for import -->
 <input
 	type="file"
@@ -414,6 +418,23 @@
 			</ul>
 		{/if}
 	</section>
+
+	<!-- Footer -->
+	<footer class="home-footer">
+		<p class="footer-text">
+			This app is a fan-made digital companion for <strong>Microscope</strong>, a tabletop RPG created by
+			<a href="https://lamemage.com/" target="_blank" rel="noopener noreferrer" class="footer-link">
+				Ben Robbins
+			</a>.
+		</p>
+		<p class="footer-text">
+			This project does not claim any ownership of the Microscope game or its concepts.
+			Please support the original creator by purchasing the game from
+			<a href="https://lamemage.com/microscope/" target="_blank" rel="noopener noreferrer" class="footer-link">
+				https://lamemage.com/microscope/
+			</a>.
+		</p>
+	</footer>
 </div>
 
 <!-- Create History Dialog -->
@@ -454,7 +475,7 @@
 
 			<div class="form-field">
 				<div class="form-label-row">
-					<label for="big-picture" class="form-label">Big Picture / Concept</label>
+					<label for="big-picture" class="form-label">Big Picture</label>
 					<Button
 						variant="ghost"
 						size="icon"
@@ -789,6 +810,36 @@
 
 	.create-form :global(.oracle-btn:hover) {
 		color: var(--color-primary);
+	}
+
+	/* Footer */
+	.home-footer {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding: 2rem 1rem 1rem;
+		margin-top: auto;
+		text-align: center;
+		border-top: 1px solid var(--color-border);
+	}
+
+	.footer-text {
+		font-size: 0.875rem;
+		color: var(--color-muted-foreground);
+		margin: 0;
+		line-height: 1.6;
+	}
+
+	.footer-link {
+		color: var(--color-primary);
+		text-decoration: none;
+		font-weight: 500;
+		transition: opacity 0.15s;
+	}
+
+	.footer-link:hover {
+		opacity: 0.8;
+		text-decoration: underline;
 	}
 
 	/* Animation for spinner */

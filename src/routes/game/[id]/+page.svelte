@@ -19,6 +19,7 @@
 	import User from 'lucide-svelte/icons/user';
 	import Target from 'lucide-svelte/icons/target';
 	import Palette from 'lucide-svelte/icons/palette';
+	import BookMarked from 'lucide-svelte/icons/book-marked';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
@@ -59,7 +60,10 @@
 		type Palette as PaletteType,
 		type ReorderPeriodsAction,
 		type ReorderEventsAction,
-		type ReorderScenesAction
+		type ReorderScenesAction,
+		type Player,
+		type Focus,
+		type Legacy
 	} from '$lib/types';
 	import {
 		createHistoryState,
@@ -83,7 +87,10 @@
 		HistoryModal,
 		PublishVersionModal,
 		ExportMenu,
-		PaletteSheet
+		PaletteSheet,
+		PlayersSheet,
+		FocusesSheet,
+		LegaciesSheet
 	} from '$lib/components/canvas';
 	import { toast } from '$lib/components/ui/sonner';
 
@@ -146,6 +153,15 @@
 
 	// Palette sheet state
 	let paletteSheetOpen = $state(false);
+
+	// Players sheet state
+	let playersSheetOpen = $state(false);
+
+	// Focuses sheet state
+	let focusesSheetOpen = $state(false);
+
+	// Legacies sheet state
+	let legaciesSheetOpen = $state(false);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -961,14 +977,78 @@
 		paletteSheetOpen = true;
 	}
 
+	function handleMobilePlayers() {
+		closeMobileMenu();
+		playersSheetOpen = true;
+	}
+
+	function handleMobileFocuses() {
+		closeMobileMenu();
+		focusesSheetOpen = true;
+	}
+
+	function handleMobileLegacies() {
+		closeMobileMenu();
+		legaciesSheetOpen = true;
+	}
+
 	// Palette handler
 	function handleSavePalette(palette: PaletteType) {
 		handleSaveGameSettings({ palette });
 	}
 
+	// Players handler
+	function handleSavePlayers(players: Player[], activePlayerIndex: number) {
+		handleSaveGameSettings({ players, activePlayerIndex });
+	}
+
+	// Focuses handler
+	function handleSaveFocuses(focuses: Focus[], currentFocusIndex: number) {
+		// Also update the legacy focus field for backwards compatibility
+		const focus = currentFocusIndex >= 0 && focuses[currentFocusIndex]
+			? focuses[currentFocusIndex]
+			: undefined;
+		handleSaveGameSettings({ focuses, currentFocusIndex, focus });
+	}
+
+	// Legacies handler
+	function handleSaveLegacies(legacies: Legacy[]) {
+		handleSaveGameSettings({ legacies });
+	}
+
 	// Get current palette with defaults
 	const currentPalette = $derived<PaletteType>(game?.palette ?? { yes: [], no: [] });
+
+	// Get current players with defaults
+	const currentPlayers = $derived(game?.players ?? []);
+	const currentActivePlayerIndex = $derived(game?.activePlayerIndex ?? -1);
+
+	// Get current focuses with defaults
+	const currentFocuses = $derived(game?.focuses ?? []);
+	const currentFocusIndex = $derived(game?.currentFocusIndex ?? -1);
+
+	// Get current legacies with defaults
+	const currentLegacies = $derived(game?.legacies ?? []);
+
+	// Derive counts for badges
+	const paletteCount = $derived((currentPalette.yes?.length ?? 0) + (currentPalette.no?.length ?? 0));
+	const playersCount = $derived(currentPlayers.length);
+	const focusesCount = $derived(currentFocuses.length);
+	const legaciesCount = $derived(currentLegacies.length);
+
+	// Get page title based on game name
+	const pageTitle = $derived(
+		isViewingHistory && historicalGame
+			? `${historicalGame.name} (History) | Microscope Canvas`
+			: game
+				? `${game.name} | Microscope Canvas`
+				: 'Microscope Canvas'
+	);
 </script>
+
+<svelte:head>
+	<title>{pageTitle}</title>
+</svelte:head>
 
 <svelte:window onkeydown={handleGlobalKeyDown} />
 
@@ -1122,8 +1202,51 @@
 							onclick={() => (paletteSheetOpen = true)}
 							aria-label="Palette"
 							title="Palette - Yes/No list"
+							class="icon-button-with-badge"
 						>
 							<Palette class="h-4 w-4" />
+							{#if paletteCount > 0}
+								<span class="count-badge">{paletteCount}</span>
+							{/if}
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={() => (playersSheetOpen = true)}
+							aria-label="Players"
+							title="Players - Turn order"
+							class="icon-button-with-badge"
+						>
+							<User class="h-4 w-4" />
+							{#if playersCount > 0}
+								<span class="count-badge">{playersCount}</span>
+							{/if}
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={() => (focusesSheetOpen = true)}
+							aria-label="Focuses"
+							title="Focuses - Themes to explore"
+							class="icon-button-with-badge"
+						>
+							<Target class="h-4 w-4" />
+							{#if focusesCount > 0}
+								<span class="count-badge">{focusesCount}</span>
+							{/if}
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
+							onclick={() => (legaciesSheetOpen = true)}
+							aria-label="Legacies"
+							title="Legacies - Recurring elements"
+							class="icon-button-with-badge"
+						>
+							<BookMarked class="h-4 w-4" />
+							{#if legaciesCount > 0}
+								<span class="count-badge">{legaciesCount}</span>
+							{/if}
 						</Button>
 						<Button
 							variant="ghost"
@@ -1184,7 +1307,47 @@
 								>
 									<Palette class="h-4 w-4" />
 									<span>Palette</span>
+									{#if paletteCount > 0}
+										<span class="count-badge">{paletteCount}</span>
+									{/if}
 								</button>
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobilePlayers}
+									role="menuitem"
+								>
+									<User class="h-4 w-4" />
+									<span>Players</span>
+									{#if playersCount > 0}
+										<span class="count-badge">{playersCount}</span>
+									{/if}
+								</button>
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobileFocuses}
+									role="menuitem"
+								>
+									<Target class="h-4 w-4" />
+									<span>Focuses</span>
+									{#if focusesCount > 0}
+										<span class="count-badge">{focusesCount}</span>
+									{/if}
+								</button>
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobileLegacies}
+									role="menuitem"
+								>
+									<BookMarked class="h-4 w-4" />
+									<span>Legacies</span>
+									{#if legaciesCount > 0}
+										<span class="count-badge">{legaciesCount}</span>
+									{/if}
+								</button>
+								<div class="mobile-menu-divider"></div>
 								<button
 									type="button"
 									class="mobile-menu-item"
@@ -1407,6 +1570,32 @@
 	onOpenChange={(open) => (paletteSheetOpen = open)}
 	palette={currentPalette}
 	onSave={handleSavePalette}
+/>
+
+<!-- Players Sheet -->
+<PlayersSheet
+	open={playersSheetOpen}
+	onOpenChange={(open) => (playersSheetOpen = open)}
+	players={currentPlayers}
+	activePlayerIndex={currentActivePlayerIndex}
+	onSave={handleSavePlayers}
+/>
+
+<!-- Focuses Sheet -->
+<FocusesSheet
+	open={focusesSheetOpen}
+	onOpenChange={(open) => (focusesSheetOpen = open)}
+	focuses={currentFocuses}
+	currentFocusIndex={currentFocusIndex}
+	onSave={handleSaveFocuses}
+/>
+
+<!-- Legacies Sheet -->
+<LegaciesSheet
+	open={legaciesSheetOpen}
+	onOpenChange={(open) => (legaciesSheetOpen = open)}
+	legacies={currentLegacies}
+	onSave={handleSaveLegacies}
 />
 
 <style>
@@ -1842,5 +2031,35 @@
 		.nav-text {
 			max-width: 160px;
 		}
+	}
+
+	/* Count badges for icon buttons */
+	:global(.icon-button-with-badge) {
+		position: relative;
+	}
+
+	.count-badge {
+		position: absolute;
+		top: -4px;
+		right: -4px;
+		min-width: 16px;
+		height: 16px;
+		padding: 0 4px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background-color: var(--color-muted);
+		color: var(--color-muted-foreground);
+		border-radius: 8px;
+		font-size: 0.625rem;
+		font-weight: 600;
+		line-height: 1;
+		pointer-events: none;
+		border: 1px solid var(--color-border);
+	}
+
+	.mobile-menu-item .count-badge {
+		position: static;
+		margin-left: auto;
 	}
 </style>
