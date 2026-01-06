@@ -14,3 +14,4 @@ export {
 export * from './constants';
 export * from './action-executor';
 export * from './animations';
+export { deepClone } from './deep-clone';

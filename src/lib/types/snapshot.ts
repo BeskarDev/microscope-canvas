@@ -4,6 +4,7 @@
  */
 
 import type { Game } from './game';
+import { deepClone } from '$lib/utils/deep-clone';
 
 /**
  * A snapshot of the game state at a specific point in time
@@ -50,7 +51,7 @@ export function createSnapshot(
 		id: crypto.randomUUID(),
 		gameId: game.id,
 		timestamp: new Date().toISOString(),
-		data: JSON.parse(JSON.stringify(game)), // Deep clone
+		data: deepClone(game),
 		versionName,
 		changeSummary
 	};

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Game, Legacy, Player, Focus } from '$lib/types';
 	import { createNewLegacy, createNewPlayer, createNewFocus } from '$lib/types';
+	import { deepClone } from '$lib/utils/deep-clone';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -37,10 +38,10 @@
 		if (game) {
 			name = game.name;
 			// Deep clone arrays to avoid mutation
-			legacies = JSON.parse(JSON.stringify(game.legacies ?? []));
-			players = JSON.parse(JSON.stringify(game.players ?? []));
+			legacies = deepClone(game.legacies ?? []);
+			players = deepClone(game.players ?? []);
 			activePlayerIndex = game.activePlayerIndex ?? -1;
-			focuses = JSON.parse(JSON.stringify(game.focuses ?? []));
+			focuses = deepClone(game.focuses ?? []);
 			currentFocusIndex = game.currentFocusIndex ?? -1;
 		}
 	});
