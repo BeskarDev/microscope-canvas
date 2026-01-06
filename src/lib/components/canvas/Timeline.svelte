@@ -430,7 +430,7 @@
 		transform: none;
 	}
 
-	:global(.period-wrapper:not([aria-grabbed="true"])) {
+	:global(.period-item:not([aria-grabbed="true"])) {
 		opacity: 1;
 		transform: none;
 	}
