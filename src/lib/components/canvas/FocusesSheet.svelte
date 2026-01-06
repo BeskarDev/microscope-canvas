@@ -120,6 +120,45 @@
 			</div>
 
 			<div class="sheet-content">
+				<div class="add-focus-section">
+					<div class="input-with-oracle">
+						<Input
+							bind:value={newFocusName}
+							placeholder="Focus name (e.g., The Lost City)"
+							onkeydown={(e) => {
+								if (e.key === 'Enter' && !e.shiftKey) {
+									e.preventDefault();
+									handleAddFocus();
+								}
+							}}
+						/>
+						<Button
+							variant="ghost"
+							size="icon"
+							onclick={handleGenerateFocus}
+							title="Generate random focus"
+						>
+							<Dices class="h-4 w-4" />
+						</Button>
+					</div>
+					<Textarea
+						bind:value={newFocusDescription}
+						placeholder="Description (optional)"
+						rows={2}
+					/>
+					<Button
+						variant="secondary"
+						size="sm"
+						onclick={handleAddFocus}
+						disabled={!newFocusName.trim()}
+						title="Add focus"
+						class="add-btn"
+					>
+						<Plus class="h-4 w-4" />
+						<span>Add Focus</span>
+					</Button>
+				</div>
+
 				{#if localFocuses.length > 0}
 					<ul class="focuses-list">
 						{#each localFocuses as focus, index (focus.id)}
@@ -162,45 +201,6 @@
 						<span class="empty-hint">Add themes or elements to explore</span>
 					</div>
 				{/if}
-
-				<div class="add-focus-section">
-					<div class="input-with-oracle">
-						<Input
-							bind:value={newFocusName}
-							placeholder="Focus name (e.g., The Lost City)"
-							onkeydown={(e) => {
-								if (e.key === 'Enter' && !e.shiftKey) {
-									e.preventDefault();
-									handleAddFocus();
-								}
-							}}
-						/>
-						<Button
-							variant="ghost"
-							size="icon"
-							onclick={handleGenerateFocus}
-							title="Generate random focus"
-						>
-							<Dices class="h-4 w-4" />
-						</Button>
-					</div>
-					<Textarea
-						bind:value={newFocusDescription}
-						placeholder="Description (optional)"
-						rows={2}
-					/>
-					<Button
-						variant="secondary"
-						size="sm"
-						onclick={handleAddFocus}
-						disabled={!newFocusName.trim()}
-						title="Add focus"
-						class="add-btn"
-					>
-						<Plus class="h-4 w-4" />
-						<span>Add Focus</span>
-					</Button>
-				</div>
 			</div>
 		</div>
 	</div>
@@ -370,9 +370,9 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
-		margin-top: auto;
-		padding-top: 1rem;
-		border-top: 1px solid var(--color-border);
+		margin-bottom: 1rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.input-with-oracle {

@@ -422,8 +422,8 @@
 	<!-- Footer -->
 	<footer class="home-footer">
 		<p class="footer-text">
-			This app is a digital companion for <strong>Microscope</strong>, a tabletop RPG created by
-			<a href="https://lamemage.com/microscope/" target="_blank" rel="noopener noreferrer" class="footer-link">
+			This app is a fan-made digital companion for <strong>Microscope</strong>, a tabletop RPG created by
+			<a href="https://lamemage.com/" target="_blank" rel="noopener noreferrer" class="footer-link">
 				Ben Robbins
 			</a>.
 		</p>
@@ -431,7 +431,7 @@
 			This project does not claim any ownership of the Microscope game or its concepts.
 			Please support the original creator by purchasing the game from
 			<a href="https://lamemage.com/microscope/" target="_blank" rel="noopener noreferrer" class="footer-link">
-				lamemage.com
+				https://lamemage.com/microscope/
 			</a>.
 		</p>
 	</footer>

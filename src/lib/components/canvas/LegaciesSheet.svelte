@@ -96,32 +96,6 @@
 			</div>
 
 			<div class="sheet-content">
-				{#if localLegacies.length > 0}
-					<ul class="legacies-list">
-						{#each localLegacies as legacy (legacy.id)}
-							<li class="legacy-item">
-								<span class="legacy-name">{legacy.name}</span>
-								<Button
-									variant="ghost"
-									size="icon"
-									class="remove-btn"
-									onclick={() => handleRemoveLegacy(legacy.id)}
-									aria-label={`Remove ${legacy.name}`}
-									title="Remove"
-								>
-									<X class="h-3 w-3" />
-								</Button>
-							</li>
-						{/each}
-					</ul>
-				{:else}
-					<div class="empty-state">
-						<BookMarked class="h-12 w-12" />
-						<p>No legacies yet</p>
-						<span class="empty-hint">Add recurring elements to track</span>
-					</div>
-				{/if}
-
 				<div class="add-legacy-row">
 					<Input
 						bind:value={newLegacyName}
@@ -151,6 +125,32 @@
 						<Plus class="h-4 w-4" />
 					</Button>
 				</div>
+
+				{#if localLegacies.length > 0}
+					<ul class="legacies-list">
+						{#each localLegacies as legacy (legacy.id)}
+							<li class="legacy-item">
+								<span class="legacy-name">{legacy.name}</span>
+								<Button
+									variant="ghost"
+									size="icon"
+									class="remove-btn"
+									onclick={() => handleRemoveLegacy(legacy.id)}
+									aria-label={`Remove ${legacy.name}`}
+									title="Remove"
+								>
+									<X class="h-3 w-3" />
+								</Button>
+							</li>
+						{/each}
+					</ul>
+				{:else}
+					<div class="empty-state">
+						<BookMarked class="h-12 w-12" />
+						<p>No legacies yet</p>
+						<span class="empty-hint">Add recurring elements to track</span>
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>
@@ -283,7 +283,9 @@
 		display: flex;
 		gap: 0.5rem;
 		align-items: center;
-		margin-top: auto;
+		margin-bottom: 1rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.add-legacy-row :global(input) {

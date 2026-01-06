@@ -136,6 +136,28 @@
 			</div>
 
 			<div class="sheet-content">
+				<div class="add-player-row">
+					<Input
+						bind:value={newPlayerName}
+						placeholder="Player name..."
+						onkeydown={(e) => {
+							if (e.key === 'Enter') {
+								e.preventDefault();
+								handleAddPlayer();
+							}
+						}}
+					/>
+					<Button
+						variant="secondary"
+						size="sm"
+						onclick={handleAddPlayer}
+						disabled={!newPlayerName.trim()}
+						title="Add player"
+					>
+						<Plus class="h-4 w-4" />
+					</Button>
+				</div>
+
 				{#if localPlayers.length > 0}
 					<ul class="players-list">
 						{#each localPlayers as player, index (player.id)}
@@ -172,28 +194,6 @@
 						<span class="empty-hint">Add players to track turn order</span>
 					</div>
 				{/if}
-
-				<div class="add-player-row">
-					<Input
-						bind:value={newPlayerName}
-						placeholder="Player name..."
-						onkeydown={(e) => {
-							if (e.key === 'Enter') {
-								e.preventDefault();
-								handleAddPlayer();
-							}
-						}}
-					/>
-					<Button
-						variant="secondary"
-						size="sm"
-						onclick={handleAddPlayer}
-						disabled={!newPlayerName.trim()}
-						title="Add player"
-					>
-						<Plus class="h-4 w-4" />
-					</Button>
-				</div>
 			</div>
 		</div>
 	</div>
@@ -367,7 +367,9 @@
 		display: flex;
 		gap: 0.5rem;
 		align-items: center;
-		margin-top: auto;
+		margin-bottom: 1rem;
+		padding-bottom: 1rem;
+		border-bottom: 1px solid var(--color-border);
 	}
 
 	.add-player-row :global(input) {
