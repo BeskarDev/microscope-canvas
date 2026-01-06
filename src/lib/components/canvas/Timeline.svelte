@@ -169,8 +169,7 @@
 			dropTargetClasses: ['drop-target-period'],
 			centreDraggedOnCursor: true,
 			dropFromOthersDisabled: true,
-			morphDisabled: false,
-			touchDelay: 300 // 300ms delay before drag starts on touch (prevents conflicts with panning)
+			morphDisabled: false
 		}}
 		onconsider={handlePeriodConsider}
 		onfinalize={handlePeriodFinalize}
@@ -195,8 +194,7 @@
 								dropTargetStyle: {},
 								dropTargetClasses: ['drop-target-event'],
 								centreDraggedOnCursor: true,
-								dropFromOthersDisabled: true,
-								touchDelay: 300 // 300ms delay before drag starts on touch
+								dropFromOthersDisabled: true
 							}}
 							onconsider={(e) => handleEventConsider(period.id, e)}
 							onfinalize={(e) => handleEventFinalize(period.id, e)}
@@ -220,8 +218,7 @@
 												dropTargetStyle: {},
 												dropTargetClasses: ['drop-target-scene'],
 												centreDraggedOnCursor: true,
-												dropFromOthersDisabled: true,
-												touchDelay: 300 // 300ms delay before drag starts on touch
+												dropFromOthersDisabled: true
 											}}
 											onconsider={(e) => handleSceneConsider(period.id, event.id, e)}
 											onfinalize={(e) => handleSceneFinalize(period.id, event.id, e)}
