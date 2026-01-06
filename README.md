@@ -2,6 +2,8 @@
 
 A whiteboard-style canvas to use with Microscope for worldbuilding games. Intended for single-player use for TTRPG GMs and worldbuilders.
 
+![](/example/example.png)
+
 ## Features
 
 - **Local-first**: All data is stored locally in your browser
