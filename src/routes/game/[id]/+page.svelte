@@ -1030,6 +1030,12 @@
 	// Get current legacies with defaults
 	const currentLegacies = $derived(game?.legacies ?? []);
 
+	// Derive counts for badges
+	const paletteCount = $derived((currentPalette.yes?.length ?? 0) + (currentPalette.no?.length ?? 0));
+	const playersCount = $derived(currentPlayers.length);
+	const focusesCount = $derived(currentFocuses.length);
+	const legaciesCount = $derived(currentLegacies.length);
+
 	// Get page title based on game name
 	const pageTitle = $derived(
 		isViewingHistory && historicalGame
@@ -1196,8 +1202,12 @@
 							onclick={() => (paletteSheetOpen = true)}
 							aria-label="Palette"
 							title="Palette - Yes/No list"
+							class="icon-button-with-badge"
 						>
 							<Palette class="h-4 w-4" />
+							{#if paletteCount > 0}
+								<span class="count-badge">{paletteCount}</span>
+							{/if}
 						</Button>
 						<Button
 							variant="ghost"
@@ -1205,8 +1215,12 @@
 							onclick={() => (playersSheetOpen = true)}
 							aria-label="Players"
 							title="Players - Turn order"
+							class="icon-button-with-badge"
 						>
 							<User class="h-4 w-4" />
+							{#if playersCount > 0}
+								<span class="count-badge">{playersCount}</span>
+							{/if}
 						</Button>
 						<Button
 							variant="ghost"
@@ -1214,8 +1228,12 @@
 							onclick={() => (focusesSheetOpen = true)}
 							aria-label="Focuses"
 							title="Focuses - Themes to explore"
+							class="icon-button-with-badge"
 						>
 							<Target class="h-4 w-4" />
+							{#if focusesCount > 0}
+								<span class="count-badge">{focusesCount}</span>
+							{/if}
 						</Button>
 						<Button
 							variant="ghost"
@@ -1223,8 +1241,12 @@
 							onclick={() => (legaciesSheetOpen = true)}
 							aria-label="Legacies"
 							title="Legacies - Recurring elements"
+							class="icon-button-with-badge"
 						>
 							<BookMarked class="h-4 w-4" />
+							{#if legaciesCount > 0}
+								<span class="count-badge">{legaciesCount}</span>
+							{/if}
 						</Button>
 						<Button
 							variant="ghost"
@@ -1285,6 +1307,9 @@
 								>
 									<Palette class="h-4 w-4" />
 									<span>Palette</span>
+									{#if paletteCount > 0}
+										<span class="count-badge">{paletteCount}</span>
+									{/if}
 								</button>
 								<button
 									type="button"
@@ -1294,6 +1319,9 @@
 								>
 									<User class="h-4 w-4" />
 									<span>Players</span>
+									{#if playersCount > 0}
+										<span class="count-badge">{playersCount}</span>
+									{/if}
 								</button>
 								<button
 									type="button"
@@ -1303,6 +1331,9 @@
 								>
 									<Target class="h-4 w-4" />
 									<span>Focuses</span>
+									{#if focusesCount > 0}
+										<span class="count-badge">{focusesCount}</span>
+									{/if}
 								</button>
 								<button
 									type="button"
@@ -1312,6 +1343,9 @@
 								>
 									<BookMarked class="h-4 w-4" />
 									<span>Legacies</span>
+									{#if legaciesCount > 0}
+										<span class="count-badge">{legaciesCount}</span>
+									{/if}
 								</button>
 								<div class="mobile-menu-divider"></div>
 								<button
@@ -1997,5 +2031,35 @@
 		.nav-text {
 			max-width: 160px;
 		}
+	}
+
+	/* Count badges for icon buttons */
+	:global(.icon-button-with-badge) {
+		position: relative;
+	}
+
+	.count-badge {
+		position: absolute;
+		top: -4px;
+		right: -4px;
+		min-width: 16px;
+		height: 16px;
+		padding: 0 4px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background-color: var(--color-muted);
+		color: var(--color-muted-foreground);
+		border-radius: 8px;
+		font-size: 0.625rem;
+		font-weight: 600;
+		line-height: 1;
+		pointer-events: none;
+		border: 1px solid var(--color-border);
+	}
+
+	.mobile-menu-item .count-badge {
+		position: static;
+		margin-left: auto;
 	}
 </style>
