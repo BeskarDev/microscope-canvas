@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Game, Legacy, Player, Focus, BigPicture } from '$lib/types';
+	import type { Game, Legacy, Player, Focus, BigPicture, Palette } from '$lib/types';
 	import { createNewLegacy, createNewPlayer, createNewFocus } from '$lib/types';
 	import { deepClone } from '$lib/utils/deep-clone';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -23,6 +23,10 @@
 	// Local form state
 	let name = $state('');
 	let bigPicture = $state('');
+	let paletteYes = $state<string[]>([]);
+	let paletteNo = $state<string[]>([]);
+	let newPaletteYes = $state('');
+	let newPaletteNo = $state('');
 	let legacies = $state<Legacy[]>([]);
 	let newLegacyName = $state('');
 	let players = $state<Player[]>([]);
@@ -39,6 +43,8 @@
 		if (game) {
 			name = game.name;
 			bigPicture = game.bigPicture?.premise ?? '';
+			paletteYes = deepClone(game.palette?.yes ?? []);
+			paletteNo = deepClone(game.palette?.no ?? []);
 			// Deep clone arrays to avoid mutation
 			legacies = deepClone(game.legacies ?? []);
 			players = deepClone(game.players ?? []);
@@ -139,12 +145,39 @@
 		}
 	}
 
+	// Palette handlers
+	function handleAddPaletteYes() {
+		const trimmed = newPaletteYes.trim();
+		if (!trimmed) return;
+		paletteYes = [...paletteYes, trimmed];
+		newPaletteYes = '';
+	}
+
+	function handleRemovePaletteYes(index: number) {
+		paletteYes = paletteYes.filter((_, i) => i !== index);
+	}
+
+	function handleAddPaletteNo() {
+		const trimmed = newPaletteNo.trim();
+		if (!trimmed) return;
+		paletteNo = [...paletteNo, trimmed];
+		newPaletteNo = '';
+	}
+
+	function handleRemovePaletteNo(index: number) {
+		paletteNo = paletteNo.filter((_, i) => i !== index);
+	}
+
 	function handleSave() {
 		if (!validateName()) return;
 
 		const updates: Partial<Game> = {
 			name: name.trim(),
 			bigPicture: bigPicture.trim() ? { premise: bigPicture.trim() } : undefined,
+			palette: {
+				yes: paletteYes,
+				no: paletteNo
+			},
 			legacies: legacies,
 			players: players,
 			activePlayerIndex: activePlayerIndex,
@@ -205,6 +238,108 @@
 					rows={3}
 				/>
 				<p class="form-hint">What is this history about? What is the overarching theme?</p>
+			</div>
+
+			<!-- Palette Section -->
+			<div class="form-section">
+				<h3 class="section-title">Palette</h3>
+				<p class="section-description">
+					Elements that should or should not appear in your history.
+				</p>
+
+				<div class="palette-container">
+					<!-- Yes List -->
+					<div class="palette-column">
+						<h4 class="palette-column-title yes-title">Yes (Must Include)</h4>
+						{#if paletteYes.length > 0}
+							<ul class="palette-list">
+								{#each paletteYes as item, index (index)}
+									<li class="palette-item">
+										<span class="palette-text">{item}</span>
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											class="remove-btn"
+											onclick={() => handleRemovePaletteYes(index)}
+											aria-label={`Remove ${item}`}
+										>
+											<X class="h-3.5 w-3.5" />
+										</Button>
+									</li>
+								{/each}
+							</ul>
+						{/if}
+						<div class="add-palette-row">
+							<Input
+								bind:value={newPaletteYes}
+								placeholder="Add to Yes list..."
+								onkeydown={(e) => {
+									if (e.key === 'Enter') {
+										e.preventDefault();
+										handleAddPaletteYes();
+									}
+								}}
+							/>
+							<Button
+								type="button"
+								variant="secondary"
+								size="sm"
+								onclick={handleAddPaletteYes}
+								disabled={!newPaletteYes.trim()}
+							>
+								<Plus class="h-4 w-4" />
+								Add
+							</Button>
+						</div>
+					</div>
+
+					<!-- No List -->
+					<div class="palette-column">
+						<h4 class="palette-column-title no-title">No (Must Avoid)</h4>
+						{#if paletteNo.length > 0}
+							<ul class="palette-list">
+								{#each paletteNo as item, index (index)}
+									<li class="palette-item">
+										<span class="palette-text">{item}</span>
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											class="remove-btn"
+											onclick={() => handleRemovePaletteNo(index)}
+											aria-label={`Remove ${item}`}
+										>
+											<X class="h-3.5 w-3.5" />
+										</Button>
+									</li>
+								{/each}
+							</ul>
+						{/if}
+						<div class="add-palette-row">
+							<Input
+								bind:value={newPaletteNo}
+								placeholder="Add to No list..."
+								onkeydown={(e) => {
+									if (e.key === 'Enter') {
+										e.preventDefault();
+										handleAddPaletteNo();
+									}
+								}}
+							/>
+							<Button
+								type="button"
+								variant="secondary"
+								size="sm"
+								onclick={handleAddPaletteNo}
+								disabled={!newPaletteNo.trim()}
+							>
+								<Plus class="h-4 w-4" />
+								Add
+							</Button>
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<!-- Players Section -->
@@ -685,6 +820,82 @@
 		align-self: flex-start;
 	}
 
+	/* Palette Section */
+	.palette-container {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1rem;
+	}
+
+	.palette-column {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.palette-column-title {
+		font-size: 0.875rem;
+		font-weight: 600;
+		margin: 0;
+		color: var(--color-foreground);
+	}
+
+	.yes-title {
+		color: oklch(70% 0.15 150);
+	}
+
+	.no-title {
+		color: oklch(70% 0.15 10);
+	}
+
+	.palette-list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.palette-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		padding: 0.375rem 0.5rem;
+		background-color: var(--color-muted);
+		border-radius: var(--radius);
+		font-size: 0.8125rem;
+	}
+
+	.palette-text {
+		flex: 1;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.palette-item :global(.remove-btn) {
+		width: 1.5rem;
+		height: 1.5rem;
+		color: var(--color-muted-foreground);
+		flex-shrink: 0;
+	}
+
+	.palette-item :global(.remove-btn:hover) {
+		color: var(--color-destructive);
+	}
+
+	.add-palette-row {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+	}
+
+	.add-palette-row :global(input) {
+		flex: 1;
+	}
+
 	:global(.settings-dialog) {
 		max-width: 600px;
 	}
@@ -692,6 +903,10 @@
 	@media (max-width: 640px) {
 		:global(.settings-dialog) {
 			max-width: calc(100vw - 2rem);
+		}
+
+		.palette-container {
+			grid-template-columns: 1fr;
 		}
 	}
 </style>
