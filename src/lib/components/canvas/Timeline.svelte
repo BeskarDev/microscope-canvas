@@ -92,37 +92,24 @@
 		const { items } = e.detail;
 		// Update local state for drag preview
 		localEventsMap.set(periodId, items);
-		localEventsMap = new SvelteMap(localEventsMap);
 	}
 
 	function handleEventFinalize(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string; source: string } }>) {
 		const { items, info } = e.detail;
 		
-		// Check if the dragged item belongs to this period
-		const period = game.periods.find(p => p.id === periodId);
-		if (!period) return;
-		
-		const draggedItemBelongsToThisPeriod = period.events.some(ev => ev.id === info.id);
-		
-		// If item doesn't belong to this period, reject the drag by restoring original state
-		if (!draggedItemBelongsToThisPeriod && info.source === SOURCES.POINTER) {
-			// Restore original state for this period
-			localEventsMap.set(periodId, period.events);
-			localEventsMap = new SvelteMap(localEventsMap);
-			return;
-		}
-		
 		// Update local state
 		localEventsMap.set(periodId, items);
-		localEventsMap = new SvelteMap(localEventsMap);
 		
 		// Call reorder callback if position changed
-		if (info.source === SOURCES.POINTER && onReorderEvents && draggedItemBelongsToThisPeriod) {
-			const originalIndex = period.events.findIndex(ev => ev.id === info.id);
-			const newIndex = items.findIndex(ev => ev.id === info.id);
-			
-			if (originalIndex !== -1 && newIndex !== -1 && originalIndex !== newIndex) {
-				onReorderEvents(periodId, originalIndex, newIndex);
+		if (info.source === SOURCES.POINTER && onReorderEvents) {
+			const period = game.periods.find(p => p.id === periodId);
+			if (period) {
+				const originalIndex = period.events.findIndex(ev => ev.id === info.id);
+				const newIndex = items.findIndex(ev => ev.id === info.id);
+				
+				if (originalIndex !== -1 && newIndex !== -1 && originalIndex !== newIndex) {
+					onReorderEvents(periodId, originalIndex, newIndex);
+				}
 			}
 		}
 	}
@@ -133,40 +120,27 @@
 		const key = `${periodId}-${eventId}`;
 		// Update local state for drag preview
 		localScenesMap.set(key, items);
-		localScenesMap = new SvelteMap(localScenesMap);
 	}
 
 	function handleSceneFinalize(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string; source: string } }>) {
 		const { items, info } = e.detail;
 		const key = `${periodId}-${eventId}`;
 		
-		// Check if the dragged item belongs to this event
-		const period = game.periods.find(p => p.id === periodId);
-		const event = period?.events.find(e => e.id === eventId);
-		
-		if (!event) return;
-		
-		const draggedItemBelongsToThisEvent = event.scenes.some(s => s.id === info.id);
-		
-		// If item doesn't belong to this event, reject the drag by restoring original state
-		if (!draggedItemBelongsToThisEvent && info.source === SOURCES.POINTER) {
-			// Restore original state for this event
-			localScenesMap.set(key, event.scenes);
-			localScenesMap = new SvelteMap(localScenesMap);
-			return;
-		}
-		
 		// Update local state
 		localScenesMap.set(key, items);
-		localScenesMap = new SvelteMap(localScenesMap);
 		
 		// Call reorder callback if position changed
-		if (info.source === SOURCES.POINTER && onReorderScenes && draggedItemBelongsToThisEvent) {
-			const originalIndex = event.scenes.findIndex(s => s.id === info.id);
-			const newIndex = items.findIndex(s => s.id === info.id);
+		if (info.source === SOURCES.POINTER && onReorderScenes) {
+			const period = game.periods.find(p => p.id === periodId);
+			const event = period?.events.find(e => e.id === eventId);
 			
-			if (originalIndex !== -1 && newIndex !== -1 && originalIndex !== newIndex) {
-				onReorderScenes(periodId, eventId, originalIndex, newIndex);
+			if (event) {
+				const originalIndex = event.scenes.findIndex(s => s.id === info.id);
+				const newIndex = items.findIndex(s => s.id === info.id);
+				
+				if (originalIndex !== -1 && newIndex !== -1 && originalIndex !== newIndex) {
+					onReorderScenes(periodId, eventId, originalIndex, newIndex);
+				}
 			}
 		}
 	}
@@ -215,7 +189,8 @@
 								type: `events-${period.id}`,
 								dropTargetStyle: {},
 								dropTargetClasses: ['drop-target-event'],
-								centreDraggedOnCursor: true
+								centreDraggedOnCursor: true,
+								dropFromOthersDisabled: true
 							}}
 							onconsider={(e) => handleEventConsider(period.id, e)}
 							onfinalize={(e) => handleEventFinalize(period.id, e)}
@@ -238,7 +213,8 @@
 												type: `scenes-${period.id}-${event.id}`,
 												dropTargetStyle: {},
 												dropTargetClasses: ['drop-target-scene'],
-												centreDraggedOnCursor: true
+												centreDraggedOnCursor: true,
+												dropFromOthersDisabled: true
 											}}
 											onconsider={(e) => handleSceneConsider(period.id, event.id, e)}
 											onfinalize={(e) => handleSceneFinalize(period.id, event.id, e)}
