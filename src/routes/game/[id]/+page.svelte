@@ -18,7 +18,6 @@
 	import ChevronRight from 'lucide-svelte/icons/chevron-right';
 	import User from 'lucide-svelte/icons/user';
 	import Target from 'lucide-svelte/icons/target';
-	import Palette from 'lucide-svelte/icons/palette';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
