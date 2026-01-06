@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Game, Legacy, Player, Focus } from '$lib/types';
+	import type { Game, Legacy, Player, Focus, BigPicture } from '$lib/types';
 	import { createNewLegacy, createNewPlayer, createNewFocus } from '$lib/types';
 	import { deepClone } from '$lib/utils/deep-clone';
 	import * as Dialog from '$lib/components/ui/dialog';
@@ -22,6 +22,7 @@
 
 	// Local form state
 	let name = $state('');
+	let bigPicture = $state('');
 	let legacies = $state<Legacy[]>([]);
 	let newLegacyName = $state('');
 	let players = $state<Player[]>([]);
@@ -37,6 +38,7 @@
 	$effect(() => {
 		if (game) {
 			name = game.name;
+			bigPicture = game.bigPicture?.premise ?? '';
 			// Deep clone arrays to avoid mutation
 			legacies = deepClone(game.legacies ?? []);
 			players = deepClone(game.players ?? []);
@@ -142,6 +144,7 @@
 
 		const updates: Partial<Game> = {
 			name: name.trim(),
+			bigPicture: bigPicture.trim() ? { premise: bigPicture.trim() } : undefined,
 			legacies: legacies,
 			players: players,
 			activePlayerIndex: activePlayerIndex,
@@ -184,6 +187,24 @@
 				{#if nameError}
 					<p class="error-message">{nameError}</p>
 				{/if}
+			</div>
+
+			<div class="form-field">
+				<div class="form-label-row">
+					<label for="big-picture" class="form-label">Big Picture</label>
+					<OracleDiceButton 
+						category="history-seed" 
+						onResult={(result) => { bigPicture = result; }}
+						title="Generate random big picture"
+					/>
+				</div>
+				<Textarea
+					id="big-picture"
+					bind:value={bigPicture}
+					placeholder="The rise and fall of a galactic civilization..."
+					rows={3}
+				/>
+				<p class="form-hint">What is this history about? What is the overarching theme?</p>
 			</div>
 
 			<!-- Players Section -->
@@ -451,6 +472,18 @@
 		font-size: 0.875rem;
 		font-weight: 500;
 		color: var(--color-foreground);
+	}
+
+	.form-label-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.form-hint {
+		font-size: 0.75rem;
+		color: var(--color-muted-foreground);
+		margin: 0;
 	}
 
 	.error-message {

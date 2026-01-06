@@ -282,6 +282,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Home | Microscope Canvas</title>
+</svelte:head>
+
 <!-- Hidden file input for import -->
 <input
 	type="file"
@@ -454,7 +458,7 @@
 
 			<div class="form-field">
 				<div class="form-label-row">
-					<label for="big-picture" class="form-label">Big Picture / Concept</label>
+					<label for="big-picture" class="form-label">Big Picture</label>
 					<Button
 						variant="ghost"
 						size="icon"

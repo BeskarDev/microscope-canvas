@@ -968,7 +968,20 @@
 
 	// Get current palette with defaults
 	const currentPalette = $derived<PaletteType>(game?.palette ?? { yes: [], no: [] });
+
+	// Get page title based on game name
+	const pageTitle = $derived(
+		isViewingHistory && historicalGame
+			? `${historicalGame.name} (History) | Microscope Canvas`
+			: game
+				? `${game.name} | Microscope Canvas`
+				: 'Microscope Canvas'
+	);
 </script>
+
+<svelte:head>
+	<title>{pageTitle}</title>
+</svelte:head>
 
 <svelte:window onkeydown={handleGlobalKeyDown} />
 
