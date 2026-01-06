@@ -72,7 +72,7 @@
 
 	function handleGenerateFocus() {
 		const result = generateFocus();
-		newFocusName = result.text;
+		newFocusName = result;
 	}
 
 	function saveChanges() {

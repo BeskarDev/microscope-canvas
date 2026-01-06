@@ -48,7 +48,7 @@
 
 	function handleGenerateLegacy() {
 		const result = generateLegacy();
-		newLegacyName = result.text;
+		newLegacyName = result;
 	}
 
 	function saveChanges() {

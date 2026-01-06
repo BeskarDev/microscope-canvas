@@ -81,7 +81,7 @@ oninput={() => validateName()}
 <div class="form-label-row">
 <label for="big-picture" class="form-label">Big Picture</label>
 <OracleDiceButton 
-category="history-seed" 
+category="seed" 
 onResult={(result) => { bigPicture = result; }}
 title="Generate random big picture"
 />
