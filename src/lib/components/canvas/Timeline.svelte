@@ -41,10 +41,10 @@
 
 	// Configuration for dnd-action
 	const flipDurationMs = 200;
-	const touchDelayMs = 500; // Delay before touch drag starts to prevent accidental drags
+	const touchDelayMs = 300; // Delay before touch drag starts to prevent accidental drags (300-500ms as requested)
 	
-	// Touch delay state
-	let dragDisabledDuringDelay = $state(false);
+	// Touch delay state - only applies to touch devices
+	let dragDisabledDuringDelay = $state(false); // Desktop: dragging is enabled by default
 	let touchDelayTimeout: ReturnType<typeof setTimeout> | null = null;
 	let touchStartPos = { x: 0, y: 0 };
 	const MOVE_THRESHOLD = 10; // pixels to move before canceling drag delay
@@ -110,6 +110,14 @@
 				localScenesMap.set(`${period.id}-${event.id}`, event.scenes);
 			});
 		});
+		
+		// Cleanup: clear any pending touch timeout when component unmounts
+		return () => {
+			if (touchDelayTimeout) {
+				clearTimeout(touchDelayTimeout);
+				touchDelayTimeout = null;
+			}
+		};
 	});
 
 	// Period drag handlers

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
 	import ArrowLeft from 'lucide-svelte/icons/arrow-left';
@@ -157,6 +157,11 @@
 	// Load game on mount
 	onMount(async () => {
 		await fetchGame();
+	});
+	
+	// Cleanup on unmount
+	onDestroy(() => {
+		autosave.cancel(); // Cancel any pending autosave
 	});
 
 	async function fetchGame() {
