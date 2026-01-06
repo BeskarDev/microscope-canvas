@@ -1,5 +1,7 @@
 # Microscope Canvas
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A whiteboard-style canvas to use with Microscope for worldbuilding games. Intended for single-player use for TTRPG GMs and worldbuilders.
 
 ![](/example/example.png)
