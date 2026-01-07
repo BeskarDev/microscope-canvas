@@ -123,6 +123,7 @@ This milestone exists to:
    - **Typography**: Prominent character name, smaller description
    - **Placement**: Overlapping at top edge of Period card in "hand of cards" formation
    - **Active Indicator**: Visual badge or glow for the current anchor (active anchor always on top of stack)
+   - **Hover Behavior**: When hovering over any anchor card, it temporarily moves to top of z-index order for full readability (like digital card games)
 
 4. **Canvas Placement Strategy - "Hand of Cards" Stacking**:
    
@@ -154,14 +155,23 @@ This milestone exists to:
    - **Overlap Calculation**:
      - Formula: `overlap = (PeriodWidth - AnchorCardWidth) / (numberOfAnchors - 1)`
      - Ensures all cards fit within Period width
-     - Minimum overlap: ~30% of card width (for readability)
+     - Overlap amount is fully dynamic based on number of anchors
      - Each card reveals enough to be identifiable and clickable
+     - Hover elevates card to top z-index for full readability
+   
+   - **Hover Interaction**:
+     - On mouse hover (or touch-and-hold on mobile), the hovered card temporarily rises to highest z-index
+     - Card smoothly transitions to front of stack
+     - Returns to original position when hover ends
+     - Similar to digital card game hand interactions
+     - Allows full readability regardless of overlap amount
    
    - **Implementation Details**:
      - Use CSS `position: absolute` within Period card container
      - Z-index determined by order (newest/active = highest)
+     - Hover state adds temporary z-index boost (e.g., z-index: 9999)
      - Transform/translate for horizontal positioning
-     - Smooth transitions when cards are added/removed
+     - Smooth transitions when cards are added/removed or hovered
      - Touch targets remain accessible (44x44px minimum)
 
 5. **Anchor Management UI**:
@@ -252,6 +262,7 @@ This milestone exists to:
 - Anchor cards must be touch-friendly (minimum 44x44px tap target)
 - Anchor overlay must not obscure Period card text on small screens
 - Anchor library sheet must be full-screen on mobile
+- Touch-and-hold gesture brings card to front (equivalent to hover on desktop)
 - Consider collapsible view of historical anchors on mobile
 
 ### User Experience
@@ -261,6 +272,8 @@ This milestone exists to:
 - **Clarity**: Clearly communicate what an anchor is and how it works
 - **Flexibility**: Support both Chronicle (anchor-focused) and classic Microscope play
 - **Visual Feedback**: Current anchor should be immediately obvious on the timeline
+- **Hover Interaction**: Hovering over stacked cards brings them to front for full readability (like digital card games)
+- **Smooth Animations**: Card transitions should be fluid and non-jarring
 
 ### Differentiation from Legacies
 
@@ -340,19 +353,22 @@ The UI should make this distinction clear, possibly through:
 - [ ] Single anchor appears at top-right of Period card with slight overlap
 - [ ] Two anchors stack horizontally (newest left, oldest right)
 - [ ] Three or more anchors distribute evenly across Period width
-- [ ] Overlap amount adjusts dynamically based on number of cards
+- [ ] Overlap amount adjusts dynamically based on number of cards (fully dynamic, no minimum)
 - [ ] Cards never exceed Period width horizontally
 - [ ] Active anchor always appears on top (highest z-index) when in a stack
 - [ ] Newest anchor is leftmost in stack (unless active anchor takes priority)
 - [ ] Each card overlaps the one to its right
-- [ ] Minimum 30% of each card remains visible for identification
+- [ ] Hovering over any card temporarily brings it to top z-index for full readability
+- [ ] Hover transition is smooth and immediate
+- [ ] Card returns to original z-index when hover ends
 - [ ] Anchor card placement doesn't obscure critical Period information
 - [ ] Anchor cards are clickable/tappable to view details
 - [ ] Overlapping cards maintain minimum 44x44px touch targets on mobile
+- [ ] Touch-and-hold on mobile brings card to front (equivalent to hover)
 - [ ] Multiple historical anchor placements can be shown
 - [ ] Option to toggle historical anchor visibility exists
 - [ ] Anchor cards work on mobile (touch-friendly)
-- [ ] Z-index ordering is correct (active > newest > older)
+- [ ] Z-index ordering is correct (active > newest > older, unless hovering)
 - [ ] Smooth transitions when cards are added/removed from stack
 
 ### Action System Integration
@@ -388,6 +404,7 @@ The UI should make this distinction clear, possibly through:
 - [ ] Anchor workflow documented
 - [ ] "Hand of cards" stacking behavior explained
 - [ ] Active anchor priority documented
+- [ ] Hover interaction documented (hover to reveal full card)
 
 ---
 
@@ -417,22 +434,27 @@ To break this milestone into manageable chunks, implement in phases:
 - Implement current/historical anchor states
 - Add zoom-aware sizing
 - Design active anchor indicator
+- Implement hover state with z-index elevation
 
 ### Phase 4: Canvas Integration & Stacking Logic
 
 - Implement "hand of cards" stacking behavior
-- Calculate dynamic overlap based on number of cards
-- Implement z-index ordering (active > newest > older)
+- Calculate dynamic overlap based on number of cards (fully dynamic, no minimum)
+- Implement z-index ordering (active > newest > older, hover overrides)
 - Handle anchor card placement on Period cards
 - Implement positioning algorithm:
   - Single anchor: top-right with slight overlap
   - Two anchors: left-to-right distribution
-  - Three+ anchors: even distribution with overlap
+  - Three+ anchors: even distribution with dynamic overlap
+- Implement hover interaction:
+  - Mouse hover elevates card to top z-index
+  - Touch-and-hold equivalent for mobile
+  - Smooth transitions in/out of hover state
 - Handle anchor selection workflow
 - Add "Set Anchor" UI
 - Integrate with canvas zoom/pan
 - Ensure cards never exceed Period width
-- Add smooth transitions for card additions/removals
+- Add smooth transitions for card additions/removals and hover effects
 
 ### Phase 5: Export & Import
 
@@ -492,6 +514,8 @@ The "hand of cards" metaphor provides:
 - Clear z-ordering hierarchy (active anchor always visible on top)
 - Intuitive visual language (newest left, oldest right, like dealing cards)
 - Scalability (works with 1-10+ anchors per Period)
+- Hover-to-reveal interaction borrowed from digital card games for full readability
+- Fully dynamic overlap allows maximum space efficiency without losing information
 
 ### Future Enhancements (Beyond v1)
 
@@ -511,10 +535,12 @@ This milestone is successful if:
 - Users can set an anchor for the current round and associate it with a Period
 - Multiple anchors can be placed on a single Period with clear visual stacking
 - Anchor cards are clearly visible on the canvas in "hand of cards" formation
+- Hovering over any anchor card brings it to the front for full readability (like digital card games)
 - Active anchor is immediately identifiable (on top of stack)
 - The distinction between anchors and legacies is clear
 - Classic Microscope users are not confused by anchor features
 - Chronicle users can effectively use anchors to focus play
 - Anchor data is preserved in exports and imports
 - Stacking behavior works smoothly with 1-10+ anchors per Period
+- Hover interactions feel smooth and responsive
 - The feature feels polished and integrated, not bolted-on
