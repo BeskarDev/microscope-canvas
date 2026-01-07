@@ -32,14 +32,17 @@ This milestone exists to:
 - **Anchor Card UI**:
   - Visual anchor card component
   - Distinct visual design from Period/Event/Scene cards
-  - Character-focused aesthetic (portrait-oriented, name-prominent)
+  - Character-focused aesthetic (landscape-oriented, name-prominent)
   - Indicator for "current anchor" vs. historical anchors
+  - "Hand of cards" stacking behavior for multiple anchors on one Period
 
 - **Anchor Placement & Management**:
-  - Place anchor on a Period card (visual attachment/association)
-  - Only one "active" anchor per round
-  - Clear visual indication of which Period has the current anchor
+  - Place multiple anchor cards on a single Period card (visual attachment/association)
+  - Multiple anchors can be placed on one Period simultaneously
+  - Only one "active" anchor per round across all Periods
+  - Clear visual indication of which anchor is currently active
   - View all anchor placements in game history
+  - "Hand of cards" stacking with intelligent overlap and z-ordering
 
 - **Canvas Integration**:
   - Anchor cards displayed near/on their associated Period
@@ -71,7 +74,6 @@ This milestone exists to:
 - Player turn management
 - Anchor card templates or presets
 - Visual character portraits/images
-- Multi-anchor selection (only one anchor active per round)
 
 ---
 
@@ -115,20 +117,52 @@ This milestone exists to:
    ```
 
 3. **Visual Design**:
-   - **Card Shape**: Small, portrait-oriented card (similar to Scene cards in size)
+   - **Card Shape**: Landscape-oriented card (wider than tall, similar to Event cards)
    - **Color Scheme**: Distinct from tone colors (e.g., accent color, gold/amber border)
    - **Icon**: Character/person icon to distinguish from timeline items
    - **Typography**: Prominent character name, smaller description
-   - **Placement**: Positioned near top-right or overlapping the Period card edge
-   - **Active Indicator**: Visual badge or glow for the current anchor
+   - **Placement**: Overlapping at top edge of Period card in "hand of cards" formation
+   - **Active Indicator**: Visual badge or glow for the current anchor (active anchor always on top of stack)
 
-4. **Canvas Placement Strategy**:
-   - Option A: **Overlay on Period Card** — Anchor card overlays the top-right corner of Period card
-   - Option B: **Adjacent to Period Card** — Anchor card floats beside the Period card
-   - **Recommended**: Option A (overlay) for space efficiency and clear association
-   - Use CSS `position: absolute` within Period card container
-   - Ensure anchor card doesn't obscure critical Period information
-   - Z-index management to keep anchor visible
+4. **Canvas Placement Strategy - "Hand of Cards" Stacking**:
+   
+   Multiple anchor cards can be placed on a single Period, stacking horizontally like a hand of cards:
+   
+   - **Single Anchor**: 
+     - Positioned slightly overlapping the top-right corner of Period card
+     - Approximately 20-30% of card extends above Period top edge
+   
+   - **Two Anchors**:
+     - Newest anchor: Positioned at top-left area of Period (leftmost)
+     - First anchor: Positioned at top-right area of Period (rightmost)
+     - Newest anchor overlaps and appears on top (higher z-index)
+     - Cards span from left to right edge of Period width
+   
+   - **Three or More Anchors**:
+     - Cards distributed evenly across Period width
+     - Newest anchor: Leftmost position (highest z-index)
+     - Oldest anchor: Rightmost position (lowest z-index)
+     - Middle anchors: Evenly spaced between newest and oldest
+     - Each card overlaps the one to its right
+     - Overlap amount adjusts based on total number of cards
+     - Cards never exceed Period width horizontally
+   
+   - **Active Anchor Priority**:
+     - If the active anchor is among the cards on a Period, it appears on top of the stack (highest z-index)
+     - Active anchor positioned leftmost if it's the newest, otherwise brought to front visually
+   
+   - **Overlap Calculation**:
+     - Formula: `overlap = (PeriodWidth - AnchorCardWidth) / (numberOfAnchors - 1)`
+     - Ensures all cards fit within Period width
+     - Minimum overlap: ~30% of card width (for readability)
+     - Each card reveals enough to be identifiable and clickable
+   
+   - **Implementation Details**:
+     - Use CSS `position: absolute` within Period card container
+     - Z-index determined by order (newest/active = highest)
+     - Transform/translate for horizontal positioning
+     - Smooth transitions when cards are added/removed
+     - Touch targets remain accessible (44x44px minimum)
 
 5. **Anchor Management UI**:
    - Header button/menu item: "Anchors" or "Chronicle"
@@ -146,14 +180,18 @@ This milestone exists to:
      - Select existing anchor from list OR create new one
      - Select which Period to anchor to
      - Add optional round notes
-   - Once set, anchor card appears on selected Period
-   - Only one anchor can be "current" at a time
+   - Once set, anchor card appears on selected Period in "hand of cards" formation
+   - Multiple anchors can exist on the same Period (stacked horizontally)
+   - Only one anchor can be "current/active" at a time across all Periods
    - Setting a new anchor automatically clears the previous current anchor
+   - Anchors can be added to Periods that already have anchors (they stack)
 
 7. **Current Anchor Indicator**:
    - Active anchor has visual distinction (border glow, badge, or color)
+   - Active anchor appears on top of stack (highest z-index) when on a Period with multiple anchors
    - Inactive/historical anchors shown with muted styling
    - Option to toggle visibility of historical anchor placements
+   - Stacking order: Active anchor > Newest anchor > Older anchors
 
 8. **Action System Integration**:
    - Create anchor action
@@ -179,15 +217,20 @@ This milestone exists to:
 - **Reusability**: Same anchor character can be used multiple times across the game
 - **Temporal Tracking**: Anchor placements track when and where an anchor was used
 - **Visual Hierarchy**: Anchor cards should be visible but not dominate the timeline
-- **Performance**: Minimize re-renders when toggling anchor visibility
+- **Performance**: Minimize re-renders when toggling anchor visibility or reordering stacks
 - **Accessibility**: Anchor cards must be keyboard navigable and screen-reader friendly
+- **Stacking Logic**: Dynamic overlap calculation based on number of cards per Period
+- **Z-Index Management**: Clear ordering rules (active > newest > older)
 
 ### Key Risks
 
-- **Layout Complexity**: Adding anchor cards to Period cards may complicate layout
-- **Visual Clutter**: Multiple anchor placements could clutter the timeline
+- **Layout Complexity**: "Hand of cards" stacking with dynamic overlap requires careful CSS positioning
+- **Visual Clutter**: Multiple anchor placements on one Period could clutter the timeline if not properly balanced
+- **Overlap Calculation**: Must handle edge cases (1-10+ anchors on one Period) gracefully
+- **Touch Targets**: Overlapping cards must maintain accessible tap targets on mobile (44x44px minimum)
 - **Confusion with Legacies**: Anchors are similar to Legacies; must differentiate clearly
 - **Backward Compatibility**: Must not break existing games or exports
+- **Performance**: Re-calculating positions for large stacks could impact performance
 
 ---
 
@@ -277,27 +320,40 @@ The UI should make this distinction clear, possibly through:
 - [ ] Anchor selection shows list of existing anchors
 - [ ] Anchor selection allows creating new anchor inline
 - [ ] User selects which Period to anchor to
-- [ ] Only one anchor can be current at a time
+- [ ] Multiple anchors can be placed on the same Period
+- [ ] Only one anchor can be current/active at a time across all Periods
 - [ ] Setting new anchor clears previous current anchor
 - [ ] User can clear current anchor manually
 
 ### Anchor Card Visual Design
 
-- [ ] Anchor card component is created
+- [ ] Anchor card component is created (landscape-oriented)
 - [ ] Anchor card has distinct visual design (not confused with Period/Event/Scene)
 - [ ] Anchor card shows character name
 - [ ] Anchor card shows description (if present)
 - [ ] Current anchor has visual distinction (glow, badge, or color)
 - [ ] Anchor card is zoom-aware (scales with canvas zoom)
+- [ ] Cards use landscape orientation (wider than tall)
 
-### Canvas Integration
+### Canvas Integration - "Hand of Cards" Stacking
 
-- [ ] Anchor card appears on/near the anchored Period
-- [ ] Anchor card placement doesn't obscure Period information
-- [ ] Anchor card is clickable/tappable to view details
+- [ ] Single anchor appears at top-right of Period card with slight overlap
+- [ ] Two anchors stack horizontally (newest left, oldest right)
+- [ ] Three or more anchors distribute evenly across Period width
+- [ ] Overlap amount adjusts dynamically based on number of cards
+- [ ] Cards never exceed Period width horizontally
+- [ ] Active anchor always appears on top (highest z-index) when in a stack
+- [ ] Newest anchor is leftmost in stack (unless active anchor takes priority)
+- [ ] Each card overlaps the one to its right
+- [ ] Minimum 30% of each card remains visible for identification
+- [ ] Anchor card placement doesn't obscure critical Period information
+- [ ] Anchor cards are clickable/tappable to view details
+- [ ] Overlapping cards maintain minimum 44x44px touch targets on mobile
 - [ ] Multiple historical anchor placements can be shown
 - [ ] Option to toggle historical anchor visibility exists
 - [ ] Anchor cards work on mobile (touch-friendly)
+- [ ] Z-index ordering is correct (active > newest > older)
+- [ ] Smooth transitions when cards are added/removed from stack
 
 ### Action System Integration
 
@@ -320,14 +376,18 @@ The UI should make this distinction clear, possibly through:
 
 - [ ] Anchor cards are keyboard navigable
 - [ ] Anchor cards have proper ARIA labels
+- [ ] Overlapping cards can be accessed via keyboard (tab through stack)
 - [ ] Anchor library is screen-reader friendly
 - [ ] Focus management works correctly
+- [ ] Screen readers announce position in stack (e.g., "Card 1 of 3")
 
 ### Help & Documentation
 
 - [ ] Help dialog updated to explain anchor cards
 - [ ] Difference between anchors and legacies explained
 - [ ] Anchor workflow documented
+- [ ] "Hand of cards" stacking behavior explained
+- [ ] Active anchor priority documented
 
 ---
 
@@ -352,17 +412,27 @@ To break this milestone into manageable chunks, implement in phases:
 
 ### Phase 3: Anchor Card Component
 
-- Design and implement anchor card component
+- Design and implement anchor card component (landscape-oriented)
 - Add visual styling (distinct from other cards)
 - Implement current/historical anchor states
 - Add zoom-aware sizing
+- Design active anchor indicator
 
-### Phase 4: Canvas Integration
+### Phase 4: Canvas Integration & Stacking Logic
 
-- Implement anchor card placement on Period cards
+- Implement "hand of cards" stacking behavior
+- Calculate dynamic overlap based on number of cards
+- Implement z-index ordering (active > newest > older)
+- Handle anchor card placement on Period cards
+- Implement positioning algorithm:
+  - Single anchor: top-right with slight overlap
+  - Two anchors: left-to-right distribution
+  - Three+ anchors: even distribution with overlap
 - Handle anchor selection workflow
 - Add "Set Anchor" UI
 - Integrate with canvas zoom/pan
+- Ensure cards never exceed Period width
+- Add smooth transitions for card additions/removals
 
 ### Phase 5: Export & Import
 
@@ -394,7 +464,7 @@ Anchor cards should feel like a **natural extension** of Microscope, not a tacke
 
 ### Alternative Design Considerations
 
-**Alternative Placement Options**:
+**Alternative Placement Options Considered**:
 
 1. **Top of canvas**: Anchor cards in a dedicated row above Periods
    - Pros: Clear separation, no layout conflicts
@@ -408,7 +478,20 @@ Anchor cards should feel like a **natural extension** of Microscope, not a tacke
    - Pros: Part of the timeline flow
    - Cons: Breaks Period-only horizontal layout
 
-**Recommended**: Overlay on Period card (as specified in main design) for best visual association and space efficiency.
+4. **Single card overlay**: Only one anchor per Period at top-right
+   - Pros: Simpler implementation, cleaner look
+   - Cons: Cannot show multiple anchors on same Period, loses historical context
+
+**Selected**: "Hand of cards" overlay stacking on Period cards for best visual association, space efficiency, and ability to show multiple anchors per Period while maintaining clear hierarchy.
+
+**Stacking Behavior Rationale**:
+
+The "hand of cards" metaphor provides:
+- Visual clarity about which anchors are associated with each Period
+- Efficient use of space (cards overlap rather than spreading horizontally)
+- Clear z-ordering hierarchy (active anchor always visible on top)
+- Intuitive visual language (newest left, oldest right, like dealing cards)
+- Scalability (works with 1-10+ anchors per Period)
 
 ### Future Enhancements (Beyond v1)
 
@@ -426,9 +509,12 @@ This milestone is successful if:
 
 - Users can create, edit, and delete anchor characters
 - Users can set an anchor for the current round and associate it with a Period
-- Anchor cards are clearly visible on the canvas
+- Multiple anchors can be placed on a single Period with clear visual stacking
+- Anchor cards are clearly visible on the canvas in "hand of cards" formation
+- Active anchor is immediately identifiable (on top of stack)
 - The distinction between anchors and legacies is clear
 - Classic Microscope users are not confused by anchor features
 - Chronicle users can effectively use anchors to focus play
 - Anchor data is preserved in exports and imports
+- Stacking behavior works smoothly with 1-10+ anchors per Period
 - The feature feels polished and integrated, not bolted-on
