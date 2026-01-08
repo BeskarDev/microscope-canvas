@@ -149,7 +149,7 @@
 	}
 
 	.card-title {
-		font-size: calc(0.6875rem * max(var(--canvas-zoom, 1), 1));
+		font-size: calc(0.625rem * max(var(--canvas-zoom, 1), 1));
 		font-weight: 600;
 		margin: 0;
 		line-height: 1.2;

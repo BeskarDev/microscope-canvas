@@ -147,9 +147,12 @@
 	<div class="sheet-backdrop" onclick={handleBackdropClick}>
 		<div class="sheet-panel" role="dialog" aria-modal="true" aria-labelledby="anchors-title">
 			<div class="sheet-header">
-				<h2 id="anchors-title" class="sheet-title">Anchors (Chronicle)</h2>
+				<h2 id="anchors-title" class="sheet-title">Anchors</h2>
 				<p class="sheet-description">
 					Characters to focus gameplay around. Place anchors on periods to guide the story.
+				</p>
+				<p class="sheet-caption">
+					This is a new mechanic from the Microscope Chronicle playtest.
 				</p>
 				<Button
 					variant="ghost"
@@ -424,6 +427,14 @@
 		font-size: 0.875rem;
 		color: var(--color-muted-foreground);
 		margin: 0;
+	}
+
+	.sheet-caption {
+		font-size: 0.75rem;
+		color: var(--color-muted-foreground);
+		margin: 0.5rem 0 0 0;
+		font-style: italic;
+		opacity: 0.8;
 	}
 
 	.sheet-header :global(.close-btn) {

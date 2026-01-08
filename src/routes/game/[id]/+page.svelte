@@ -1132,7 +1132,8 @@
 					anchorId,
 					periodId,
 					placement: deepClone(existingPlacement),
-					previousAnchorId
+					previousAnchorId,
+					removedPlacements: [] // No placements removed in this case
 				};
 				game.currentAnchorId = anchorId;
 				game = game;
@@ -1148,11 +1149,9 @@
 			return;
 		}
 
-		// Check if this anchor is already placed elsewhere (active anchor can only be on one period)
-		if (anchorId === game.currentAnchorId) {
-			toast.error('Active anchor is already placed. Clear it first to move to a different period.');
-			return;
-		}
+		// Remove any existing placements for this anchor (1-to-1 relationship)
+		const removedPlacements = game.anchorPlacements!.filter(p => p.anchorId === anchorId);
+		game.anchorPlacements = game.anchorPlacements!.filter(p => p.anchorId !== anchorId);
 
 		const placement = createAnchorPlacement(anchorId, periodId);
 		const previousAnchorId = game.currentAnchorId;
@@ -1163,7 +1162,8 @@
 			anchorId,
 			periodId,
 			placement: deepClone(placement),
-			previousAnchorId
+			previousAnchorId,
+			removedPlacements: deepClone(removedPlacements)
 		};
 
 		game.currentAnchorId = anchorId;
@@ -1558,7 +1558,7 @@
 									role="menuitem"
 								>
 									<Anchor class="h-4 w-4" />
-									<span>Anchors (Chronicle)</span>
+									<span>Anchors</span>
 									{#if anchorsCount > 0}
 										<span class="count-badge">{anchorsCount}</span>
 									{/if}
