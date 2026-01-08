@@ -5,10 +5,11 @@
 		zoom?: number;
 		onZoomChange?: (newZoom: number) => void;
 		onResetPosition?: () => void;
+		cardReorderEnabled?: boolean;
 		children: Snippet;
 	}
 
-	let { zoom = 1, onZoomChange, children }: Props = $props();
+	let { zoom = 1, onZoomChange, cardReorderEnabled = false, children }: Props = $props();
 
 	let containerRef = $state<HTMLDivElement | null>(null);
 	let isPanning = $state(false);
@@ -47,8 +48,13 @@
 		if (e.button !== 0) return;
 
 		const target = e.target as HTMLElement;
-		// Don't pan if clicking on a button or card
-		if (target.closest('button') || target.closest('[data-card]')) {
+		// Don't pan if clicking on a button
+		if (target.closest('button')) {
+			return;
+		}
+
+		// Only prevent panning on cards if card reordering is enabled
+		if (cardReorderEnabled && target.closest('[data-card]')) {
 			return;
 		}
 
@@ -135,16 +141,16 @@
 			e.preventDefault();
 			const distance = getTouchDistance(e.touches[0], e.touches[1]);
 			const scale = distance / initialPinchDistance;
-			
+
 			// Calculate new zoom level
 			const newZoom = Math.max(0.25, Math.min(2, initialPinchZoom * scale));
-			
+
 			// Find closest zoom level
 			const ZOOM_LEVELS = [2, 1.75, 1.5, 1.25, 1, 0.75, 0.5, 0.25];
-			const closest = ZOOM_LEVELS.reduce((prev, curr) => 
+			const closest = ZOOM_LEVELS.reduce((prev, curr) =>
 				Math.abs(curr - newZoom) < Math.abs(prev - newZoom) ? curr : prev
 			);
-			
+
 			if (closest !== zoom) {
 				onZoomChange(closest);
 			}

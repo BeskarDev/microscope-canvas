@@ -3,6 +3,7 @@
 	import Minus from 'lucide-svelte/icons/minus';
 	import RotateCcw from 'lucide-svelte/icons/rotate-ccw';
 	import Home from 'lucide-svelte/icons/home';
+	import Move from 'lucide-svelte/icons/move';
 
 	interface Props {
 		zoom: number;
@@ -12,9 +13,21 @@
 		onZoomOut?: () => void;
 		onReset?: () => void;
 		onResetPosition?: () => void;
+		cardReorderEnabled?: boolean;
+		onToggleCardReorder?: () => void;
 	}
 
-	let { zoom, minZoom = 0.25, maxZoom = 1, onZoomIn, onZoomOut, onReset, onResetPosition }: Props = $props();
+	let {
+		zoom,
+		minZoom = 0.25,
+		maxZoom = 1,
+		onZoomIn,
+		onZoomOut,
+		onReset,
+		onResetPosition,
+		cardReorderEnabled = false,
+		onToggleCardReorder
+	}: Props = $props();
 
 	const canZoomIn = $derived(zoom < maxZoom);
 	const canZoomOut = $derived(zoom > minZoom);
@@ -62,6 +75,19 @@
 			title="Return to start"
 		>
 			<Home class="zoom-icon" />
+		</button>
+	{/if}
+	{#if onToggleCardReorder}
+		<button
+			type="button"
+			class="zoom-button reorder"
+			class:active={cardReorderEnabled}
+			onclick={onToggleCardReorder}
+			aria-label={cardReorderEnabled ? 'Disable card reordering' : 'Enable card reordering'}
+			title={cardReorderEnabled ? 'Disable card reordering' : 'Enable card reordering'}
+			aria-pressed={cardReorderEnabled ? 'true' : 'false'}
+		>
+			<Move class="zoom-icon" />
 		</button>
 	{/if}
 </div>
@@ -121,6 +147,21 @@
 	.zoom-button.home :global(.zoom-icon) {
 		width: 1rem;
 		height: 1rem;
+	}
+
+	.zoom-button.reorder :global(.zoom-icon) {
+		width: 1rem;
+		height: 1rem;
+	}
+
+	.zoom-button.reorder.active {
+		background-color: var(--color-primary);
+		color: var(--color-primary-foreground);
+	}
+
+	.zoom-button.reorder.active:hover {
+		background-color: var(--color-primary);
+		opacity: 0.9;
 	}
 
 	.zoom-level {
