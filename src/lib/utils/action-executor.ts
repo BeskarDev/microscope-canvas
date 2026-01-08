@@ -467,6 +467,8 @@ function applyEditAnchor(game: Game, action: EditAnchorAction, reverse: boolean)
 function applySetCurrentAnchor(game: Game, action: SetCurrentAnchorAction): Game {
 	if (!game.anchorPlacements) game.anchorPlacements = [];
 
+	// Remove any existing placements for this anchor (maintain 1-to-1 relationship)
+	game.anchorPlacements = game.anchorPlacements.filter((p) => p.anchorId !== action.anchorId);
 	// Set the new current anchor
 	game.currentAnchorId = action.anchorId;
 	// Add the placement
@@ -482,6 +484,10 @@ function reverseSetCurrentAnchor(game: Game, action: SetCurrentAnchorAction): Ga
 	game.currentAnchorId = action.previousAnchorId;
 	// Remove the placement that was added
 	game.anchorPlacements = game.anchorPlacements.filter((p) => p.id !== action.placement.id);
+	// Restore the removed placements
+	for (const placement of action.removedPlacements) {
+		game.anchorPlacements.push({ ...placement });
+	}
 	game.updatedAt = new Date().toISOString();
 	return game;
 }

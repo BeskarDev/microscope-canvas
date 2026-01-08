@@ -257,6 +257,8 @@ export interface SetCurrentAnchorAction extends BaseAction {
 	periodId: string;
 	placement: AnchorPlacement;
 	previousAnchorId: string | null;
+	/** Previous placements that were removed to maintain 1-to-1 relationship */
+	removedPlacements: AnchorPlacement[];
 }
 
 /**
