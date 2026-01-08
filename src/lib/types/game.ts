@@ -6,8 +6,9 @@
 /**
  * Current schema version for game data
  * Increment when making breaking changes to the schema
+ * v2: Added anchor cards support (Microscope Chronicle)
  */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /**
  * Tone represents the emotional quality of a period, event, or scene
@@ -40,6 +41,32 @@ export interface Legacy {
 	id: string;
 	name: string;
 	description?: string;
+}
+
+/**
+ * An Anchor is a character used to focus gameplay in Microscope Chronicle
+ * Anchors are distinct from Legacies - they represent specific characters
+ * that are chosen to focus the current round of play
+ */
+export interface Anchor {
+	id: string;
+	name: string;
+	description?: string;
+	createdAt: string; // ISO 8601 timestamp
+	updatedAt: string; // ISO 8601 timestamp
+}
+
+/**
+ * An AnchorPlacement tracks when and where an anchor was used
+ * Multiple placements can exist on a single Period
+ */
+export interface AnchorPlacement {
+	id: string;
+	anchorId: string; // Reference to Anchor
+	periodId: string; // Period this anchor is placed on
+	roundNumber?: number; // Optional round tracking
+	notes?: string;
+	createdAt: string; // ISO 8601 timestamp
 }
 
 /**
@@ -126,6 +153,12 @@ export interface Game {
 	activePlayerIndex: number;
 	legacies: Legacy[];
 	periods: Period[];
+	/** List of anchor characters for Chronicle play */
+	anchors: Anchor[];
+	/** ID of the currently active anchor (null if none) */
+	currentAnchorId: string | null;
+	/** List of anchor placements tracking where anchors have been used */
+	anchorPlacements: AnchorPlacement[];
 	createdAt: string; // ISO 8601 timestamp
 	updatedAt: string; // ISO 8601 timestamp
 }
@@ -162,6 +195,9 @@ export function createNewGame(name: string): Game {
 		activePlayerIndex: -1,
 		legacies: [],
 		periods: [],
+		anchors: [],
+		currentAnchorId: null,
+		anchorPlacements: [],
 		createdAt: now,
 		updatedAt: now
 	};
@@ -238,6 +274,38 @@ export function createNewPlayer(name: string): Player {
 	return {
 		id: crypto.randomUUID(),
 		name
+	};
+}
+
+/**
+ * Creates a new anchor character
+ */
+export function createNewAnchor(name: string, description?: string): Anchor {
+	const now = new Date().toISOString();
+	return {
+		id: crypto.randomUUID(),
+		name,
+		description,
+		createdAt: now,
+		updatedAt: now
+	};
+}
+
+/**
+ * Creates a new anchor placement
+ */
+export function createAnchorPlacement(
+	anchorId: string,
+	periodId: string,
+	options?: { roundNumber?: number; notes?: string }
+): AnchorPlacement {
+	return {
+		id: crypto.randomUUID(),
+		anchorId,
+		periodId,
+		roundNumber: options?.roundNumber,
+		notes: options?.notes,
+		createdAt: new Date().toISOString()
 	};
 }
 

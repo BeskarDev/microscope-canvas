@@ -3,7 +3,17 @@
  * These types define the structure of undoable operations
  */
 
-import type { Game, Focus, Legacy, Period, Event as GameEvent, Scene, Player } from './game';
+import type {
+	Game,
+	Focus,
+	Legacy,
+	Period,
+	Event as GameEvent,
+	Scene,
+	Player,
+	Anchor,
+	AnchorPlacement
+} from './game';
 
 /**
  * Base action interface
@@ -200,6 +210,56 @@ export interface ReorderScenesAction extends BaseAction {
 }
 
 /**
+ * Create Anchor action
+ */
+export interface CreateAnchorAction extends BaseAction {
+	type: 'CREATE_ANCHOR';
+	anchor: Anchor;
+	index: number;
+}
+
+/**
+ * Delete Anchor action (stores deleted anchor and associated placements)
+ */
+export interface DeleteAnchorAction extends BaseAction {
+	type: 'DELETE_ANCHOR';
+	anchorId: string;
+	index: number;
+	anchor: Anchor;
+	associatedPlacements: AnchorPlacement[];
+	wasCurrentAnchor: boolean;
+}
+
+/**
+ * Edit Anchor action
+ */
+export interface EditAnchorAction extends BaseAction {
+	type: 'EDIT_ANCHOR';
+	anchorId: string;
+	previousValues: Partial<Anchor>;
+	newValues: Partial<Anchor>;
+}
+
+/**
+ * Set Current Anchor action (place anchor on a period)
+ */
+export interface SetCurrentAnchorAction extends BaseAction {
+	type: 'SET_CURRENT_ANCHOR';
+	anchorId: string;
+	periodId: string;
+	placement: AnchorPlacement;
+	previousAnchorId: string | null;
+}
+
+/**
+ * Clear Current Anchor action
+ */
+export interface ClearCurrentAnchorAction extends BaseAction {
+	type: 'CLEAR_CURRENT_ANCHOR';
+	previousAnchorId: string | null;
+}
+
+/**
  * Union type of all possible actions
  */
 export type GameAction =
@@ -218,7 +278,12 @@ export type GameAction =
 	| EditLegacyAction
 	| ReorderPeriodsAction
 	| ReorderEventsAction
-	| ReorderScenesAction;
+	| ReorderScenesAction
+	| CreateAnchorAction
+	| DeleteAnchorAction
+	| EditAnchorAction
+	| SetCurrentAnchorAction
+	| ClearCurrentAnchorAction;
 
 /**
  * Action type names for display purposes
@@ -239,5 +304,10 @@ export const ACTION_DISPLAY_NAMES: Record<GameAction['type'], string> = {
 	EDIT_LEGACY: 'Edit Legacy',
 	REORDER_PERIODS: 'Reorder Periods',
 	REORDER_EVENTS: 'Reorder Events',
-	REORDER_SCENES: 'Reorder Scenes'
+	REORDER_SCENES: 'Reorder Scenes',
+	CREATE_ANCHOR: 'Create Anchor',
+	DELETE_ANCHOR: 'Delete Anchor',
+	EDIT_ANCHOR: 'Edit Anchor',
+	SET_CURRENT_ANCHOR: 'Set Current Anchor',
+	CLEAR_CURRENT_ANCHOR: 'Clear Current Anchor'
 };

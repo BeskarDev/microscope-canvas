@@ -244,6 +244,34 @@ export function exportGameToMarkdown(game: Game): string {
 		lines.push('');
 	}
 
+	// Anchors (Chronicle)
+	if (game.anchors && game.anchors.length > 0) {
+		lines.push('## Anchors (Chronicle)');
+		lines.push('');
+		for (const anchor of game.anchors) {
+			const isActive = game.currentAnchorId === anchor.id;
+			lines.push(`- **${escapeMarkdown(anchor.name)}**${isActive ? ' *(active)*' : ''}`);
+			if (anchor.description) {
+				lines.push(`  - ${escapeMarkdown(anchor.description)}`);
+			}
+			// Show placements for this anchor
+			const placements = (game.anchorPlacements || []).filter((p) => p.anchorId === anchor.id);
+			if (placements.length > 0) {
+				for (const placement of placements) {
+					const period = game.periods.find((p) => p.id === placement.periodId);
+					if (period) {
+						let placementInfo = `  - ⚓ Placed on: ${escapeMarkdown(period.name)}`;
+						if (placement.roundNumber) {
+							placementInfo += ` (Round ${placement.roundNumber})`;
+						}
+						lines.push(placementInfo);
+					}
+				}
+			}
+		}
+		lines.push('');
+	}
+
 	// Palette
 	if (game.palette && (game.palette.yes.length > 0 || game.palette.no.length > 0)) {
 		lines.push('## Palette');
@@ -371,11 +399,16 @@ export function parseGameExportJSON(jsonString: string): ParsedGameExport {
 				'INVALID_SCHEMA'
 			);
 		}
-		// Future: handle migrations for older schema versions here
+		// Handle migrations for older schema versions
+		if (gameData.schemaVersion < 2) {
+			// Migrate from v1 to v2: Add anchor support
+			migrateToV2(gameData);
+		}
 	} else {
-		// If no schema version, assume it's version 1 (current version)
+		// If no schema version, assume it's version 1
 		// This handles exports from before schemaVersion was added
-		gameData.schemaVersion = SCHEMA_VERSION;
+		gameData.schemaVersion = 1;
+		migrateToV2(gameData);
 	}
 
 	// Extract history if present
@@ -386,6 +419,23 @@ export function parseGameExportJSON(jsonString: string): ParsedGameExport {
 	const { history: _history, exportedAt: _exportedAt, ...game } = gameData as GameExportData;
 
 	return { game: game as Game, history };
+}
+
+/**
+ * Migrate game data from schema v1 to v2
+ * Adds anchor support fields
+ */
+function migrateToV2(game: GameExportData): void {
+	if (!game.anchors) {
+		game.anchors = [];
+	}
+	if (game.currentAnchorId === undefined) {
+		game.currentAnchorId = null;
+	}
+	if (!game.anchorPlacements) {
+		game.anchorPlacements = [];
+	}
+	game.schemaVersion = SCHEMA_VERSION;
 }
 
 /**

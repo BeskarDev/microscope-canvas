@@ -21,7 +21,12 @@ import type {
 	EditLegacyAction,
 	ReorderPeriodsAction,
 	ReorderEventsAction,
-	ReorderScenesAction
+	ReorderScenesAction,
+	CreateAnchorAction,
+	DeleteAnchorAction,
+	EditAnchorAction,
+	SetCurrentAnchorAction,
+	ClearCurrentAnchorAction
 } from '$lib/types/actions';
 import { deepClone } from '$lib/utils/deep-clone';
 
@@ -72,13 +77,24 @@ export function applyAction(game: Game, action: GameAction): Game {
 			return applyReorderEvents(newGame, action, false);
 		case 'REORDER_SCENES':
 			return applyReorderScenes(newGame, action, false);
+		case 'CREATE_ANCHOR':
+			return applyCreateAnchor(newGame, action);
+		case 'DELETE_ANCHOR':
+			return applyDeleteAnchor(newGame, action);
+		case 'EDIT_ANCHOR':
+			return applyEditAnchor(newGame, action, false);
+		case 'SET_CURRENT_ANCHOR':
+			return applySetCurrentAnchor(newGame, action);
+		case 'CLEAR_CURRENT_ANCHOR':
+			return applyClearCurrentAnchor(newGame, action);
 		default:
 			console.warn(
 				`applyAction: Unknown action type "${(action as GameAction).type}". ` +
 					`Expected one of: CREATE_PERIOD, DELETE_PERIOD, EDIT_PERIOD, ` +
 					`CREATE_EVENT, DELETE_EVENT, EDIT_EVENT, CREATE_SCENE, DELETE_SCENE, EDIT_SCENE, ` +
 					`EDIT_GAME_METADATA, ADD_LEGACY, REMOVE_LEGACY, EDIT_LEGACY, ` +
-					`REORDER_PERIODS, REORDER_EVENTS, REORDER_SCENES`
+					`REORDER_PERIODS, REORDER_EVENTS, REORDER_SCENES, ` +
+					`CREATE_ANCHOR, DELETE_ANCHOR, EDIT_ANCHOR, SET_CURRENT_ANCHOR, CLEAR_CURRENT_ANCHOR`
 			);
 			return newGame;
 	}
@@ -129,13 +145,24 @@ export function reverseAction(game: Game, action: GameAction): Game {
 			return applyReorderEvents(newGame, action, true);
 		case 'REORDER_SCENES':
 			return applyReorderScenes(newGame, action, true);
+		case 'CREATE_ANCHOR':
+			return reverseCreateAnchor(newGame, action);
+		case 'DELETE_ANCHOR':
+			return reverseDeleteAnchor(newGame, action);
+		case 'EDIT_ANCHOR':
+			return applyEditAnchor(newGame, action, true);
+		case 'SET_CURRENT_ANCHOR':
+			return reverseSetCurrentAnchor(newGame, action);
+		case 'CLEAR_CURRENT_ANCHOR':
+			return reverseClearCurrentAnchor(newGame, action);
 		default:
 			console.warn(
 				`reverseAction: Unknown action type "${(action as GameAction).type}". ` +
 					`Expected one of: CREATE_PERIOD, DELETE_PERIOD, EDIT_PERIOD, ` +
 					`CREATE_EVENT, DELETE_EVENT, EDIT_EVENT, CREATE_SCENE, DELETE_SCENE, EDIT_SCENE, ` +
 					`EDIT_GAME_METADATA, ADD_LEGACY, REMOVE_LEGACY, EDIT_LEGACY, ` +
-					`REORDER_PERIODS, REORDER_EVENTS, REORDER_SCENES`
+					`REORDER_PERIODS, REORDER_EVENTS, REORDER_SCENES, ` +
+					`CREATE_ANCHOR, DELETE_ANCHOR, EDIT_ANCHOR, SET_CURRENT_ANCHOR, CLEAR_CURRENT_ANCHOR`
 			);
 			return newGame;
 	}
@@ -369,6 +396,102 @@ function applyReorderScenes(game: Game, action: ReorderScenesAction, reverse: bo
 		event.scenes = order.map((id) => scenesMap.get(id)!).filter(Boolean);
 		event.updatedAt = new Date().toISOString();
 	}
+	game.updatedAt = new Date().toISOString();
+	return game;
+}
+
+// Anchor actions
+function applyCreateAnchor(game: Game, action: CreateAnchorAction): Game {
+	// Initialize anchors array if not present (migration support)
+	if (!game.anchors) game.anchors = [];
+	game.anchors.splice(action.index, 0, { ...action.anchor });
+	game.updatedAt = new Date().toISOString();
+	return game;
+}
+
+function reverseCreateAnchor(game: Game, action: CreateAnchorAction): Game {
+	if (!game.anchors) game.anchors = [];
+	game.anchors = game.anchors.filter((a) => a.id !== action.anchor.id);
+	game.updatedAt = new Date().toISOString();
+	return game;
+}
+
+function applyDeleteAnchor(game: Game, action: DeleteAnchorAction): Game {
+	if (!game.anchors) game.anchors = [];
+	if (!game.anchorPlacements) game.anchorPlacements = [];
+
+	// Remove the anchor
+	game.anchors = game.anchors.filter((a) => a.id !== action.anchorId);
+	// Remove associated placements
+	game.anchorPlacements = game.anchorPlacements.filter((p) => p.anchorId !== action.anchorId);
+	// Clear current anchor if it was the deleted one
+	if (game.currentAnchorId === action.anchorId) {
+		game.currentAnchorId = null;
+	}
+	game.updatedAt = new Date().toISOString();
+	return game;
+}
+
+function reverseDeleteAnchor(game: Game, action: DeleteAnchorAction): Game {
+	if (!game.anchors) game.anchors = [];
+	if (!game.anchorPlacements) game.anchorPlacements = [];
+
+	// Restore the anchor at original position
+	game.anchors.splice(action.index, 0, { ...action.anchor });
+	// Restore associated placements
+	for (const placement of action.associatedPlacements) {
+		game.anchorPlacements.push({ ...placement });
+	}
+	// Restore current anchor if it was the deleted one
+	if (action.wasCurrentAnchor) {
+		game.currentAnchorId = action.anchorId;
+	}
+	game.updatedAt = new Date().toISOString();
+	return game;
+}
+
+function applyEditAnchor(game: Game, action: EditAnchorAction, reverse: boolean): Game {
+	if (!game.anchors) game.anchors = [];
+	const anchor = game.anchors.find((a) => a.id === action.anchorId);
+	if (anchor) {
+		const values = reverse ? action.previousValues : action.newValues;
+		Object.assign(anchor, values);
+		anchor.updatedAt = new Date().toISOString();
+	}
+	game.updatedAt = new Date().toISOString();
+	return game;
+}
+
+function applySetCurrentAnchor(game: Game, action: SetCurrentAnchorAction): Game {
+	if (!game.anchorPlacements) game.anchorPlacements = [];
+
+	// Set the new current anchor
+	game.currentAnchorId = action.anchorId;
+	// Add the placement
+	game.anchorPlacements.push({ ...action.placement });
+	game.updatedAt = new Date().toISOString();
+	return game;
+}
+
+function reverseSetCurrentAnchor(game: Game, action: SetCurrentAnchorAction): Game {
+	if (!game.anchorPlacements) game.anchorPlacements = [];
+
+	// Restore previous current anchor
+	game.currentAnchorId = action.previousAnchorId;
+	// Remove the placement that was added
+	game.anchorPlacements = game.anchorPlacements.filter((p) => p.id !== action.placement.id);
+	game.updatedAt = new Date().toISOString();
+	return game;
+}
+
+function applyClearCurrentAnchor(game: Game, _action: ClearCurrentAnchorAction): Game {
+	game.currentAnchorId = null;
+	game.updatedAt = new Date().toISOString();
+	return game;
+}
+
+function reverseClearCurrentAnchor(game: Game, action: ClearCurrentAnchorAction): Game {
+	game.currentAnchorId = action.previousAnchorId;
 	game.updatedAt = new Date().toISOString();
 	return game;
 }
