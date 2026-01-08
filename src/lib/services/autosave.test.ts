@@ -24,7 +24,7 @@ function createMockGame(id: string = 'test-id', name: string = 'Test Game'): Gam
 	const now = new Date().toISOString();
 	return {
 		id,
-		schemaVersion: 1,
+		schemaVersion: 2,
 		name,
 		focuses: [],
 		currentFocusIndex: -1,
@@ -32,6 +32,9 @@ function createMockGame(id: string = 'test-id', name: string = 'Test Game'): Gam
 		activePlayerIndex: -1,
 		legacies: [],
 		periods: [],
+		anchors: [],
+		currentAnchorId: null,
+		anchorPlacements: [],
 		createdAt: now,
 		updatedAt: now
 	};
