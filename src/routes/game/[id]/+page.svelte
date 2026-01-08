@@ -20,6 +20,7 @@
 	import Target from 'lucide-svelte/icons/target';
 	import Palette from 'lucide-svelte/icons/palette';
 	import BookMarked from 'lucide-svelte/icons/book-marked';
+	import Anchor from 'lucide-svelte/icons/anchor';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
@@ -39,12 +40,16 @@
 		createNewPeriod,
 		createNewEvent,
 		createNewScene,
+		createNewAnchor,
+		createAnchorPlacement,
 		createSnapshot,
 		generateChangeSummary,
 		type Game,
 		type Period,
 		type Event as GameEvent,
 		type Scene,
+		type Anchor as AnchorType,
+		type AnchorPlacement,
 		type GameAction,
 		type CreatePeriodAction,
 		type DeletePeriodAction,
@@ -61,6 +66,11 @@
 		type ReorderPeriodsAction,
 		type ReorderEventsAction,
 		type ReorderScenesAction,
+		type CreateAnchorAction,
+		type DeleteAnchorAction,
+		type EditAnchorAction,
+		type SetCurrentAnchorAction,
+		type ClearCurrentAnchorAction,
 		type Player,
 		type Focus,
 		type Legacy
@@ -90,7 +100,8 @@
 		PaletteSheet,
 		PlayersSheet,
 		FocusesSheet,
-		LegaciesSheet
+		LegaciesSheet,
+		AnchorsSheet
 	} from '$lib/components/canvas';
 	import { toast } from '$lib/components/ui/sonner';
 
@@ -162,6 +173,9 @@
 
 	// Legacies sheet state
 	let legaciesSheetOpen = $state(false);
+
+	// Anchors sheet state
+	let anchorsSheetOpen = $state(false);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -1016,6 +1030,135 @@
 		handleSaveGameSettings({ legacies });
 	}
 
+	// Anchor handlers
+	function handleCreateAnchor(name: string, description?: string) {
+		if (!game) return;
+		
+		// Initialize arrays if needed (migration support)
+		if (!game.anchors) game.anchors = [];
+		
+		const anchor = createNewAnchor(name, description);
+		const index = game.anchors.length;
+
+		const action: CreateAnchorAction = {
+			type: 'CREATE_ANCHOR',
+			timestamp: new Date().toISOString(),
+			anchor: deepClone(anchor),
+			index
+		};
+
+		game.anchors.push(anchor);
+		game = game;
+		recordGameAction(action);
+	}
+
+	function handleEditAnchor(anchorId: string, name: string, description?: string) {
+		if (!game || !game.anchors) return;
+
+		const anchor = game.anchors.find(a => a.id === anchorId);
+		if (!anchor) return;
+
+		const previousValues = { name: anchor.name, description: anchor.description };
+		const newValues = { name, description };
+
+		const action: EditAnchorAction = {
+			type: 'EDIT_ANCHOR',
+			timestamp: new Date().toISOString(),
+			anchorId,
+			previousValues,
+			newValues
+		};
+
+		anchor.name = name;
+		anchor.description = description;
+		anchor.updatedAt = new Date().toISOString();
+		game = game;
+		recordGameAction(action);
+	}
+
+	function handleDeleteAnchor(anchorId: string) {
+		if (!game || !game.anchors) return;
+
+		const index = game.anchors.findIndex(a => a.id === anchorId);
+		if (index === -1) return;
+
+		const anchor = game.anchors[index];
+		const associatedPlacements = (game.anchorPlacements || []).filter(p => p.anchorId === anchorId);
+		const wasCurrentAnchor = game.currentAnchorId === anchorId;
+
+		const action: DeleteAnchorAction = {
+			type: 'DELETE_ANCHOR',
+			timestamp: new Date().toISOString(),
+			anchorId,
+			index,
+			anchor: deepClone(anchor),
+			associatedPlacements: deepClone(associatedPlacements),
+			wasCurrentAnchor
+		};
+
+		game.anchors = game.anchors.filter(a => a.id !== anchorId);
+		game.anchorPlacements = (game.anchorPlacements || []).filter(p => p.anchorId !== anchorId);
+		if (wasCurrentAnchor) {
+			game.currentAnchorId = null;
+		}
+		game = game;
+		recordGameAction(action);
+		toast.success('Anchor deleted');
+	}
+
+	function handleSetCurrentAnchor(anchorId: string, periodId: string) {
+		if (!game) return;
+
+		// Initialize arrays if needed
+		if (!game.anchorPlacements) game.anchorPlacements = [];
+
+		const placement = createAnchorPlacement(anchorId, periodId);
+		const previousAnchorId = game.currentAnchorId;
+
+		const action: SetCurrentAnchorAction = {
+			type: 'SET_CURRENT_ANCHOR',
+			timestamp: new Date().toISOString(),
+			anchorId,
+			periodId,
+			placement: deepClone(placement),
+			previousAnchorId
+		};
+
+		game.currentAnchorId = anchorId;
+		game.anchorPlacements.push(placement);
+		game = game;
+		recordGameAction(action);
+
+		const anchor = game.anchors?.find(a => a.id === anchorId);
+		const period = game.periods.find(p => p.id === periodId);
+		if (anchor && period) {
+			toast.success(`Set "${anchor.name}" as active anchor on "${period.name}"`);
+		}
+	}
+
+	function handleClearCurrentAnchor() {
+		if (!game) return;
+
+		const previousAnchorId = game.currentAnchorId;
+		if (!previousAnchorId) return;
+
+		const action: ClearCurrentAnchorAction = {
+			type: 'CLEAR_CURRENT_ANCHOR',
+			timestamp: new Date().toISOString(),
+			previousAnchorId
+		};
+
+		game.currentAnchorId = null;
+		game = game;
+		recordGameAction(action);
+		toast.success('Active anchor cleared');
+	}
+
+	function handleMobileAnchors() {
+		closeMobileMenu();
+		anchorsSheetOpen = true;
+	}
+
 	// Get current palette with defaults
 	const currentPalette = $derived<PaletteType>(game?.palette ?? { yes: [], no: [] });
 
@@ -1030,11 +1173,17 @@
 	// Get current legacies with defaults
 	const currentLegacies = $derived(game?.legacies ?? []);
 
+	// Get current anchors with defaults
+	const currentAnchors = $derived(game?.anchors ?? []);
+	const currentAnchorId = $derived(game?.currentAnchorId ?? null);
+	const currentAnchorPlacements = $derived(game?.anchorPlacements ?? []);
+
 	// Derive counts for badges
 	const paletteCount = $derived((currentPalette.yes?.length ?? 0) + (currentPalette.no?.length ?? 0));
 	const playersCount = $derived(currentPlayers.length);
 	const focusesCount = $derived(currentFocuses.length);
 	const legaciesCount = $derived(currentLegacies.length);
+	const anchorsCount = $derived(currentAnchors.length);
 
 	// Get page title based on game name
 	const pageTitle = $derived(
@@ -1251,6 +1400,19 @@
 						<Button
 							variant="ghost"
 							size="sm"
+							onclick={() => (anchorsSheetOpen = true)}
+							aria-label="Anchors"
+							title="Anchors - Chronicle characters"
+							class="icon-button-with-badge"
+						>
+							<Anchor class="h-4 w-4" />
+							{#if anchorsCount > 0}
+								<span class="count-badge">{anchorsCount}</span>
+							{/if}
+						</Button>
+						<Button
+							variant="ghost"
+							size="sm"
 							onclick={openPublishModal}
 							aria-label="Publish version"
 							title="Publish version"
@@ -1345,6 +1507,18 @@
 									<span>Legacies</span>
 									{#if legaciesCount > 0}
 										<span class="count-badge">{legaciesCount}</span>
+									{/if}
+								</button>
+								<button
+									type="button"
+									class="mobile-menu-item"
+									onclick={handleMobileAnchors}
+									role="menuitem"
+								>
+									<Anchor class="h-4 w-4" />
+									<span>Anchors (Chronicle)</span>
+									{#if anchorsCount > 0}
+										<span class="count-badge">{anchorsCount}</span>
 									{/if}
 								</button>
 								<div class="mobile-menu-divider"></div>
@@ -1596,6 +1770,21 @@
 	onOpenChange={(open) => (legaciesSheetOpen = open)}
 	legacies={currentLegacies}
 	onSave={handleSaveLegacies}
+/>
+
+<!-- Anchors Sheet -->
+<AnchorsSheet
+	open={anchorsSheetOpen}
+	onOpenChange={(open) => (anchorsSheetOpen = open)}
+	anchors={currentAnchors}
+	currentAnchorId={currentAnchorId}
+	anchorPlacements={currentAnchorPlacements}
+	periods={game?.periods ?? []}
+	onCreateAnchor={handleCreateAnchor}
+	onEditAnchor={handleEditAnchor}
+	onDeleteAnchor={handleDeleteAnchor}
+	onSetCurrentAnchor={handleSetCurrentAnchor}
+	onClearCurrentAnchor={handleClearCurrentAnchor}
 />
 
 <style>

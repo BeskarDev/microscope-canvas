@@ -19,4 +19,5 @@ export { default as ExportMenu } from './ExportMenu.svelte';
 export { default as PaletteSheet } from './PaletteSheet.svelte';
 export { default as PlayersSheet } from './PlayersSheet.svelte';
 export { default as FocusesSheet } from './FocusesSheet.svelte';
-export { default as LegaciesSheet} from './LegaciesSheet.svelte';
+export { default as LegaciesSheet } from './LegaciesSheet.svelte';
+export { default as AnchorsSheet } from './AnchorsSheet.svelte';
