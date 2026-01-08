@@ -48,8 +48,6 @@
 		type Period,
 		type Event as GameEvent,
 		type Scene,
-		type Anchor as AnchorType,
-		type AnchorPlacement,
 		type GameAction,
 		type CreatePeriodAction,
 		type DeletePeriodAction,
@@ -1030,15 +1028,21 @@
 		handleSaveGameSettings({ legacies });
 	}
 
+	// Helper to ensure anchor arrays are initialized (migration support)
+	function ensureAnchorsInitialized() {
+		if (!game) return;
+		if (!game.anchors) game.anchors = [];
+		if (!game.anchorPlacements) game.anchorPlacements = [];
+		if (game.currentAnchorId === undefined) game.currentAnchorId = null;
+	}
+
 	// Anchor handlers
 	function handleCreateAnchor(name: string, description?: string) {
 		if (!game) return;
-		
-		// Initialize arrays if needed (migration support)
-		if (!game.anchors) game.anchors = [];
+		ensureAnchorsInitialized();
 		
 		const anchor = createNewAnchor(name, description);
-		const index = game.anchors.length;
+		const index = game.anchors!.length;
 
 		const action: CreateAnchorAction = {
 			type: 'CREATE_ANCHOR',
@@ -1047,13 +1051,15 @@
 			index
 		};
 
-		game.anchors.push(anchor);
+		game.anchors!.push(anchor);
 		game = game;
 		recordGameAction(action);
 	}
 
 	function handleEditAnchor(anchorId: string, name: string, description?: string) {
-		if (!game || !game.anchors) return;
+		if (!game) return;
+		ensureAnchorsInitialized();
+		if (!game.anchors?.length) return;
 
 		const anchor = game.anchors.find(a => a.id === anchorId);
 		if (!anchor) return;
@@ -1077,13 +1083,15 @@
 	}
 
 	function handleDeleteAnchor(anchorId: string) {
-		if (!game || !game.anchors) return;
+		if (!game) return;
+		ensureAnchorsInitialized();
+		if (!game.anchors?.length) return;
 
 		const index = game.anchors.findIndex(a => a.id === anchorId);
 		if (index === -1) return;
 
 		const anchor = game.anchors[index];
-		const associatedPlacements = (game.anchorPlacements || []).filter(p => p.anchorId === anchorId);
+		const associatedPlacements = game.anchorPlacements!.filter(p => p.anchorId === anchorId);
 		const wasCurrentAnchor = game.currentAnchorId === anchorId;
 
 		const action: DeleteAnchorAction = {
@@ -1097,7 +1105,7 @@
 		};
 
 		game.anchors = game.anchors.filter(a => a.id !== anchorId);
-		game.anchorPlacements = (game.anchorPlacements || []).filter(p => p.anchorId !== anchorId);
+		game.anchorPlacements = game.anchorPlacements!.filter(p => p.anchorId !== anchorId);
 		if (wasCurrentAnchor) {
 			game.currentAnchorId = null;
 		}
@@ -1108,9 +1116,7 @@
 
 	function handleSetCurrentAnchor(anchorId: string, periodId: string) {
 		if (!game) return;
-
-		// Initialize arrays if needed
-		if (!game.anchorPlacements) game.anchorPlacements = [];
+		ensureAnchorsInitialized();
 
 		const placement = createAnchorPlacement(anchorId, periodId);
 		const previousAnchorId = game.currentAnchorId;
@@ -1125,7 +1131,7 @@
 		};
 
 		game.currentAnchorId = anchorId;
-		game.anchorPlacements.push(placement);
+		game.anchorPlacements!.push(placement);
 		game = game;
 		recordGameAction(action);
 

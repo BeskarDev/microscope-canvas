@@ -231,13 +231,21 @@ export interface DeleteAnchorAction extends BaseAction {
 }
 
 /**
+ * Editable anchor fields for EditAnchorAction
+ */
+export interface EditableAnchorFields {
+	name?: string;
+	description?: string;
+}
+
+/**
  * Edit Anchor action
  */
 export interface EditAnchorAction extends BaseAction {
 	type: 'EDIT_ANCHOR';
 	anchorId: string;
-	previousValues: Partial<Anchor>;
-	newValues: Partial<Anchor>;
+	previousValues: EditableAnchorFields;
+	newValues: EditableAnchorFields;
 }
 
 /**

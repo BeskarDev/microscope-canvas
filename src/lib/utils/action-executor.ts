@@ -86,7 +86,7 @@ export function applyAction(game: Game, action: GameAction): Game {
 		case 'SET_CURRENT_ANCHOR':
 			return applySetCurrentAnchor(newGame, action);
 		case 'CLEAR_CURRENT_ANCHOR':
-			return applyClearCurrentAnchor(newGame, action);
+			return applyClearCurrentAnchor(newGame);
 		default:
 			console.warn(
 				`applyAction: Unknown action type "${(action as GameAction).type}". ` +
@@ -455,7 +455,9 @@ function applyEditAnchor(game: Game, action: EditAnchorAction, reverse: boolean)
 	const anchor = game.anchors.find((a) => a.id === action.anchorId);
 	if (anchor) {
 		const values = reverse ? action.previousValues : action.newValues;
-		Object.assign(anchor, values);
+		// Only update defined values to avoid overwriting with undefined
+		if (values.name !== undefined) anchor.name = values.name;
+		if (values.description !== undefined) anchor.description = values.description;
 		anchor.updatedAt = new Date().toISOString();
 	}
 	game.updatedAt = new Date().toISOString();
@@ -484,7 +486,7 @@ function reverseSetCurrentAnchor(game: Game, action: SetCurrentAnchorAction): Ga
 	return game;
 }
 
-function applyClearCurrentAnchor(game: Game, _action: ClearCurrentAnchorAction): Game {
+function applyClearCurrentAnchor(game: Game): Game {
 	game.currentAnchorId = null;
 	game.updatedAt = new Date().toISOString();
 	return game;
