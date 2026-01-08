@@ -26,6 +26,7 @@
 			toIndex: number
 		) => void;
 		onSelectAnchor?: (anchor: Anchor) => void;
+		cardReorderEnabled?: boolean;
 	}
 
 	let {
@@ -39,7 +40,8 @@
 		onReorderPeriods,
 		onReorderEvents,
 		onReorderScenes,
-		onSelectAnchor
+		onSelectAnchor,
+		cardReorderEnabled = false
 	}: Props = $props();
 
 	// Configuration for dnd-action
@@ -225,7 +227,11 @@
 	}
 </script>
 
-<div class="timeline">
+<div 
+	class="timeline" 
+	style:--card-cursor={cardReorderEnabled ? 'grab' : 'default'}
+	style:--card-cursor-active={cardReorderEnabled ? 'grabbing' : 'default'}
+>
 	<!-- Add button before first period -->
 	<AddButton
 		label="Add period at beginning"
@@ -244,7 +250,8 @@
 			dropTargetClasses: ['drop-target-period'],
 			centreDraggedOnCursor: true,
 			dropFromOthersDisabled: true,
-			morphDisabled: false
+			morphDisabled: false,
+			dragDisabled: !cardReorderEnabled
 		}}
 		onconsider={handlePeriodConsider}
 		onfinalize={handlePeriodFinalize}
@@ -293,7 +300,8 @@
 								dropTargetStyle: {},
 								dropTargetClasses: ['drop-target-event'],
 								centreDraggedOnCursor: true,
-								dropFromOthersDisabled: true
+								dropFromOthersDisabled: true,
+								dragDisabled: !cardReorderEnabled
 							}}
 							onconsider={(e) => handleEventConsider(period.id, e)}
 							onfinalize={(e) => handleEventFinalize(period.id, e)}
@@ -317,7 +325,8 @@
 												dropTargetStyle: {},
 												dropTargetClasses: ['drop-target-scene'],
 												centreDraggedOnCursor: true,
-												dropFromOthersDisabled: true
+												dropFromOthersDisabled: true,
+												dragDisabled: !cardReorderEnabled
 											}}
 											onconsider={(e) => handleSceneConsider(period.id, event.id, e)}
 											onfinalize={(e) => handleSceneFinalize(period.id, event.id, e)}
@@ -406,11 +415,11 @@
 	.period-section {
 		flex-shrink: 0;
 		position: relative;
-		cursor: grab;
+		cursor: var(--card-cursor, default);
 	}
 
 	.period-section:active {
-		cursor: grabbing;
+		cursor: var(--card-cursor-active, default);
 	}
 
 	/* Anchor cards positioned ABOVE the period card, overlapping the top edge */
@@ -450,11 +459,11 @@
 	.event-wrapper {
 		flex-shrink: 0;
 		position: relative;
-		cursor: grab;
+		cursor: var(--card-cursor, default);
 	}
 
 	.event-wrapper:active {
-		cursor: grabbing;
+		cursor: var(--card-cursor-active, default);
 	}
 
 	.scenes-section {
@@ -469,14 +478,14 @@
 	.scene-wrapper {
 		flex-shrink: 0;
 		position: relative;
-		cursor: grab;
+		cursor: var(--card-cursor, default);
 		/* Allow drag-and-drop to work from anywhere on the card */
 		touch-action: none;
 		user-select: none;
 	}
 
 	.scene-wrapper:active {
-		cursor: grabbing;
+		cursor: var(--card-cursor-active, default);
 	}
 
 	.empty-timeline {

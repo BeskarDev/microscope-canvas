@@ -175,6 +175,9 @@
 	// Anchors sheet state
 	let anchorsSheetOpen = $state(false);
 
+	// Card reorder toggle state - default is false (disabled)
+	let cardReorderEnabled = $state(false);
+
 	// Autosave handler
 	const autosave = createAutosave((error) => {
 		toast.error('Failed to save', {
@@ -391,6 +394,10 @@
 		} else if (canvasRef) {
 			canvasRef.resetPosition();
 		}
+	}
+
+	function handleToggleCardReorder() {
+		cardReorderEnabled = !cardReorderEnabled;
 	}
 
 	// Add item handlers
@@ -1670,7 +1677,7 @@
 			</div>
 		{:else if isViewingHistory && historicalGame}
 			<!-- Historical view (read-only) -->
-			<Canvas bind:this={historicalCanvasRef} {zoom} onZoomChange={handleZoomChange}>
+			<Canvas bind:this={historicalCanvasRef} {zoom} onZoomChange={handleZoomChange} cardReorderEnabled={false}>
 				<Timeline
 					game={historicalGame}
 					onAddPeriod={() => {}}
@@ -1679,6 +1686,7 @@
 					onSelectPeriod={() => {}}
 					onSelectEvent={() => {}}
 					onSelectScene={() => {}}
+					cardReorderEnabled={false}
 				/>
 			</Canvas>
 
@@ -1700,7 +1708,7 @@
 				/>
 			</div>
 		{:else if game}
-			<Canvas bind:this={canvasRef} {zoom} onZoomChange={handleZoomChange}>
+			<Canvas bind:this={canvasRef} {zoom} onZoomChange={handleZoomChange} {cardReorderEnabled}>
 				<Timeline
 					{game}
 					onAddPeriod={handleAddPeriod}
@@ -1712,6 +1720,7 @@
 					onReorderPeriods={handleReorderPeriods}
 					onReorderEvents={handleReorderEvents}
 					onReorderScenes={handleReorderScenes}
+					{cardReorderEnabled}
 				/>
 			</Canvas>
 
@@ -1725,6 +1734,8 @@
 					onZoomOut={handleZoomOut}
 					onReset={handleZoomReset}
 					onResetPosition={handleResetPosition}
+					{cardReorderEnabled}
+					onToggleCardReorder={handleToggleCardReorder}
 				/>
 			</div>
 		{/if}
