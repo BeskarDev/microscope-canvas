@@ -1,8 +1,9 @@
 <script lang="ts">
-	import type { Game, Period, Event as GameEvent, Scene } from '$lib/types';
+	import type { Game, Period, Event as GameEvent, Scene, Anchor, AnchorPlacement } from '$lib/types';
 	import PeriodCard from './PeriodCard.svelte';
 	import EventCard from './EventCard.svelte';
 	import SceneCard from './SceneCard.svelte';
+	import AnchorCard from './AnchorCard.svelte';
 	import AddButton from './AddButton.svelte';
 	import { dndzone, SOURCES } from 'svelte-dnd-action';
 	import { flip } from 'svelte/animate';
@@ -24,6 +25,7 @@
 			fromIndex: number,
 			toIndex: number
 		) => void;
+		onSelectAnchor?: (anchor: Anchor) => void;
 	}
 
 	let {
@@ -36,7 +38,8 @@
 		onSelectScene,
 		onReorderPeriods,
 		onReorderEvents,
-		onReorderScenes
+		onReorderScenes,
+		onSelectAnchor
 	}: Props = $props();
 
 	// Configuration for dnd-action
@@ -46,6 +49,9 @@
 	let localPeriods = $state<Period[]>([]);
 	let localEventsMap = new SvelteMap<string, GameEvent[]>();
 	let localScenesMap = new SvelteMap<string, Scene[]>();
+	
+	// Hover state for anchor cards
+	let hoveredAnchorId = $state<string | null>(null);
 
 	// Sync local state with props
 	$effect(() => {
@@ -61,6 +67,48 @@
 			});
 		});
 	});
+
+	// Get anchor placements for a specific period, sorted by creation date (newest first)
+	function getAnchorPlacementsForPeriod(periodId: string): AnchorPlacement[] {
+		if (!game.anchorPlacements) return [];
+		return game.anchorPlacements
+			.filter(p => p.periodId === periodId)
+			.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+	}
+
+	// Get anchor by ID
+	function getAnchor(anchorId: string): Anchor | undefined {
+		if (!game.anchors) return undefined;
+		return game.anchors.find(a => a.id === anchorId);
+	}
+
+	// Calculate z-index for an anchor card based on its state
+	// Active anchor gets highest priority, then hovered, then by recency
+	function getAnchorZIndex(anchorId: string, placementIndex: number, totalPlacements: number): number {
+		const baseZ = 10;
+		// Hovered gets highest z-index
+		if (hoveredAnchorId === anchorId) {
+			return baseZ + totalPlacements + 2;
+		}
+		// Active anchor gets second highest
+		if (game.currentAnchorId === anchorId) {
+			return baseZ + totalPlacements + 1;
+		}
+		// Otherwise, newer placements (lower index) get higher z-index
+		return baseZ + (totalPlacements - placementIndex);
+	}
+
+	// Calculate horizontal offset for stacking (in pixels before zoom)
+	// Cards overlap with an offset, creating a "hand of cards" effect
+	function getAnchorOffset(placementIndex: number): number {
+		// Each card offsets by 30px from the previous
+		return placementIndex * 30;
+	}
+
+	// Handle anchor card click
+	function handleAnchorClick(anchor: Anchor) {
+		onSelectAnchor?.(anchor);
+	}
 
 	// Period drag handlers
 	function handlePeriodConsider(e: CustomEvent<{ items: Period[]; info: { trigger: string; id: string; source: string } }>) {
@@ -171,11 +219,33 @@
 		onfinalize={handlePeriodFinalize}
 	>
 		{#each localPeriods as period, periodIndex (period.id)}
+			{@const periodPlacements = getAnchorPlacementsForPeriod(period.id)}
 			<div class="period-wrapper" animate:flip={{ duration: flipDurationMs }}>
 				<div class="period-column">
-					<!-- Period card -->
+					<!-- Period card with anchor cards stacked below -->
 					<div class="period-section">
 						<PeriodCard {period} onclick={() => onSelectPeriod(period)} />
+						
+						<!-- Anchor cards stacked below the period card -->
+						{#if periodPlacements.length > 0}
+							<div class="anchor-cards-stack">
+								{#each periodPlacements as placement, placementIndex (placement.id)}
+									{@const anchor = getAnchor(placement.anchorId)}
+									{#if anchor}
+										<AnchorCard
+											{anchor}
+											isActive={game.currentAnchorId === anchor.id}
+											isHovered={hoveredAnchorId === anchor.id}
+											zIndex={getAnchorZIndex(anchor.id, placementIndex, periodPlacements.length)}
+											offset={getAnchorOffset(placementIndex)}
+											onclick={() => handleAnchorClick(anchor)}
+											onmouseenter={() => hoveredAnchorId = anchor.id}
+											onmouseleave={() => hoveredAnchorId = null}
+										/>
+									{/if}
+								{/each}
+							</div>
+						{/if}
 					</div>
 
 					<!-- Events under this period - only show container if there are events -->
@@ -304,10 +374,33 @@
 		flex-shrink: 0;
 		position: relative;
 		cursor: grab;
+		display: flex;
+		flex-direction: column;
+		gap: calc(0.5rem * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.period-section:active {
 		cursor: grabbing;
+	}
+
+	/* Anchor cards stacked below period card */
+	.anchor-cards-stack {
+		position: relative;
+		display: flex;
+		flex-direction: row;
+		align-items: flex-start;
+		/* Allow cards to overlap */
+		width: calc(180px * max(var(--canvas-zoom, 1), 1));
+		min-height: calc(60px * max(var(--canvas-zoom, 1), 1));
+		/* Extra padding to accommodate the stacking offset */
+		padding-right: calc(60px * max(var(--canvas-zoom, 1), 1));
+	}
+
+	/* Position anchor cards absolutely for overlapping effect */
+	.anchor-cards-stack :global([data-card="anchor"]) {
+		position: absolute;
+		left: 0;
+		top: 0;
 	}
 
 	.events-section {
