@@ -189,7 +189,7 @@
 	onMount(async () => {
 		await fetchGame();
 	});
-	
+
 	// Cleanup on unmount
 	onDestroy(() => {
 		autosave.cancel(); // Cancel any pending autosave
@@ -1024,9 +1024,8 @@
 	// Focuses handler
 	function handleSaveFocuses(focuses: Focus[], currentFocusIndex: number) {
 		// Also update the legacy focus field for backwards compatibility
-		const focus = currentFocusIndex >= 0 && focuses[currentFocusIndex]
-			? focuses[currentFocusIndex]
-			: undefined;
+		const focus =
+			currentFocusIndex >= 0 && focuses[currentFocusIndex] ? focuses[currentFocusIndex] : undefined;
 		handleSaveGameSettings({ focuses, currentFocusIndex, focus });
 	}
 
@@ -1047,7 +1046,7 @@
 	function handleCreateAnchor(name: string, description?: string) {
 		if (!game) return;
 		ensureAnchorsInitialized();
-		
+
 		const anchor = createNewAnchor(name, description);
 		const index = game.anchors!.length;
 
@@ -1068,7 +1067,7 @@
 		ensureAnchorsInitialized();
 		if (!game.anchors?.length) return;
 
-		const anchor = game.anchors.find(a => a.id === anchorId);
+		const anchor = game.anchors.find((a) => a.id === anchorId);
 		if (!anchor) return;
 
 		const previousValues = { name: anchor.name, description: anchor.description };
@@ -1094,11 +1093,11 @@
 		ensureAnchorsInitialized();
 		if (!game.anchors?.length) return;
 
-		const index = game.anchors.findIndex(a => a.id === anchorId);
+		const index = game.anchors.findIndex((a) => a.id === anchorId);
 		if (index === -1) return;
 
 		const anchor = game.anchors[index];
-		const associatedPlacements = game.anchorPlacements!.filter(p => p.anchorId === anchorId);
+		const associatedPlacements = game.anchorPlacements!.filter((p) => p.anchorId === anchorId);
 		const wasCurrentAnchor = game.currentAnchorId === anchorId;
 
 		const action: DeleteAnchorAction = {
@@ -1111,8 +1110,8 @@
 			wasCurrentAnchor
 		};
 
-		game.anchors = game.anchors.filter(a => a.id !== anchorId);
-		game.anchorPlacements = game.anchorPlacements!.filter(p => p.anchorId !== anchorId);
+		game.anchors = game.anchors.filter((a) => a.id !== anchorId);
+		game.anchorPlacements = game.anchorPlacements!.filter((p) => p.anchorId !== anchorId);
 		if (wasCurrentAnchor) {
 			game.currentAnchorId = null;
 		}
@@ -1127,7 +1126,7 @@
 
 		// Check if this anchor is already placed on this period (prevent duplicate placements)
 		const existingPlacement = game.anchorPlacements!.find(
-			p => p.anchorId === anchorId && p.periodId === periodId
+			(p) => p.anchorId === anchorId && p.periodId === periodId
 		);
 		if (existingPlacement) {
 			// Just set this anchor as active without creating a new placement
@@ -1145,8 +1144,8 @@
 				game.currentAnchorId = anchorId;
 				game = game;
 				recordGameAction(action);
-				
-				const anchor = game.anchors?.find(a => a.id === anchorId);
+
+				const anchor = game.anchors?.find((a) => a.id === anchorId);
 				if (anchor) {
 					toast.success(`Set "${anchor.name}" as active anchor`);
 				}
@@ -1157,8 +1156,8 @@
 		}
 
 		// Remove any existing placements for this anchor (1-to-1 relationship)
-		const removedPlacements = game.anchorPlacements!.filter(p => p.anchorId === anchorId);
-		game.anchorPlacements = game.anchorPlacements!.filter(p => p.anchorId !== anchorId);
+		const removedPlacements = game.anchorPlacements!.filter((p) => p.anchorId === anchorId);
+		game.anchorPlacements = game.anchorPlacements!.filter((p) => p.anchorId !== anchorId);
 
 		const placement = createAnchorPlacement(anchorId, periodId);
 		const previousAnchorId = game.currentAnchorId;
@@ -1178,8 +1177,8 @@
 		game = game;
 		recordGameAction(action);
 
-		const anchor = game.anchors?.find(a => a.id === anchorId);
-		const period = game.periods.find(p => p.id === periodId);
+		const anchor = game.anchors?.find((a) => a.id === anchorId);
+		const period = game.periods.find((p) => p.id === periodId);
 		if (anchor && period) {
 			toast.success(`Set "${anchor.name}" as active anchor on "${period.name}"`);
 		}
@@ -1228,7 +1227,9 @@
 	const currentAnchorPlacements = $derived(game?.anchorPlacements ?? []);
 
 	// Derive counts for badges
-	const paletteCount = $derived((currentPalette.yes?.length ?? 0) + (currentPalette.no?.length ?? 0));
+	const paletteCount = $derived(
+		(currentPalette.yes?.length ?? 0) + (currentPalette.no?.length ?? 0)
+	);
 	const playersCount = $derived(currentPlayers.length);
 	const focusesCount = $derived(currentFocuses.length);
 	const legaciesCount = $derived(currentLegacies.length);
@@ -1677,7 +1678,12 @@
 			</div>
 		{:else if isViewingHistory && historicalGame}
 			<!-- Historical view (read-only) -->
-			<Canvas bind:this={historicalCanvasRef} {zoom} onZoomChange={handleZoomChange} cardReorderEnabled={false}>
+			<Canvas
+				bind:this={historicalCanvasRef}
+				{zoom}
+				onZoomChange={handleZoomChange}
+				cardReorderEnabled={false}
+			>
 				<Timeline
 					game={historicalGame}
 					onAddPeriod={() => {}}
@@ -1813,7 +1819,7 @@
 	open={focusesSheetOpen}
 	onOpenChange={(open) => (focusesSheetOpen = open)}
 	focuses={currentFocuses}
-	currentFocusIndex={currentFocusIndex}
+	{currentFocusIndex}
 	onSave={handleSaveFocuses}
 />
 
@@ -1830,7 +1836,7 @@
 	open={anchorsSheetOpen}
 	onOpenChange={(open) => (anchorsSheetOpen = open)}
 	anchors={currentAnchors}
-	currentAnchorId={currentAnchorId}
+	{currentAnchorId}
 	anchorPlacements={currentAnchorPlacements}
 	periods={game?.periods ?? []}
 	onCreateAnchor={handleCreateAnchor}

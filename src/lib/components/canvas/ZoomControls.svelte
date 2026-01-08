@@ -17,7 +17,17 @@
 		onToggleCardReorder?: () => void;
 	}
 
-	let { zoom, minZoom = 0.25, maxZoom = 1, onZoomIn, onZoomOut, onReset, onResetPosition, cardReorderEnabled = false, onToggleCardReorder }: Props = $props();
+	let {
+		zoom,
+		minZoom = 0.25,
+		maxZoom = 1,
+		onZoomIn,
+		onZoomOut,
+		onReset,
+		onResetPosition,
+		cardReorderEnabled = false,
+		onToggleCardReorder
+	}: Props = $props();
 
 	const canZoomIn = $derived(zoom < maxZoom);
 	const canZoomOut = $derived(zoom > minZoom);

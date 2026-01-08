@@ -1,5 +1,12 @@
 <script lang="ts">
-	import type { Game, Period, Event as GameEvent, Scene, Anchor, AnchorPlacement } from '$lib/types';
+	import type {
+		Game,
+		Period,
+		Event as GameEvent,
+		Scene,
+		Anchor,
+		AnchorPlacement
+	} from '$lib/types';
 	import PeriodCard from './PeriodCard.svelte';
 	import EventCard from './EventCard.svelte';
 	import SceneCard from './SceneCard.svelte';
@@ -46,12 +53,12 @@
 
 	// Configuration for dnd-action
 	const flipDurationMs = 200;
-	
+
 	// Local state for drag and drop - these are used for the preview during dragging
 	let localPeriods = $state<Period[]>([]);
 	let localEventsMap = new SvelteMap<string, GameEvent[]>();
 	let localScenesMap = new SvelteMap<string, Scene[]>();
-	
+
 	// Hover state for anchor cards
 	let hoveredAnchorId = $state<string | null>(null);
 
@@ -62,9 +69,9 @@
 		localEventsMap.clear();
 		localScenesMap.clear();
 		// Initialize event and scene maps
-		game.periods.forEach(period => {
+		game.periods.forEach((period) => {
 			localEventsMap.set(period.id, period.events);
-			period.events.forEach(event => {
+			period.events.forEach((event) => {
 				localScenesMap.set(`${period.id}-${event.id}`, event.scenes);
 			});
 		});
@@ -75,17 +82,17 @@
 	// 2. Then newest to oldest
 	function getAnchorPlacementsForPeriod(periodId: string): AnchorPlacement[] {
 		if (!game.anchorPlacements) return [];
-		const placements = game.anchorPlacements.filter(p => p.periodId === periodId);
-		
+		const placements = game.anchorPlacements.filter((p) => p.periodId === periodId);
+
 		// Sort: active anchor first, then by creation date (newest first)
 		return placements.sort((a, b) => {
 			const aIsActive = a.anchorId === game.currentAnchorId;
 			const bIsActive = b.anchorId === game.currentAnchorId;
-			
+
 			// Active anchor always comes first
 			if (aIsActive && !bIsActive) return -1;
 			if (!aIsActive && bIsActive) return 1;
-			
+
 			// Otherwise sort by creation date (newest first)
 			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
 		});
@@ -94,12 +101,16 @@
 	// Get anchor by ID
 	function getAnchor(anchorId: string): Anchor | undefined {
 		if (!game.anchors) return undefined;
-		return game.anchors.find(a => a.id === anchorId);
+		return game.anchors.find((a) => a.id === anchorId);
 	}
 
 	// Calculate z-index for an anchor card based on its state
 	// Hovered > Active > Left position (leftmost = highest z-index within stack)
-	function getAnchorZIndex(anchorId: string, placementIndex: number, totalPlacements: number): number {
+	function getAnchorZIndex(
+		anchorId: string,
+		placementIndex: number,
+		totalPlacements: number
+	): number {
 		const baseZ = 10;
 		// Hovered gets highest z-index
 		if (hoveredAnchorId === anchorId) {
@@ -115,17 +126,17 @@
 	function getAnchorLeftPosition(placementIndex: number, totalPlacements: number): number {
 		const periodWidth = 160;
 		const cardWidth = 120;
-		
+
 		if (totalPlacements === 1) {
 			// Single card: centered or slightly to the right
 			return (periodWidth - cardWidth) / 2;
 		}
-		
+
 		// Multiple cards: distribute across period width
 		// Calculate the overlap needed to fit all cards
 		const availableWidth = periodWidth - cardWidth;
 		const overlapSpace = availableWidth / (totalPlacements - 1);
-		
+
 		return placementIndex * overlapSpace;
 	}
 
@@ -133,35 +144,39 @@
 	function handleAnchorClick(anchor: Anchor) {
 		onSelectAnchor?.(anchor);
 	}
-	
+
 	// Handle touch-and-hold for mobile (bring card to front)
 	function handleAnchorTouchStart(anchorId: string) {
 		hoveredAnchorId = anchorId;
 	}
-	
+
 	function handleAnchorTouchEnd() {
 		hoveredAnchorId = null;
 	}
 
 	// Period drag handlers
-	function handlePeriodConsider(e: CustomEvent<{ items: Period[]; info: { trigger: string; id: string; source: string } }>) {
+	function handlePeriodConsider(
+		e: CustomEvent<{ items: Period[]; info: { trigger: string; id: string; source: string } }>
+	) {
 		const { items } = e.detail;
 		// Update local state for drag preview
 		localPeriods = items;
 	}
 
-	function handlePeriodFinalize(e: CustomEvent<{ items: Period[]; info: { trigger: string; id: string; source: string } }>) {
+	function handlePeriodFinalize(
+		e: CustomEvent<{ items: Period[]; info: { trigger: string; id: string; source: string } }>
+	) {
 		const { items, info } = e.detail;
-		
+
 		// Update local state
 		localPeriods = items;
-		
+
 		// Call reorder callback if position changed and it was a pointer drag
 		if (info.source === SOURCES.POINTER && onReorderPeriods) {
 			// Find the original and new positions by comparing with game.periods
-			const originalIndex = game.periods.findIndex(p => p.id === info.id);
-			const newIndex = items.findIndex(p => p.id === info.id);
-			
+			const originalIndex = game.periods.findIndex((p) => p.id === info.id);
+			const newIndex = items.findIndex((p) => p.id === info.id);
+
 			if (originalIndex !== -1 && newIndex !== -1 && originalIndex !== newIndex) {
 				onReorderPeriods(originalIndex, newIndex);
 			}
@@ -169,25 +184,31 @@
 	}
 
 	// Event drag handlers
-	function handleEventConsider(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string; source: string } }>) {
+	function handleEventConsider(
+		periodId: string,
+		e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string; source: string } }>
+	) {
 		const { items } = e.detail;
 		// Update local state for drag preview
 		localEventsMap.set(periodId, items);
 	}
 
-	function handleEventFinalize(periodId: string, e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string; source: string } }>) {
+	function handleEventFinalize(
+		periodId: string,
+		e: CustomEvent<{ items: GameEvent[]; info: { trigger: string; id: string; source: string } }>
+	) {
 		const { items, info } = e.detail;
-		
+
 		// Update local state
 		localEventsMap.set(periodId, items);
-		
+
 		// Call reorder callback if position changed
 		if (info.source === SOURCES.POINTER && onReorderEvents) {
-			const period = game.periods.find(p => p.id === periodId);
+			const period = game.periods.find((p) => p.id === periodId);
 			if (period) {
-				const originalIndex = period.events.findIndex(ev => ev.id === info.id);
-				const newIndex = items.findIndex(ev => ev.id === info.id);
-				
+				const originalIndex = period.events.findIndex((ev) => ev.id === info.id);
+				const newIndex = items.findIndex((ev) => ev.id === info.id);
+
 				if (originalIndex !== -1 && newIndex !== -1 && originalIndex !== newIndex) {
 					onReorderEvents(periodId, originalIndex, newIndex);
 				}
@@ -196,29 +217,37 @@
 	}
 
 	// Scene drag handlers
-	function handleSceneConsider(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string; source: string } }>) {
+	function handleSceneConsider(
+		periodId: string,
+		eventId: string,
+		e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string; source: string } }>
+	) {
 		const { items } = e.detail;
 		const key = `${periodId}-${eventId}`;
 		// Update local state for drag preview
 		localScenesMap.set(key, items);
 	}
 
-	function handleSceneFinalize(periodId: string, eventId: string, e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string; source: string } }>) {
+	function handleSceneFinalize(
+		periodId: string,
+		eventId: string,
+		e: CustomEvent<{ items: Scene[]; info: { trigger: string; id: string; source: string } }>
+	) {
 		const { items, info } = e.detail;
 		const key = `${periodId}-${eventId}`;
-		
+
 		// Update local state
 		localScenesMap.set(key, items);
-		
+
 		// Call reorder callback if position changed
 		if (info.source === SOURCES.POINTER && onReorderScenes) {
-			const period = game.periods.find(p => p.id === periodId);
-			const event = period?.events.find(e => e.id === eventId);
-			
+			const period = game.periods.find((p) => p.id === periodId);
+			const event = period?.events.find((e) => e.id === eventId);
+
 			if (event) {
-				const originalIndex = event.scenes.findIndex(s => s.id === info.id);
-				const newIndex = items.findIndex(s => s.id === info.id);
-				
+				const originalIndex = event.scenes.findIndex((s) => s.id === info.id);
+				const newIndex = items.findIndex((s) => s.id === info.id);
+
 				if (originalIndex !== -1 && newIndex !== -1 && originalIndex !== newIndex) {
 					onReorderScenes(periodId, eventId, originalIndex, newIndex);
 				}
@@ -227,8 +256,8 @@
 	}
 </script>
 
-<div 
-	class="timeline" 
+<div
+	class="timeline"
 	style:--card-cursor={cardReorderEnabled ? 'grab' : 'default'}
 	style:--card-cursor-active={cardReorderEnabled ? 'grabbing' : 'default'}
 >
@@ -240,7 +269,7 @@
 	/>
 
 	<!-- Periods container with dnd zone -->
-	<div 
+	<div
 		class="periods-container"
 		use:dndzone={{
 			items: localPeriods,
@@ -263,7 +292,7 @@
 					<!-- Period card with anchor cards positioned above -->
 					<div class="period-section">
 						<PeriodCard {period} onclick={() => onSelectPeriod(period)} />
-						
+
 						<!-- Anchor cards stacked above the period card, overlapping top edge -->
 						{#if periodPlacements.length > 0}
 							<div class="anchor-cards-stack">
@@ -277,8 +306,8 @@
 											zIndex={getAnchorZIndex(anchor.id, placementIndex, periodPlacements.length)}
 											leftPosition={getAnchorLeftPosition(placementIndex, periodPlacements.length)}
 											onclick={() => handleAnchorClick(anchor)}
-											onmouseenter={() => hoveredAnchorId = anchor.id}
-											onmouseleave={() => hoveredAnchorId = null}
+											onmouseenter={() => (hoveredAnchorId = anchor.id)}
+											onmouseleave={() => (hoveredAnchorId = null)}
 											ontouchstart={() => handleAnchorTouchStart(anchor.id)}
 											ontouchend={handleAnchorTouchEnd}
 										/>
@@ -291,7 +320,7 @@
 					<!-- Events under this period - only show container if there are events -->
 					{#if (localEventsMap.get(period.id) ?? period.events).length > 0}
 						{@const periodEvents = localEventsMap.get(period.id) ?? period.events}
-						<div 
+						<div
 							class="events-section"
 							use:dndzone={{
 								items: periodEvents,
@@ -315,8 +344,9 @@
 
 									<!-- Scenes under this event -->
 									{#if (localScenesMap.get(`${period.id}-${event.id}`) ?? event.scenes).length > 0}
-										{@const eventScenes = localScenesMap.get(`${period.id}-${event.id}`) ?? event.scenes}
-										<div 
+										{@const eventScenes =
+											localScenesMap.get(`${period.id}-${event.id}`) ?? event.scenes}
+										<div
 											class="scenes-section"
 											use:dndzone={{
 												items: eventScenes,
@@ -333,7 +363,10 @@
 										>
 											{#each eventScenes as scene (scene.id)}
 												<div class="scene-wrapper" animate:flip={{ duration: flipDurationMs }}>
-													<SceneCard {scene} onclick={() => onSelectScene(period.id, event.id, scene)} />
+													<SceneCard
+														{scene}
+														onclick={() => onSelectScene(period.id, event.id, scene)}
+													/>
 												</div>
 											{/each}
 										</div>
@@ -435,7 +468,7 @@
 	}
 
 	/* Anchor cards are positioned absolutely within the stack */
-	.anchor-cards-stack :global([data-card="anchor"]) {
+	.anchor-cards-stack :global([data-card='anchor']) {
 		pointer-events: auto;
 	}
 
@@ -535,23 +568,23 @@
 	}
 
 	/* Ensure dragged items don't get stuck in dragging state */
-	:global([aria-grabbed="true"]) {
+	:global([aria-grabbed='true']) {
 		opacity: 0.5;
 		cursor: grabbing;
 	}
 
 	/* Ensure items being dragged reset properly */
-	:global(.event-column:not([aria-grabbed="true"])) {
+	:global(.event-column:not([aria-grabbed='true'])) {
 		opacity: 1;
 		transform: none;
 	}
 
-	:global(.period-wrapper:not([aria-grabbed="true"])) {
+	:global(.period-wrapper:not([aria-grabbed='true'])) {
 		opacity: 1;
 		transform: none;
 	}
 
-	:global(.scene-wrapper:not([aria-grabbed="true"])) {
+	:global(.scene-wrapper:not([aria-grabbed='true'])) {
 		opacity: 1;
 		transform: none;
 	}

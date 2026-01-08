@@ -52,7 +52,7 @@
 		if (target.closest('button')) {
 			return;
 		}
-		
+
 		// Only prevent panning on cards if card reordering is enabled
 		if (cardReorderEnabled && target.closest('[data-card]')) {
 			return;
@@ -141,16 +141,16 @@
 			e.preventDefault();
 			const distance = getTouchDistance(e.touches[0], e.touches[1]);
 			const scale = distance / initialPinchDistance;
-			
+
 			// Calculate new zoom level
 			const newZoom = Math.max(0.25, Math.min(2, initialPinchZoom * scale));
-			
+
 			// Find closest zoom level
 			const ZOOM_LEVELS = [2, 1.75, 1.5, 1.25, 1, 0.75, 0.5, 0.25];
-			const closest = ZOOM_LEVELS.reduce((prev, curr) => 
+			const closest = ZOOM_LEVELS.reduce((prev, curr) =>
 				Math.abs(curr - newZoom) < Math.abs(prev - newZoom) ? curr : prev
 			);
-			
+
 			if (closest !== zoom) {
 				onZoomChange(closest);
 			}
