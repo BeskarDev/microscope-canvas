@@ -85,7 +85,7 @@
 			onclick={onToggleCardReorder}
 			aria-label={cardReorderEnabled ? 'Disable card reordering' : 'Enable card reordering'}
 			title={cardReorderEnabled ? 'Disable card reordering' : 'Enable card reordering'}
-			aria-pressed={cardReorderEnabled}
+			aria-pressed={cardReorderEnabled ? 'true' : 'false'}
 		>
 			<Move class="zoom-icon" />
 		</button>
