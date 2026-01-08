@@ -68,12 +68,25 @@
 		});
 	});
 
-	// Get anchor placements for a specific period, sorted by creation date (newest first)
+	// Get anchor placements for a specific period, sorted for display:
+	// 1. Active anchor always first (leftmost)
+	// 2. Then newest to oldest
 	function getAnchorPlacementsForPeriod(periodId: string): AnchorPlacement[] {
 		if (!game.anchorPlacements) return [];
-		return game.anchorPlacements
-			.filter(p => p.periodId === periodId)
-			.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+		const placements = game.anchorPlacements.filter(p => p.periodId === periodId);
+		
+		// Sort: active anchor first, then by creation date (newest first)
+		return placements.sort((a, b) => {
+			const aIsActive = a.anchorId === game.currentAnchorId;
+			const bIsActive = b.anchorId === game.currentAnchorId;
+			
+			// Active anchor always comes first
+			if (aIsActive && !bIsActive) return -1;
+			if (!aIsActive && bIsActive) return 1;
+			
+			// Otherwise sort by creation date (newest first)
+			return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+		});
 	}
 
 	// Get anchor by ID
@@ -83,31 +96,49 @@
 	}
 
 	// Calculate z-index for an anchor card based on its state
-	// Active anchor gets highest priority, then hovered, then by recency
+	// Hovered > Active > Left position (leftmost = highest z-index within stack)
 	function getAnchorZIndex(anchorId: string, placementIndex: number, totalPlacements: number): number {
 		const baseZ = 10;
 		// Hovered gets highest z-index
 		if (hoveredAnchorId === anchorId) {
 			return baseZ + totalPlacements + 2;
 		}
-		// Active anchor gets second highest
-		if (game.currentAnchorId === anchorId) {
-			return baseZ + totalPlacements + 1;
-		}
-		// Otherwise, newer placements (lower index) get higher z-index
+		// Leftmost cards (lower index) get higher z-index so they overlap cards to the right
 		return baseZ + (totalPlacements - placementIndex);
 	}
 
-	// Calculate horizontal offset for stacking (in pixels before zoom)
-	// Cards overlap with an offset, creating a "hand of cards" effect
-	function getAnchorOffset(placementIndex: number): number {
-		// Each card offsets by 30px from the previous
-		return placementIndex * 30;
+	// Calculate left position for stacking (in pixels before zoom)
+	// Cards are distributed across the period width with overlap
+	// Period width = 160px, anchor card width = 120px
+	function getAnchorLeftPosition(placementIndex: number, totalPlacements: number): number {
+		const periodWidth = 160;
+		const cardWidth = 120;
+		
+		if (totalPlacements === 1) {
+			// Single card: centered or slightly to the right
+			return (periodWidth - cardWidth) / 2;
+		}
+		
+		// Multiple cards: distribute across period width
+		// Calculate the overlap needed to fit all cards
+		const availableWidth = periodWidth - cardWidth;
+		const overlapSpace = availableWidth / (totalPlacements - 1);
+		
+		return placementIndex * overlapSpace;
 	}
 
 	// Handle anchor card click
 	function handleAnchorClick(anchor: Anchor) {
 		onSelectAnchor?.(anchor);
+	}
+	
+	// Handle touch-and-hold for mobile (bring card to front)
+	function handleAnchorTouchStart(anchorId: string) {
+		hoveredAnchorId = anchorId;
+	}
+	
+	function handleAnchorTouchEnd() {
+		hoveredAnchorId = null;
 	}
 
 	// Period drag handlers
@@ -222,11 +253,11 @@
 			{@const periodPlacements = getAnchorPlacementsForPeriod(period.id)}
 			<div class="period-wrapper" animate:flip={{ duration: flipDurationMs }}>
 				<div class="period-column">
-					<!-- Period card with anchor cards stacked below -->
+					<!-- Period card with anchor cards positioned above -->
 					<div class="period-section">
 						<PeriodCard {period} onclick={() => onSelectPeriod(period)} />
 						
-						<!-- Anchor cards stacked below the period card -->
+						<!-- Anchor cards stacked above the period card, overlapping top edge -->
 						{#if periodPlacements.length > 0}
 							<div class="anchor-cards-stack">
 								{#each periodPlacements as placement, placementIndex (placement.id)}
@@ -237,10 +268,12 @@
 											isActive={game.currentAnchorId === anchor.id}
 											isHovered={hoveredAnchorId === anchor.id}
 											zIndex={getAnchorZIndex(anchor.id, placementIndex, periodPlacements.length)}
-											offset={getAnchorOffset(placementIndex)}
+											leftPosition={getAnchorLeftPosition(placementIndex, periodPlacements.length)}
 											onclick={() => handleAnchorClick(anchor)}
 											onmouseenter={() => hoveredAnchorId = anchor.id}
 											onmouseleave={() => hoveredAnchorId = null}
+											ontouchstart={() => handleAnchorTouchStart(anchor.id)}
+											ontouchend={handleAnchorTouchEnd}
 										/>
 									{/if}
 								{/each}
@@ -374,33 +407,27 @@
 		flex-shrink: 0;
 		position: relative;
 		cursor: grab;
-		display: flex;
-		flex-direction: column;
-		gap: calc(0.5rem * max(var(--canvas-zoom, 1), 1));
 	}
 
 	.period-section:active {
 		cursor: grabbing;
 	}
 
-	/* Anchor cards stacked below period card */
+	/* Anchor cards positioned ABOVE the period card, overlapping the top edge */
 	.anchor-cards-stack {
-		position: relative;
-		display: flex;
-		flex-direction: row;
-		align-items: flex-start;
-		/* Allow cards to overlap */
-		width: calc(180px * max(var(--canvas-zoom, 1), 1));
-		min-height: calc(60px * max(var(--canvas-zoom, 1), 1));
-		/* Extra padding to accommodate the stacking offset */
-		padding-right: calc(60px * max(var(--canvas-zoom, 1), 1));
+		position: absolute;
+		/* Position above period card - anchor cards overlap top edge by ~30% */
+		top: calc(-24px * max(var(--canvas-zoom, 1), 1));
+		left: 0;
+		/* Match period card width (160px) */
+		width: calc(160px * max(var(--canvas-zoom, 1), 1));
+		height: calc(32px * max(var(--canvas-zoom, 1), 1));
+		pointer-events: none;
 	}
 
-	/* Position anchor cards absolutely for overlapping effect */
+	/* Anchor cards are positioned absolutely within the stack */
 	.anchor-cards-stack :global([data-card="anchor"]) {
-		position: absolute;
-		left: 0;
-		top: 0;
+		pointer-events: auto;
 	}
 
 	.events-section {

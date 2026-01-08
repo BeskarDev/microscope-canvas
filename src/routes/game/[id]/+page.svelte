@@ -1118,6 +1118,42 @@
 		if (!game) return;
 		ensureAnchorsInitialized();
 
+		// Check if this anchor is already placed on this period (prevent duplicate placements)
+		const existingPlacement = game.anchorPlacements!.find(
+			p => p.anchorId === anchorId && p.periodId === periodId
+		);
+		if (existingPlacement) {
+			// Just set this anchor as active without creating a new placement
+			if (game.currentAnchorId !== anchorId) {
+				const previousAnchorId = game.currentAnchorId;
+				const action: SetCurrentAnchorAction = {
+					type: 'SET_CURRENT_ANCHOR',
+					timestamp: new Date().toISOString(),
+					anchorId,
+					periodId,
+					placement: deepClone(existingPlacement),
+					previousAnchorId
+				};
+				game.currentAnchorId = anchorId;
+				game = game;
+				recordGameAction(action);
+				
+				const anchor = game.anchors?.find(a => a.id === anchorId);
+				if (anchor) {
+					toast.success(`Set "${anchor.name}" as active anchor`);
+				}
+			} else {
+				toast.info('This anchor is already placed on this period');
+			}
+			return;
+		}
+
+		// Check if this anchor is already placed elsewhere (active anchor can only be on one period)
+		if (anchorId === game.currentAnchorId) {
+			toast.error('Active anchor is already placed. Clear it first to move to a different period.');
+			return;
+		}
+
 		const placement = createAnchorPlacement(anchorId, periodId);
 		const previousAnchorId = game.currentAnchorId;
 
