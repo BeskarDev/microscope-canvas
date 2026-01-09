@@ -45,6 +45,12 @@
 		}
 		ontouchend?.();
 	}
+
+	// Handle click with stopPropagation to prevent dndzone interference
+	function handleClick(e: MouseEvent) {
+		e.stopPropagation();
+		onclick?.();
+	}
 </script>
 
 <div
@@ -56,7 +62,7 @@
 	data-card="anchor"
 	style:--card-left="{leftPosition}px"
 	style:z-index={zIndex}
-	{onclick}
+	onclick={handleClick}
 	{onmouseenter}
 	{onmouseleave}
 	ontouchstart={handleTouchStart}

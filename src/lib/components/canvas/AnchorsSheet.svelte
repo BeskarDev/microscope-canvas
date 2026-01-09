@@ -64,9 +64,19 @@
 	$effect(() => {
 		if (open && selectedAnchorId) {
 			highlightedAnchorId = selectedAnchorId;
+			
+			// Scroll to the highlighted anchor
+			setTimeout(() => {
+				const anchorElement = document.querySelector(`[data-anchor-id="${selectedAnchorId}"]`);
+				if (anchorElement) {
+					anchorElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+				}
+			}, 50);
+			
+			// Remove highlight after 1 second (snappier animation)
 			setTimeout(() => {
 				highlightedAnchorId = null;
-			}, 2000); // Remove highlight after 2 seconds
+			}, 1000);
 		}
 	});
 
@@ -263,6 +273,7 @@
 									class="anchor-item" 
 									class:active={anchor.id === currentAnchorId}
 									class:highlighted={anchor.id === highlightedAnchorId}
+									data-anchor-id={anchor.id}
 								>
 									{#if editingAnchorId === anchor.id}
 										<!-- Edit Mode -->
@@ -523,37 +534,39 @@
 		border-color: oklch(65% 0.18 50 / 0.3);
 	}
 
+	/* Highlighted anchor - snappier "ping" animation with distinct blue color */
 	.anchor-item.highlighted {
-		animation: highlight-pulse 2s ease-out;
+		animation: highlight-ping 0.6s cubic-bezier(0.4, 0, 0.6, 1);
 	}
 
-	@keyframes highlight-pulse {
+	@keyframes highlight-ping {
 		0% {
-			background-color: oklch(65% 0.18 50 / 0.3);
-			border-color: oklch(65% 0.18 50 / 0.6);
+			background-color: oklch(70% 0.2 240 / 0.5);
+			border-color: oklch(70% 0.2 240);
+			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0.7);
 		}
 		50% {
-			background-color: oklch(65% 0.18 50 / 0.2);
-			border-color: oklch(65% 0.18 50 / 0.5);
+			box-shadow: 0 0 0 8px oklch(70% 0.2 240 / 0);
 		}
 		100% {
 			background-color: var(--color-muted);
 			border-color: transparent;
+			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0);
 		}
 	}
 
 	.anchor-item.highlighted.active {
-		animation: highlight-pulse-active 2s ease-out;
+		animation: highlight-ping-active 0.6s cubic-bezier(0.4, 0, 0.6, 1);
 	}
 
-	@keyframes highlight-pulse-active {
+	@keyframes highlight-ping-active {
 		0% {
-			background-color: oklch(65% 0.18 50 / 0.4);
-			border-color: oklch(65% 0.18 50 / 0.7);
+			background-color: oklch(70% 0.2 240 / 0.4);
+			border-color: oklch(70% 0.2 240);
+			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0.7);
 		}
 		50% {
-			background-color: oklch(65% 0.18 50 / 0.25);
-			border-color: oklch(65% 0.18 50 / 0.5);
+			box-shadow: 0 0 0 8px oklch(70% 0.2 240 / 0);
 		}
 		100% {
 			background-color: oklch(65% 0.18 50 / 0.1);
