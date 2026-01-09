@@ -174,6 +174,7 @@
 
 	// Anchors sheet state
 	let anchorsSheetOpen = $state(false);
+	let selectedAnchorIdForSheet = $state<string | null>(null);
 
 	// Card reorder toggle state - default is false (disabled)
 	let cardReorderEnabled = $state(false);
@@ -1227,8 +1228,14 @@
 		toast.success('Active anchor cleared');
 	}
 
+	function handleSelectAnchor(anchor: Anchor) {
+		selectedAnchorIdForSheet = anchor.id;
+		anchorsSheetOpen = true;
+	}
+
 	function handleMobileAnchors() {
 		closeMobileMenu();
+		selectedAnchorIdForSheet = null;
 		anchorsSheetOpen = true;
 	}
 
@@ -1475,7 +1482,10 @@
 						<Button
 							variant="ghost"
 							size="sm"
-							onclick={() => (anchorsSheetOpen = true)}
+							onclick={() => {
+								selectedAnchorIdForSheet = null;
+								anchorsSheetOpen = true;
+							}}
 							aria-label="Anchors"
 							title="Anchors - Chronicle characters"
 							class="icon-button-with-badge"
@@ -1748,6 +1758,7 @@
 					onSelectPeriod={handleSelectPeriod}
 					onSelectEvent={handleSelectEvent}
 					onSelectScene={handleSelectScene}
+					onSelectAnchor={handleSelectAnchor}
 					onReorderPeriods={handleReorderPeriods}
 					onReorderEvents={handleReorderEvents}
 					onReorderScenes={handleReorderScenes}
@@ -1859,7 +1870,10 @@
 <!-- Anchors Sheet -->
 <AnchorsSheet
 	open={anchorsSheetOpen}
-	onOpenChange={(open) => (anchorsSheetOpen = open)}
+	onOpenChange={(open) => {
+		anchorsSheetOpen = open;
+		if (!open) selectedAnchorIdForSheet = null;
+	}}
 	anchors={currentAnchors}
 	{currentAnchorId}
 	anchorPlacements={currentAnchorPlacements}
@@ -1869,6 +1883,7 @@
 	onDeleteAnchor={handleDeleteAnchor}
 	onSetCurrentAnchor={handleSetCurrentAnchor}
 	onClearCurrentAnchor={handleClearCurrentAnchor}
+	selectedAnchorId={selectedAnchorIdForSheet}
 />
 
 <style>

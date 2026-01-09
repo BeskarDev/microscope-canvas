@@ -10,6 +10,19 @@
 	let helpOpen = $state(false);
 	let oracleOpen = $state(false);
 
+	// When help dialog closes, blur the trigger to prevent spacebar from reopening
+	$effect(() => {
+		if (!helpOpen && typeof document !== 'undefined') {
+			// Small delay to ensure dialog has closed
+			setTimeout(() => {
+				const activeElement = document.activeElement as HTMLElement;
+				if (activeElement && activeElement.getAttribute('aria-label') === 'Help') {
+					activeElement.blur();
+				}
+			}, 100);
+		}
+	});
+
 	const homeUrl = resolve('/');
 </script>
 

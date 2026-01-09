@@ -9,6 +9,7 @@
 	import Anchor2 from 'lucide-svelte/icons/anchor';
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import MapPin from 'lucide-svelte/icons/map-pin';
+	import XCircle from 'lucide-svelte/icons/x-circle';
 
 	interface Props {
 		open: boolean;
@@ -22,6 +23,7 @@
 		onDeleteAnchor: (anchorId: string) => void;
 		onSetCurrentAnchor: (anchorId: string, periodId: string) => void;
 		onClearCurrentAnchor: () => void;
+		selectedAnchorId?: string | null;
 	}
 
 	let {
@@ -35,7 +37,8 @@
 		onEditAnchor,
 		onDeleteAnchor,
 		onSetCurrentAnchor,
-		onClearCurrentAnchor
+		onClearCurrentAnchor,
+		selectedAnchorId = null
 	}: Props = $props();
 
 	// Local state
@@ -45,6 +48,7 @@
 	let editAnchorName = $state('');
 	let editAnchorDescription = $state('');
 	let placingAnchorId = $state<string | null>(null);
+	let highlightedAnchorId = $state<string | null>(null);
 
 	// Reset local state when sheet opens
 	$effect(() => {
@@ -53,6 +57,14 @@
 			newAnchorDescription = '';
 			editingAnchorId = null;
 			placingAnchorId = null;
+			
+			// If selectedAnchorId is provided, highlight it briefly
+			if (selectedAnchorId) {
+				highlightedAnchorId = selectedAnchorId;
+				setTimeout(() => {
+					highlightedAnchorId = null;
+				}, 2000); // Remove highlight after 2 seconds
+			}
 		}
 	});
 
@@ -241,32 +253,15 @@
 						</Button>
 					</div>
 
-					<!-- Current Anchor Indicator -->
-					{#if currentAnchorId}
-						{@const currentAnchor = anchors.find(a => a.id === currentAnchorId)}
-						{#if currentAnchor}
-							<div class="current-anchor-banner">
-								<div class="banner-content">
-									<span class="banner-label">Active Anchor:</span>
-									<span class="banner-name">{currentAnchor.name}</span>
-								</div>
-								<Button
-									variant="ghost"
-									size="sm"
-									onclick={handleClearActive}
-									title="Clear active anchor"
-								>
-									Clear
-								</Button>
-							</div>
-						{/if}
-					{/if}
-
 					<!-- Anchors List -->
 					{#if anchors.length > 0}
 						<ul class="anchors-list">
 							{#each anchors as anchor (anchor.id)}
-								<li class="anchor-item" class:active={anchor.id === currentAnchorId}>
+								<li 
+									class="anchor-item" 
+									class:active={anchor.id === currentAnchorId}
+									class:highlighted={anchor.id === highlightedAnchorId}
+								>
 									{#if editingAnchorId === anchor.id}
 										<!-- Edit Mode -->
 										<div class="edit-form">
@@ -337,6 +332,17 @@
 											{/if}
 										</button>
 										<div class="anchor-actions">
+											{#if anchor.id === currentAnchorId}
+												<Button
+													variant="ghost"
+													size="icon"
+													onclick={handleClearActive}
+													aria-label="Clear active anchor"
+													title="Clear active anchor"
+												>
+													<XCircle class="h-4 w-4" />
+												</Button>
+											{/if}
 											<Button
 												variant="ghost"
 												size="icon"
@@ -485,34 +491,6 @@
 		align-self: flex-end;
 	}
 
-	/* Current anchor banner */
-	.current-anchor-banner {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.75rem;
-		background-color: oklch(65% 0.18 50 / 0.15);
-		border: 1px solid oklch(65% 0.18 50 / 0.3);
-		border-radius: var(--radius);
-	}
-
-	.banner-content {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.banner-label {
-		font-size: 0.75rem;
-		color: var(--color-muted-foreground);
-	}
-
-	.banner-name {
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: oklch(70% 0.18 50);
-	}
-
 	/* Anchors list */
 	.anchors-list {
 		list-style: none;
@@ -541,6 +519,44 @@
 	.anchor-item.active {
 		background-color: oklch(65% 0.18 50 / 0.1);
 		border-color: oklch(65% 0.18 50 / 0.3);
+	}
+
+	.anchor-item.highlighted {
+		animation: highlight-pulse 2s ease-out;
+	}
+
+	@keyframes highlight-pulse {
+		0% {
+			background-color: oklch(65% 0.18 50 / 0.3);
+			border-color: oklch(65% 0.18 50 / 0.6);
+		}
+		50% {
+			background-color: oklch(65% 0.18 50 / 0.2);
+			border-color: oklch(65% 0.18 50 / 0.5);
+		}
+		100% {
+			background-color: var(--color-muted);
+			border-color: transparent;
+		}
+	}
+
+	.anchor-item.highlighted.active {
+		animation: highlight-pulse-active 2s ease-out;
+	}
+
+	@keyframes highlight-pulse-active {
+		0% {
+			background-color: oklch(65% 0.18 50 / 0.4);
+			border-color: oklch(65% 0.18 50 / 0.7);
+		}
+		50% {
+			background-color: oklch(65% 0.18 50 / 0.25);
+			border-color: oklch(65% 0.18 50 / 0.5);
+		}
+		100% {
+			background-color: oklch(65% 0.18 50 / 0.1);
+			border-color: oklch(65% 0.18 50 / 0.3);
+		}
 	}
 
 	.anchor-content {
