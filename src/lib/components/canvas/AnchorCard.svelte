@@ -46,43 +46,23 @@
 		ontouchend?.();
 	}
 
-	// Add element ref for manual event listener registration in capture phase
-	let anchorCardElement: HTMLDivElement;
+	// Handle click - call onclick and stop ALL propagation
+	function handleClick(e: MouseEvent) {
+		e.stopImmediatePropagation();
+		onclick?.();
+	}
 
-	$effect(() => {
-		if (!anchorCardElement) return;
+	// Stop mousedown propagation completely to prevent dndzone from initiating drag
+	function handleMouseDown(e: MouseEvent) {
+		e.stopImmediatePropagation();
+	}
 
-		// Add event listeners in capture phase to intercept before dndzone
-		// Only stop propagation, NOT preventDefault - we want click events to fire
-		const handleMouseDownCapture = (e: MouseEvent) => {
-			e.stopPropagation();
-			// Do NOT preventDefault() - it blocks click events from firing
-		};
-
-		const handleMouseUpCapture = (e: MouseEvent) => {
-			e.stopPropagation();
-			// Do NOT preventDefault() - it blocks click events from firing
-		};
-
-		const handleClickCapture = (e: MouseEvent) => {
-			e.stopPropagation();
-			onclick?.();
-		};
-
-		anchorCardElement.addEventListener('mousedown', handleMouseDownCapture, true);
-		anchorCardElement.addEventListener('mouseup', handleMouseUpCapture, true);
-		anchorCardElement.addEventListener('click', handleClickCapture, true);
-
-		return () => {
-			anchorCardElement.removeEventListener('mousedown', handleMouseDownCapture, true);
-			anchorCardElement.removeEventListener('mouseup', handleMouseUpCapture, true);
-			anchorCardElement.removeEventListener('click', handleClickCapture, true);
-		};
-	});
+	function handleMouseUp(e: MouseEvent) {
+		e.stopImmediatePropagation();
+	}
 </script>
 
 <div
-	bind:this={anchorCardElement}
 	role="button"
 	tabindex="0"
 	class="anchor-card"
@@ -91,6 +71,9 @@
 	data-card="anchor"
 	style:--card-left="{leftPosition}px"
 	style:z-index={zIndex}
+	onclick={handleClick}
+	onmousedown={handleMouseDown}
+	onmouseup={handleMouseUp}
 	{onmouseenter}
 	{onmouseleave}
 	ontouchstart={handleTouchStart}
