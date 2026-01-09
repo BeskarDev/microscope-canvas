@@ -73,10 +73,10 @@
 				}
 			}, 50);
 			
-			// Remove highlight after 1 second (snappier animation)
+			// Remove highlight after animation completes (3 repetitions × 0.5s = 1.5s)
 			setTimeout(() => {
 				highlightedAnchorId = null;
-			}, 1000);
+			}, 1500);
 		}
 	});
 
@@ -534,43 +534,42 @@
 		border-color: oklch(65% 0.18 50 / 0.3);
 	}
 
-	/* Highlighted anchor - snappier "ping" animation with distinct blue color */
+	/* Highlighted anchor - border-only ping animation that repeats 3 times */
 	.anchor-item.highlighted {
-		animation: highlight-ping 0.6s cubic-bezier(0.4, 0, 0.6, 1);
+		animation: highlight-ping 0.5s cubic-bezier(0.4, 0, 0.6, 1) 3;
 	}
 
 	@keyframes highlight-ping {
 		0% {
-			background-color: oklch(70% 0.2 240 / 0.5);
 			border-color: oklch(70% 0.2 240);
-			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0.7);
+			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0.8);
 		}
 		50% {
-			box-shadow: 0 0 0 8px oklch(70% 0.2 240 / 0);
+			border-color: oklch(70% 0.2 240 / 0.6);
+			box-shadow: 0 0 0 6px oklch(70% 0.2 240 / 0);
 		}
 		100% {
-			background-color: var(--color-muted);
 			border-color: transparent;
 			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0);
 		}
 	}
 
 	.anchor-item.highlighted.active {
-		animation: highlight-ping-active 0.6s cubic-bezier(0.4, 0, 0.6, 1);
+		animation: highlight-ping-active 0.5s cubic-bezier(0.4, 0, 0.6, 1) 3;
 	}
 
 	@keyframes highlight-ping-active {
 		0% {
-			background-color: oklch(70% 0.2 240 / 0.4);
 			border-color: oklch(70% 0.2 240);
-			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0.7);
+			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0.8);
 		}
 		50% {
-			box-shadow: 0 0 0 8px oklch(70% 0.2 240 / 0);
+			border-color: oklch(70% 0.2 240 / 0.6);
+			box-shadow: 0 0 0 6px oklch(70% 0.2 240 / 0);
 		}
 		100% {
-			background-color: oklch(65% 0.18 50 / 0.1);
 			border-color: oklch(65% 0.18 50 / 0.3);
+			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0);
 		}
 	}
 

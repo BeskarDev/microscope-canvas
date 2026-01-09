@@ -51,6 +51,15 @@
 		e.stopPropagation();
 		onclick?.();
 	}
+
+	// Also stop propagation on mousedown/mouseup to prevent dndzone from intercepting
+	function handleMouseDown(e: MouseEvent) {
+		e.stopPropagation();
+	}
+
+	function handleMouseUp(e: MouseEvent) {
+		e.stopPropagation();
+	}
 </script>
 
 <div
@@ -63,6 +72,8 @@
 	style:--card-left="{leftPosition}px"
 	style:z-index={zIndex}
 	onclick={handleClick}
+	onmousedown={handleMouseDown}
+	onmouseup={handleMouseUp}
 	{onmouseenter}
 	{onmouseleave}
 	ontouchstart={handleTouchStart}
