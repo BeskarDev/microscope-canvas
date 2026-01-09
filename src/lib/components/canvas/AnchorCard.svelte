@@ -53,19 +53,19 @@
 		if (!anchorCardElement) return;
 
 		// Add event listeners in capture phase to intercept before dndzone
+		// Only stop propagation, NOT preventDefault - we want click events to fire
 		const handleMouseDownCapture = (e: MouseEvent) => {
 			e.stopPropagation();
-			e.preventDefault();
+			// Do NOT preventDefault() - it blocks click events from firing
 		};
 
 		const handleMouseUpCapture = (e: MouseEvent) => {
 			e.stopPropagation();
-			e.preventDefault();
+			// Do NOT preventDefault() - it blocks click events from firing
 		};
 
 		const handleClickCapture = (e: MouseEvent) => {
 			e.stopPropagation();
-			e.preventDefault();
 			onclick?.();
 		};
 
