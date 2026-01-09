@@ -198,6 +198,18 @@
 		autosave.cancel(); // Cancel any pending autosave
 	});
 
+	// Blur the anchors button when the sheet opens to prevent spacebar from retriggering it
+	$effect(() => {
+		if (anchorsSheetOpen && typeof document !== 'undefined') {
+			setTimeout(() => {
+				const activeElement = document.activeElement as HTMLElement;
+				if (activeElement && activeElement.getAttribute('aria-label') === 'Anchors') {
+					activeElement.blur();
+				}
+			}, 100);
+		}
+	});
+
 	async function fetchGame() {
 		if (!gameId) {
 			loadError = 'Invalid game URL. Please return to the home page.';
