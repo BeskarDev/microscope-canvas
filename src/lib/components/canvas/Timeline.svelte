@@ -142,12 +142,6 @@
 
 	// Handle anchor card click
 	function handleAnchorClick(anchor: Anchor) {
-		console.log('[Timeline] handleAnchorClick called', {
-			anchorName: anchor.name,
-			anchorId: anchor.id,
-			cardReorderEnabled,
-			onSelectAnchor: !!onSelectAnchor
-		});
 		onSelectAnchor?.(anchor);
 	}
 
@@ -298,31 +292,6 @@
 				class:drag-enabled={cardReorderEnabled}
 				data-period-id={period.id}
 				animate:flip={{ duration: flipDurationMs }}
-				onclick={(e) => {
-					console.log('[Timeline] period-wrapper onclick', {
-						periodId: period.id,
-						cardReorderEnabled,
-						target: e.target,
-						currentTarget: e.currentTarget,
-						eventPhase: e.eventPhase
-					});
-				}}
-				onmousedown={(e) => {
-					console.log('[Timeline] period-wrapper onmousedown', {
-						periodId: period.id,
-						cardReorderEnabled,
-						button: e.button,
-						target: e.target
-					});
-				}}
-				onmouseup={(e) => {
-					console.log('[Timeline] period-wrapper onmouseup', {
-						periodId: period.id,
-						cardReorderEnabled,
-						button: e.button,
-						target: e.target
-					});
-				}}
 			>
 				<div class="period-column">
 					<!-- Period card with anchor cards positioned above -->
@@ -475,17 +444,6 @@
 	.period-wrapper.drag-enabled {
 		touch-action: none;
 		user-select: none;
-	}
-	
-	/* When drag is disabled, make period wrapper transparent to pointer events
-	   but anchor cards will still be clickable via pointer-events: auto */
-	.period-wrapper:not(.drag-enabled) {
-		pointer-events: none;
-	}
-	
-	/* Re-enable pointer events on child elements when drag is disabled */
-	.period-wrapper:not(.drag-enabled) > .period-column {
-		pointer-events: auto;
 	}
 
 	.period-column {

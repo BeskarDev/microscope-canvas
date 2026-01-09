@@ -51,21 +51,9 @@
 	let rippleTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	// Handle click - show ripple and call onclick
-	function handleClick(e?: MouseEvent) {
-		console.log('[AnchorCard] handleClick called', {
-			anchorName: anchor.name,
-			event: e,
-			target: e?.target,
-			currentTarget: e?.currentTarget,
-			eventPhase: e?.eventPhase,
-			bubbles: e?.bubbles,
-			cancelable: e?.cancelable,
-			defaultPrevented: e?.defaultPrevented
-		});
-		
+	function handleClick() {
 		// Trigger ripple animation
 		showRipple = true;
-		console.log('[AnchorCard] Ripple triggered');
 		
 		// Clear any existing timeout
 		if (rippleTimeout) {
@@ -78,12 +66,7 @@
 			rippleTimeout = null;
 		}, 600);
 		
-		if (onclick) {
-			console.log('[AnchorCard] Calling onclick callback');
-			onclick();
-		} else {
-			console.log('[AnchorCard] No onclick callback provided');
-		}
+		onclick?.();
 	}
 </script>
 
@@ -98,30 +81,7 @@
 	data-anchor-name={anchor.name}
 	style:--card-left="{leftPosition}px"
 	style:z-index={zIndex}
-	onclick={(e) => {
-		console.log('[AnchorCard DIV] onclick event fired', {
-			anchorName: anchor.name,
-			event: e,
-			target: e.target,
-			currentTarget: e.currentTarget
-		});
-		handleClick(e);
-	}}
-	onmousedown={(e) => {
-		console.log('[AnchorCard DIV] onmousedown event fired', {
-			anchorName: anchor.name,
-			button: e.button,
-			buttons: e.buttons,
-			target: e.target
-		});
-	}}
-	onmouseup={(e) => {
-		console.log('[AnchorCard DIV] onmouseup event fired', {
-			anchorName: anchor.name,
-			button: e.button,
-			target: e.target
-		});
-	}}
+	onclick={handleClick}
 	{onmouseenter}
 	{onmouseleave}
 	ontouchstart={handleTouchStart}
