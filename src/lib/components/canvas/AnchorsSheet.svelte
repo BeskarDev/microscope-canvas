@@ -3,11 +3,13 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
+	import OracleDiceButton from './OracleDiceButton.svelte';
 	import X from 'lucide-svelte/icons/x';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Anchor2 from 'lucide-svelte/icons/anchor';
 	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import MapPin from 'lucide-svelte/icons/map-pin';
+	import XCircle from 'lucide-svelte/icons/x-circle';
 
 	interface Props {
 		open: boolean;
@@ -21,6 +23,7 @@
 		onDeleteAnchor: (anchorId: string) => void;
 		onSetCurrentAnchor: (anchorId: string, periodId: string) => void;
 		onClearCurrentAnchor: () => void;
+		selectedAnchorId?: string | null;
 	}
 
 	let {
@@ -34,7 +37,8 @@
 		onEditAnchor,
 		onDeleteAnchor,
 		onSetCurrentAnchor,
-		onClearCurrentAnchor
+		onClearCurrentAnchor,
+		selectedAnchorId = null
 	}: Props = $props();
 
 	// Local state
@@ -44,6 +48,7 @@
 	let editAnchorName = $state('');
 	let editAnchorDescription = $state('');
 	let placingAnchorId = $state<string | null>(null);
+	let highlightedAnchorId = $state<string | null>(null);
 
 	// Reset local state when sheet opens
 	$effect(() => {
@@ -52,6 +57,26 @@
 			newAnchorDescription = '';
 			editingAnchorId = null;
 			placingAnchorId = null;
+		}
+	});
+
+	// Handle highlighting when selectedAnchorId changes
+	$effect(() => {
+		if (open && selectedAnchorId) {
+			highlightedAnchorId = selectedAnchorId;
+			
+			// Scroll to the highlighted anchor
+			setTimeout(() => {
+				const anchorElement = document.querySelector(`[data-anchor-id="${selectedAnchorId}"]`);
+				if (anchorElement) {
+					anchorElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+				}
+			}, 50);
+			
+			// Remove highlight after animation completes (3 repetitions × 0.5s = 1.5s)
+			setTimeout(() => {
+				highlightedAnchorId = null;
+			}, 1500);
 		}
 	});
 
@@ -204,16 +229,23 @@
 					<!-- Add New Anchor Section -->
 					<div class="add-anchor-section">
 						<div class="add-anchor-inputs">
-							<Input
-								bind:value={newAnchorName}
-								placeholder="Character name..."
-								onkeydown={(e) => {
-									if (e.key === 'Enter' && !e.shiftKey) {
-										e.preventDefault();
-										handleAddAnchor();
-									}
-								}}
-							/>
+							<div class="input-with-oracle">
+								<Input
+									bind:value={newAnchorName}
+									placeholder="Character name..."
+									onkeydown={(e) => {
+										if (e.key === 'Enter' && !e.shiftKey) {
+											e.preventDefault();
+											handleAddAnchor();
+										}
+									}}
+								/>
+								<OracleDiceButton
+									category="character"
+									onResult={(result) => (newAnchorName = result)}
+									title="Generate character suggestion"
+								/>
+							</div>
 							<Textarea
 								bind:value={newAnchorDescription}
 								placeholder="Description (optional)"
@@ -233,32 +265,16 @@
 						</Button>
 					</div>
 
-					<!-- Current Anchor Indicator -->
-					{#if currentAnchorId}
-						{@const currentAnchor = anchors.find(a => a.id === currentAnchorId)}
-						{#if currentAnchor}
-							<div class="current-anchor-banner">
-								<div class="banner-content">
-									<span class="banner-label">Active Anchor:</span>
-									<span class="banner-name">{currentAnchor.name}</span>
-								</div>
-								<Button
-									variant="ghost"
-									size="sm"
-									onclick={handleClearActive}
-									title="Clear active anchor"
-								>
-									Clear
-								</Button>
-							</div>
-						{/if}
-					{/if}
-
 					<!-- Anchors List -->
 					{#if anchors.length > 0}
 						<ul class="anchors-list">
 							{#each anchors as anchor (anchor.id)}
-								<li class="anchor-item" class:active={anchor.id === currentAnchorId}>
+								<li 
+									class="anchor-item" 
+									class:active={anchor.id === currentAnchorId}
+									class:highlighted={anchor.id === highlightedAnchorId}
+									data-anchor-id={anchor.id}
+								>
 									{#if editingAnchorId === anchor.id}
 										<!-- Edit Mode -->
 										<div class="edit-form">
@@ -329,6 +345,17 @@
 											{/if}
 										</button>
 										<div class="anchor-actions">
+											{#if anchor.id === currentAnchorId}
+												<Button
+													variant="ghost"
+													size="icon"
+													onclick={handleClearActive}
+													aria-label="Clear active anchor"
+													title="Clear active anchor"
+												>
+													<XCircle class="h-4 w-4" />
+												</Button>
+											{/if}
 											<Button
 												variant="ghost"
 												size="icon"
@@ -467,36 +494,14 @@
 		gap: 0.5rem;
 	}
 
-	.add-anchor-section :global(.add-btn) {
-		align-self: flex-end;
-	}
-
-	/* Current anchor banner */
-	.current-anchor-banner {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 0.75rem;
-		background-color: oklch(65% 0.18 50 / 0.15);
-		border: 1px solid oklch(65% 0.18 50 / 0.3);
-		border-radius: var(--radius);
-	}
-
-	.banner-content {
+	.input-with-oracle {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
 	}
 
-	.banner-label {
-		font-size: 0.75rem;
-		color: var(--color-muted-foreground);
-	}
-
-	.banner-name {
-		font-size: 0.875rem;
-		font-weight: 600;
-		color: oklch(70% 0.18 50);
+	.add-anchor-section :global(.add-btn) {
+		align-self: flex-end;
 	}
 
 	/* Anchors list */
@@ -527,6 +532,45 @@
 	.anchor-item.active {
 		background-color: oklch(65% 0.18 50 / 0.1);
 		border-color: oklch(65% 0.18 50 / 0.3);
+	}
+
+	/* Highlighted anchor - border-only ping animation that repeats 3 times */
+	.anchor-item.highlighted {
+		animation: highlight-ping 0.5s cubic-bezier(0.4, 0, 0.6, 1) 3;
+	}
+
+	@keyframes highlight-ping {
+		0% {
+			border-color: oklch(70% 0.2 240);
+			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0.8);
+		}
+		50% {
+			border-color: oklch(70% 0.2 240 / 0.6);
+			box-shadow: 0 0 0 6px oklch(70% 0.2 240 / 0);
+		}
+		100% {
+			border-color: transparent;
+			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0);
+		}
+	}
+
+	.anchor-item.highlighted.active {
+		animation: highlight-ping-active 0.5s cubic-bezier(0.4, 0, 0.6, 1) 3;
+	}
+
+	@keyframes highlight-ping-active {
+		0% {
+			border-color: oklch(70% 0.2 240);
+			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0.8);
+		}
+		50% {
+			border-color: oklch(70% 0.2 240 / 0.6);
+			box-shadow: 0 0 0 6px oklch(70% 0.2 240 / 0);
+		}
+		100% {
+			border-color: oklch(65% 0.18 50 / 0.3);
+			box-shadow: 0 0 0 0 oklch(70% 0.2 240 / 0);
+		}
 	}
 
 	.anchor-content {

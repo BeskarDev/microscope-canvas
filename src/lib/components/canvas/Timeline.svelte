@@ -287,7 +287,12 @@
 	>
 		{#each localPeriods as period, periodIndex (period.id)}
 			{@const periodPlacements = getAnchorPlacementsForPeriod(period.id)}
-			<div class="period-wrapper" animate:flip={{ duration: flipDurationMs }}>
+			<div 
+				class="period-wrapper" 
+				class:drag-enabled={cardReorderEnabled}
+				data-period-id={period.id}
+				animate:flip={{ duration: flipDurationMs }}
+			>
 				<div class="period-column">
 					<!-- Period card with anchor cards positioned above -->
 					<div class="period-section">
@@ -433,7 +438,10 @@
 		display: flex;
 		flex-direction: row;
 		align-items: flex-start;
-		/* Allow drag-and-drop to work from anywhere on the card */
+	}
+
+	/* Only apply drag-and-drop restrictions when reordering is enabled */
+	.period-wrapper.drag-enabled {
 		touch-action: none;
 		user-select: none;
 	}

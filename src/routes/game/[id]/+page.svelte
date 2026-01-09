@@ -20,7 +20,7 @@
 	import Target from 'lucide-svelte/icons/target';
 	import Palette from 'lucide-svelte/icons/palette';
 	import BookMarked from 'lucide-svelte/icons/book-marked';
-	import Anchor from 'lucide-svelte/icons/anchor';
+	import AnchorIcon from 'lucide-svelte/icons/anchor';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
@@ -48,6 +48,7 @@
 		type Period,
 		type Event as GameEvent,
 		type Scene,
+		type Anchor,
 		type GameAction,
 		type CreatePeriodAction,
 		type DeletePeriodAction,
@@ -174,9 +175,11 @@
 
 	// Anchors sheet state
 	let anchorsSheetOpen = $state(false);
+	let selectedAnchorIdForSheet = $state<string | null>(null);
 
 	// Card reorder toggle state - default is false (disabled)
 	let cardReorderEnabled = $state(false);
+	let cardReorderToggledBySpace = $state(false);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -193,6 +196,18 @@
 	// Cleanup on unmount
 	onDestroy(() => {
 		autosave.cancel(); // Cancel any pending autosave
+	});
+
+	// Blur the anchors button when the sheet opens to prevent spacebar from retriggering it
+	$effect(() => {
+		if (anchorsSheetOpen && typeof document !== 'undefined') {
+			setTimeout(() => {
+				const activeElement = document.activeElement as HTMLElement;
+				if (activeElement && activeElement.getAttribute('aria-label') === 'Anchors') {
+					activeElement.blur();
+				}
+			}, 100);
+		}
 	});
 
 	async function fetchGame() {
@@ -354,6 +369,15 @@
 		const isMac = navigator.platform.toUpperCase().includes('MAC');
 		const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
 
+		// Handle spacebar for temporary card reorder toggle
+		if (e.code === 'Space' && !cmdOrCtrl && !e.altKey && !e.shiftKey) {
+			e.preventDefault();
+			if (!cardReorderToggledBySpace) {
+				cardReorderToggledBySpace = true;
+				cardReorderEnabled = !cardReorderEnabled;
+			}
+		}
+
 		if (cmdOrCtrl && !e.altKey) {
 			if (e.key === 'z' && !e.shiftKey) {
 				e.preventDefault();
@@ -361,6 +385,21 @@
 			} else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
 				e.preventDefault();
 				handleRedo();
+			}
+		}
+	}
+
+	function handleGlobalKeyUp(e: KeyboardEvent) {
+		// Handle spacebar release to toggle back
+		if (e.code === 'Space' && cardReorderToggledBySpace) {
+			const target = e.target as HTMLElement;
+			const isTextInput =
+				target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+			if (!isTextInput) {
+				e.preventDefault();
+				cardReorderEnabled = !cardReorderEnabled;
+				cardReorderToggledBySpace = false;
 			}
 		}
 	}
@@ -1202,8 +1241,14 @@
 		toast.success('Active anchor cleared');
 	}
 
+	function handleSelectAnchor(anchor: Anchor) {
+		selectedAnchorIdForSheet = anchor.id;
+		anchorsSheetOpen = true;
+	}
+
 	function handleMobileAnchors() {
 		closeMobileMenu();
+		selectedAnchorIdForSheet = null;
 		anchorsSheetOpen = true;
 	}
 
@@ -1249,7 +1294,7 @@
 	<title>{pageTitle}</title>
 </svelte:head>
 
-<svelte:window onkeydown={handleGlobalKeyDown} />
+<svelte:window onkeydown={handleGlobalKeyDown} onkeyup={handleGlobalKeyUp} />
 
 <div class="canvas-page">
 	<div class="canvas-header">
@@ -1450,12 +1495,15 @@
 						<Button
 							variant="ghost"
 							size="sm"
-							onclick={() => (anchorsSheetOpen = true)}
+							onclick={() => {
+								selectedAnchorIdForSheet = null;
+								anchorsSheetOpen = true;
+							}}
 							aria-label="Anchors"
 							title="Anchors - Chronicle characters"
 							class="icon-button-with-badge"
 						>
-							<Anchor class="h-4 w-4" />
+							<AnchorIcon class="h-4 w-4" />
 							{#if anchorsCount > 0}
 								<span class="count-badge">{anchorsCount}</span>
 							{/if}
@@ -1565,7 +1613,7 @@
 									onclick={handleMobileAnchors}
 									role="menuitem"
 								>
-									<Anchor class="h-4 w-4" />
+									<AnchorIcon class="h-4 w-4" />
 									<span>Anchors</span>
 									{#if anchorsCount > 0}
 										<span class="count-badge">{anchorsCount}</span>
@@ -1723,6 +1771,7 @@
 					onSelectPeriod={handleSelectPeriod}
 					onSelectEvent={handleSelectEvent}
 					onSelectScene={handleSelectScene}
+					onSelectAnchor={handleSelectAnchor}
 					onReorderPeriods={handleReorderPeriods}
 					onReorderEvents={handleReorderEvents}
 					onReorderScenes={handleReorderScenes}
@@ -1834,7 +1883,10 @@
 <!-- Anchors Sheet -->
 <AnchorsSheet
 	open={anchorsSheetOpen}
-	onOpenChange={(open) => (anchorsSheetOpen = open)}
+	onOpenChange={(open) => {
+		anchorsSheetOpen = open;
+		if (!open) selectedAnchorIdForSheet = null;
+	}}
 	anchors={currentAnchors}
 	{currentAnchorId}
 	anchorPlacements={currentAnchorPlacements}
@@ -1844,6 +1896,7 @@
 	onDeleteAnchor={handleDeleteAnchor}
 	onSetCurrentAnchor={handleSetCurrentAnchor}
 	onClearCurrentAnchor={handleClearCurrentAnchor}
+	selectedAnchorId={selectedAnchorIdForSheet}
 />
 
 <style>

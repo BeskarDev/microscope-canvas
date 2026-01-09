@@ -9,6 +9,7 @@ import { generatePeriodName, generateEventName, generateSceneName } from './name
 import { generateLightElement, generateDarkElement } from './palette';
 import { generateSceneQuestion, SCENE_QUESTIONS } from './scene-questions';
 import { generateLegacy, LEGACY_TYPES, LEGACY_TRAITS } from './legacies';
+import { generateCharacter } from './characters';
 
 /**
  * Get a random element from an array
@@ -62,7 +63,7 @@ export function generateNameInspiration(): string {
 	return randomFrom(generators)();
 }
 
-export type OracleCategory = 'seed' | 'focus' | 'palette' | 'scene' | 'legacy' | 'name';
+export type OracleCategory = 'seed' | 'focus' | 'palette' | 'scene' | 'legacy' | 'name' | 'character';
 
 /**
  * Generate oracle result based on category
@@ -81,6 +82,8 @@ export function generateOracleResult(category: OracleCategory): string {
 			return generateLegacy();
 		case 'name':
 			return generateNameInspiration();
+		case 'character':
+			return generateCharacter();
 		default:
 			return generateHistorySeed();
 	}
@@ -94,7 +97,8 @@ export {
 	generateSceneQuestion,
 	generateLegacy,
 	generateLightElement,
-	generateDarkElement
+	generateDarkElement,
+	generateCharacter
 };
 
 // Re-export tables for inspection/debugging

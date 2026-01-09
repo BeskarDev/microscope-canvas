@@ -10,6 +10,19 @@
 	let helpOpen = $state(false);
 	let oracleOpen = $state(false);
 
+	// When help dialog closes, blur the trigger to prevent spacebar from reopening
+	$effect(() => {
+		if (!helpOpen && typeof document !== 'undefined') {
+			// Small delay to ensure dialog has closed
+			setTimeout(() => {
+				const activeElement = document.activeElement as HTMLElement;
+				if (activeElement && activeElement.getAttribute('aria-label') === 'Help') {
+					activeElement.blur();
+				}
+			}, 100);
+		}
+	});
+
 	const homeUrl = resolve('/');
 </script>
 
@@ -91,6 +104,9 @@
 								<strong>Select</strong> — Click a card to select and view/edit it.
 							</li>
 							<li>
+								<strong>Reorder Cards</strong> — Click the Move icon button to enable card reordering mode. When enabled, drag cards to rearrange them within their container (periods, events, or scenes).
+							</li>
+							<li>
 								<strong>Touch</strong> — All interactions work with touch on mobile devices.
 							</li>
 						</ul>
@@ -104,6 +120,9 @@
 							</li>
 							<li>
 								<strong>Ctrl+Shift+Z / Ctrl+Y</strong> — Redo an undone action.
+							</li>
+							<li>
+								<strong>Spacebar (hold)</strong> — Temporarily toggle card reordering mode while held.
 							</li>
 							<li>
 								<strong>Escape</strong> — Close dialogs and deselect items.

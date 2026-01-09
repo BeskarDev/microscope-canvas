@@ -7,7 +7,8 @@
 		generatePaletteElement,
 		generateSceneQuestion,
 		generateLegacy,
-		generateNameInspiration
+		generateNameInspiration,
+		generateCharacter
 	} from '$lib/utils/oracle/index';
 	import Dices from 'lucide-svelte/icons/dices';
 	import RefreshCw from 'lucide-svelte/icons/refresh-cw';
@@ -27,7 +28,7 @@
 	// Maximum number of history items to keep
 	const MAX_HISTORY_ITEMS = 10;
 
-	type OracleTab = 'seed' | 'focus' | 'palette' | 'scene' | 'legacy' | 'name';
+	type OracleTab = 'seed' | 'focus' | 'palette' | 'scene' | 'legacy' | 'name' | 'character';
 	let activeTab = $state<OracleTab>('seed');
 	let result = $state('');
 	let resultTone = $state<'light' | 'dark' | null>(null);
@@ -59,6 +60,9 @@
 				break;
 			case 'name':
 				newResult = generateNameInspiration();
+				break;
+			case 'character':
+				newResult = generateCharacter();
 				break;
 			default:
 				newResult = generateHistorySeed();
@@ -112,6 +116,7 @@
 	const tabs: { id: OracleTab; label: string; description: string }[] = [
 		{ id: 'seed', label: 'History Seed', description: 'Get inspiration for your next period or event' },
 		{ id: 'name', label: 'Name', description: 'Generate evocative names' },
+		{ id: 'character', label: 'Character', description: 'Generate character roles and archetypes' },
 		{ id: 'focus', label: 'Focus', description: 'Suggest a theme to explore' },
 		{ id: 'palette', label: 'Palette', description: 'Generate Yes/No palette elements' },
 		{ id: 'scene', label: 'Scene Question', description: 'Get a question for your scene' },
