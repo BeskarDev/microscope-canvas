@@ -57,14 +57,16 @@
 			newAnchorDescription = '';
 			editingAnchorId = null;
 			placingAnchorId = null;
-			
-			// If selectedAnchorId is provided, highlight it briefly
-			if (selectedAnchorId) {
-				highlightedAnchorId = selectedAnchorId;
-				setTimeout(() => {
-					highlightedAnchorId = null;
-				}, 2000); // Remove highlight after 2 seconds
-			}
+		}
+	});
+
+	// Handle highlighting when selectedAnchorId changes
+	$effect(() => {
+		if (open && selectedAnchorId) {
+			highlightedAnchorId = selectedAnchorId;
+			setTimeout(() => {
+				highlightedAnchorId = null;
+			}, 2000); // Remove highlight after 2 seconds
 		}
 	});
 
