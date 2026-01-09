@@ -444,6 +444,17 @@
 		touch-action: none;
 		user-select: none;
 	}
+	
+	/* When drag is disabled, make period wrapper transparent to pointer events
+	   but anchor cards will still be clickable via pointer-events: auto */
+	.period-wrapper:not(.drag-enabled) {
+		pointer-events: none;
+	}
+	
+	/* Re-enable pointer events on child elements when drag is disabled */
+	.period-wrapper:not(.drag-enabled) > .period-column {
+		pointer-events: auto;
+	}
 
 	.period-column {
 		display: flex;

@@ -46,19 +46,9 @@
 		ontouchend?.();
 	}
 
-	// Handle click - call onclick and stop ALL propagation
+	// Handle click - just call onclick directly
 	function handleClick(e: MouseEvent) {
-		e.stopImmediatePropagation();
 		onclick?.();
-	}
-
-	// Stop mousedown propagation completely to prevent dndzone from initiating drag
-	function handleMouseDown(e: MouseEvent) {
-		e.stopImmediatePropagation();
-	}
-
-	function handleMouseUp(e: MouseEvent) {
-		e.stopImmediatePropagation();
 	}
 </script>
 
@@ -72,8 +62,6 @@
 	style:--card-left="{leftPosition}px"
 	style:z-index={zIndex}
 	onclick={handleClick}
-	onmousedown={handleMouseDown}
-	onmouseup={handleMouseUp}
 	{onmouseenter}
 	{onmouseleave}
 	ontouchstart={handleTouchStart}
