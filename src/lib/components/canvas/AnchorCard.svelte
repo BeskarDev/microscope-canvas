@@ -46,23 +46,43 @@
 		ontouchend?.();
 	}
 
-	// Handle click with stopPropagation to prevent dndzone interference
-	function handleClick(e: MouseEvent) {
-		e.stopPropagation();
-		onclick?.();
-	}
+	// Add element ref for manual event listener registration in capture phase
+	let anchorCardElement: HTMLDivElement;
 
-	// Also stop propagation on mousedown/mouseup to prevent dndzone from intercepting
-	function handleMouseDown(e: MouseEvent) {
-		e.stopPropagation();
-	}
+	$effect(() => {
+		if (!anchorCardElement) return;
 
-	function handleMouseUp(e: MouseEvent) {
-		e.stopPropagation();
-	}
+		// Add event listeners in capture phase to intercept before dndzone
+		const handleMouseDownCapture = (e: MouseEvent) => {
+			e.stopPropagation();
+			e.preventDefault();
+		};
+
+		const handleMouseUpCapture = (e: MouseEvent) => {
+			e.stopPropagation();
+			e.preventDefault();
+		};
+
+		const handleClickCapture = (e: MouseEvent) => {
+			e.stopPropagation();
+			e.preventDefault();
+			onclick?.();
+		};
+
+		anchorCardElement.addEventListener('mousedown', handleMouseDownCapture, true);
+		anchorCardElement.addEventListener('mouseup', handleMouseUpCapture, true);
+		anchorCardElement.addEventListener('click', handleClickCapture, true);
+
+		return () => {
+			anchorCardElement.removeEventListener('mousedown', handleMouseDownCapture, true);
+			anchorCardElement.removeEventListener('mouseup', handleMouseUpCapture, true);
+			anchorCardElement.removeEventListener('click', handleClickCapture, true);
+		};
+	});
 </script>
 
 <div
+	bind:this={anchorCardElement}
 	role="button"
 	tabindex="0"
 	class="anchor-card"
@@ -71,9 +91,6 @@
 	data-card="anchor"
 	style:--card-left="{leftPosition}px"
 	style:z-index={zIndex}
-	onclick={handleClick}
-	onmousedown={handleMouseDown}
-	onmouseup={handleMouseUp}
 	{onmouseenter}
 	{onmouseleave}
 	ontouchstart={handleTouchStart}
