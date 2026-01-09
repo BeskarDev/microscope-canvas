@@ -47,7 +47,7 @@
 	}
 
 	// Handle click - just call onclick directly
-	function handleClick(e: MouseEvent) {
+	function handleClick() {
 		onclick?.();
 	}
 </script>
