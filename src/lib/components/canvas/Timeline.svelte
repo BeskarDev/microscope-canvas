@@ -142,6 +142,12 @@
 
 	// Handle anchor card click
 	function handleAnchorClick(anchor: Anchor) {
+		console.log('[Timeline] handleAnchorClick called', {
+			anchorName: anchor.name,
+			anchorId: anchor.id,
+			cardReorderEnabled,
+			onSelectAnchor: !!onSelectAnchor
+		});
 		onSelectAnchor?.(anchor);
 	}
 
@@ -290,7 +296,33 @@
 			<div 
 				class="period-wrapper" 
 				class:drag-enabled={cardReorderEnabled}
+				data-period-id={period.id}
 				animate:flip={{ duration: flipDurationMs }}
+				onclick={(e) => {
+					console.log('[Timeline] period-wrapper onclick', {
+						periodId: period.id,
+						cardReorderEnabled,
+						target: e.target,
+						currentTarget: e.currentTarget,
+						eventPhase: e.eventPhase
+					});
+				}}
+				onmousedown={(e) => {
+					console.log('[Timeline] period-wrapper onmousedown', {
+						periodId: period.id,
+						cardReorderEnabled,
+						button: e.button,
+						target: e.target
+					});
+				}}
+				onmouseup={(e) => {
+					console.log('[Timeline] period-wrapper onmouseup', {
+						periodId: period.id,
+						cardReorderEnabled,
+						button: e.button,
+						target: e.target
+					});
+				}}
 			>
 				<div class="period-column">
 					<!-- Period card with anchor cards positioned above -->
