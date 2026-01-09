@@ -20,7 +20,7 @@
 	import Target from 'lucide-svelte/icons/target';
 	import Palette from 'lucide-svelte/icons/palette';
 	import BookMarked from 'lucide-svelte/icons/book-marked';
-	import Anchor from 'lucide-svelte/icons/anchor';
+	import AnchorIcon from 'lucide-svelte/icons/anchor';
 	import { resolve } from '$app/paths';
 	import {
 		loadGame,
@@ -1490,7 +1490,7 @@
 							title="Anchors - Chronicle characters"
 							class="icon-button-with-badge"
 						>
-							<Anchor class="h-4 w-4" />
+							<AnchorIcon class="h-4 w-4" />
 							{#if anchorsCount > 0}
 								<span class="count-badge">{anchorsCount}</span>
 							{/if}
@@ -1600,7 +1600,7 @@
 									onclick={handleMobileAnchors}
 									role="menuitem"
 								>
-									<Anchor class="h-4 w-4" />
+									<AnchorIcon class="h-4 w-4" />
 									<span>Anchors</span>
 									{#if anchorsCount > 0}
 										<span class="count-badge">{anchorsCount}</span>
