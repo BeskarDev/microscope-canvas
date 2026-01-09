@@ -48,6 +48,7 @@
 		type Period,
 		type Event as GameEvent,
 		type Scene,
+		type Anchor,
 		type GameAction,
 		type CreatePeriodAction,
 		type DeletePeriodAction,
