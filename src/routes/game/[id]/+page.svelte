@@ -177,6 +177,7 @@
 
 	// Card reorder toggle state - default is false (disabled)
 	let cardReorderEnabled = $state(false);
+	let cardReorderToggledBySpace = $state(false);
 
 	// Autosave handler
 	const autosave = createAutosave((error) => {
@@ -354,6 +355,15 @@
 		const isMac = navigator.platform.toUpperCase().includes('MAC');
 		const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
 
+		// Handle spacebar for temporary card reorder toggle
+		if (e.code === 'Space' && !cmdOrCtrl && !e.altKey && !e.shiftKey) {
+			e.preventDefault();
+			if (!cardReorderToggledBySpace) {
+				cardReorderToggledBySpace = true;
+				cardReorderEnabled = !cardReorderEnabled;
+			}
+		}
+
 		if (cmdOrCtrl && !e.altKey) {
 			if (e.key === 'z' && !e.shiftKey) {
 				e.preventDefault();
@@ -361,6 +371,21 @@
 			} else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
 				e.preventDefault();
 				handleRedo();
+			}
+		}
+	}
+
+	function handleGlobalKeyUp(e: KeyboardEvent) {
+		// Handle spacebar release to toggle back
+		if (e.code === 'Space' && cardReorderToggledBySpace) {
+			const target = e.target as HTMLElement;
+			const isTextInput =
+				target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+			if (!isTextInput) {
+				e.preventDefault();
+				cardReorderEnabled = !cardReorderEnabled;
+				cardReorderToggledBySpace = false;
 			}
 		}
 	}
@@ -1249,7 +1274,7 @@
 	<title>{pageTitle}</title>
 </svelte:head>
 
-<svelte:window onkeydown={handleGlobalKeyDown} />
+<svelte:window onkeydown={handleGlobalKeyDown} onkeyup={handleGlobalKeyUp} />
 
 <div class="canvas-page">
 	<div class="canvas-header">

@@ -91,6 +91,9 @@
 								<strong>Select</strong> — Click a card to select and view/edit it.
 							</li>
 							<li>
+								<strong>Reorder Cards</strong> — Click the Move icon button to enable card reordering mode. When enabled, drag cards to rearrange them within their container (periods, events, or scenes).
+							</li>
+							<li>
 								<strong>Touch</strong> — All interactions work with touch on mobile devices.
 							</li>
 						</ul>
@@ -104,6 +107,9 @@
 							</li>
 							<li>
 								<strong>Ctrl+Shift+Z / Ctrl+Y</strong> — Redo an undone action.
+							</li>
+							<li>
+								<strong>Spacebar (hold)</strong> — Temporarily toggle card reordering mode while held.
 							</li>
 							<li>
 								<strong>Escape</strong> — Close dialogs and deselect items.

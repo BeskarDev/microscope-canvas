@@ -3,6 +3,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Textarea } from '$lib/components/ui/textarea';
+	import OracleDiceButton from './OracleDiceButton.svelte';
 	import X from 'lucide-svelte/icons/x';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Anchor2 from 'lucide-svelte/icons/anchor';
@@ -204,16 +205,23 @@
 					<!-- Add New Anchor Section -->
 					<div class="add-anchor-section">
 						<div class="add-anchor-inputs">
-							<Input
-								bind:value={newAnchorName}
-								placeholder="Character name..."
-								onkeydown={(e) => {
-									if (e.key === 'Enter' && !e.shiftKey) {
-										e.preventDefault();
-										handleAddAnchor();
-									}
-								}}
-							/>
+							<div class="input-with-oracle">
+								<Input
+									bind:value={newAnchorName}
+									placeholder="Character name..."
+									onkeydown={(e) => {
+										if (e.key === 'Enter' && !e.shiftKey) {
+											e.preventDefault();
+											handleAddAnchor();
+										}
+									}}
+								/>
+								<OracleDiceButton
+									category="character"
+									onResult={(result) => (newAnchorName = result)}
+									title="Generate character suggestion"
+								/>
+							</div>
 							<Textarea
 								bind:value={newAnchorDescription}
 								placeholder="Description (optional)"
@@ -464,6 +472,12 @@
 	.add-anchor-inputs {
 		display: flex;
 		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.input-with-oracle {
+		display: flex;
+		align-items: center;
 		gap: 0.5rem;
 	}
 
