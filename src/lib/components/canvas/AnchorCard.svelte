@@ -46,8 +46,26 @@
 		ontouchend?.();
 	}
 
-	// Handle click - just call onclick directly
+	// Ripple animation state
+	let showRipple = $state(false);
+	let rippleTimeout: ReturnType<typeof setTimeout> | null = null;
+
+	// Handle click - show ripple and call onclick
 	function handleClick() {
+		// Trigger ripple animation
+		showRipple = true;
+		
+		// Clear any existing timeout
+		if (rippleTimeout) {
+			clearTimeout(rippleTimeout);
+		}
+		
+		// Hide ripple after animation completes
+		rippleTimeout = setTimeout(() => {
+			showRipple = false;
+			rippleTimeout = null;
+		}, 600);
+		
 		onclick?.();
 	}
 </script>
@@ -80,6 +98,9 @@
 	</div>
 	{#if isActive}
 		<span class="active-dot"></span>
+	{/if}
+	{#if showRipple}
+		<span class="ripple"></span>
 	{/if}
 </div>
 
@@ -115,6 +136,7 @@
 		/* Position using left instead of transform for stacking */
 		left: calc(var(--card-left, 0px) * max(var(--canvas-zoom, 1), 1));
 		top: 0;
+		overflow: hidden; /* Contain ripple effect */
 	}
 
 	.anchor-card:hover,
@@ -171,5 +193,32 @@
 		background-color: oklch(65% 0.18 50);
 		border-radius: 50%;
 		box-shadow: 0 0 0 calc(0.125rem * max(var(--canvas-zoom, 1), 1)) oklch(65% 0.18 50 / 0.3);
+	}
+
+	/* Ripple animation for click feedback */
+	.ripple {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		width: 0;
+		height: 0;
+		border-radius: 50%;
+		background-color: oklch(65% 0.18 50 / 0.4);
+		transform: translate(-50%, -50%);
+		animation: ripple-animation 0.6s ease-out;
+		pointer-events: none;
+	}
+
+	@keyframes ripple-animation {
+		0% {
+			width: 0;
+			height: 0;
+			opacity: 1;
+		}
+		100% {
+			width: 200%;
+			height: 200%;
+			opacity: 0;
+		}
 	}
 </style>
