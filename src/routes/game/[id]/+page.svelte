@@ -1730,7 +1730,6 @@
 				bind:this={historicalCanvasRef}
 				{zoom}
 				onZoomChange={handleZoomChange}
-				cardReorderEnabled={false}
 			>
 				<Timeline
 					game={historicalGame}
@@ -1762,7 +1761,7 @@
 				/>
 			</div>
 		{:else if game}
-			<Canvas bind:this={canvasRef} {zoom} onZoomChange={handleZoomChange} {cardReorderEnabled}>
+			<Canvas bind:this={canvasRef} {zoom} onZoomChange={handleZoomChange}>
 				<Timeline
 					{game}
 					onAddPeriod={handleAddPeriod}
