@@ -389,6 +389,7 @@
 
 	/* Modal responsive sizing and scrolling */
 	:global(.edit-modal) {
+		/* Use dvh (dynamic viewport height) for better mobile support, with vh as fallback */
 		max-height: calc(100vh - 2rem);
 		max-height: calc(100dvh - 2rem);
 		display: flex;
