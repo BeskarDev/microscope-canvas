@@ -5,11 +5,10 @@
 		zoom?: number;
 		onZoomChange?: (newZoom: number) => void;
 		onResetPosition?: () => void;
-		cardReorderEnabled?: boolean;
 		children: Snippet;
 	}
 
-	let { zoom = 1, onZoomChange, cardReorderEnabled = false, children }: Props = $props();
+	let { zoom = 1, onZoomChange, children }: Props = $props();
 
 	let containerRef = $state<HTMLDivElement | null>(null);
 	let isPanning = $state(false);
@@ -53,8 +52,9 @@
 			return;
 		}
 
-		// Only prevent panning on cards if card reordering is enabled
-		if (cardReorderEnabled && target.closest('[data-card]')) {
+		// Never initiate panning when clicking on a card
+		// Cards should always be clickable regardless of reorder mode
+		if (target.closest('[data-card]')) {
 			return;
 		}
 
