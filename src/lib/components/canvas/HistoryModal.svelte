@@ -129,7 +129,17 @@
 <style>
 	:global(.history-modal) {
 		max-width: 600px;
-		max-height: 80vh;
+		max-height: calc(100vh - 2rem);
+		max-height: calc(100dvh - 2rem);
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	:global(.history-modal) .history-content {
+		overflow-y: auto;
+		flex: 1;
+		min-height: 0;
 	}
 
 	@media (max-width: 640px) {
