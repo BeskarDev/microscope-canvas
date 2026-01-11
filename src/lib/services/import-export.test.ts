@@ -2,7 +2,7 @@
  * Tests for import/export functionality
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
 	exportGameToJSON,
 	exportGameToMarkdown,

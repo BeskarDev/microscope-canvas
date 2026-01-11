@@ -9,8 +9,6 @@ import type {
 	Period,
 	Event as GameEvent,
 	Scene,
-	Anchor,
-	AnchorPlacement,
 	GameAction,
 	CreatePeriodAction,
 	DeletePeriodAction,

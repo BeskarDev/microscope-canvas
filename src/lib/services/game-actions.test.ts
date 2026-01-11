@@ -24,7 +24,7 @@ import {
 	clearCurrentAnchor
 } from './game-actions';
 import { createNewGame, createNewPeriod, createNewEvent, createNewScene } from '$lib/types';
-import type { Game, Period, Event as GameEvent, Scene } from '$lib/types';
+import type { Game } from '$lib/types';
 
 // Helper to create a test game
 function createTestGame(): Game {
