@@ -94,6 +94,18 @@
 <style>
 	:global(.publish-modal) {
 		max-width: 450px;
+		/* Use dvh (dynamic viewport height) for better mobile support, with vh as fallback */
+		max-height: calc(100vh - 2rem);
+		max-height: calc(100dvh - 2rem);
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	:global(.publish-modal) .publish-form {
+		overflow-y: auto;
+		flex: 1;
+		min-height: 0;
 	}
 
 	:global(.publish-title) {

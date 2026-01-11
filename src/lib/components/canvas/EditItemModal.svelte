@@ -226,9 +226,12 @@
 						placeholder={`Enter ${itemType} name`}
 						oninput={() => validateName()}
 					/>
-					<OracleDiceButton 
-						category="name" 
-						onResult={(result) => { name = result; validateName(); }}
+					<OracleDiceButton
+						category="name"
+						onResult={(result) => {
+							name = result;
+							validateName();
+						}}
 						title="Generate random name"
 					/>
 				</div>
@@ -251,9 +254,11 @@
 						placeholder="Add notes or description..."
 						rows={3}
 					/>
-					<OracleDiceButton 
-						category="seed" 
-						onResult={(result) => { description = result; }}
+					<OracleDiceButton
+						category="seed"
+						onResult={(result) => {
+							description = result;
+						}}
 						title="Generate random inspiration"
 					/>
 				</div>
@@ -268,9 +273,11 @@
 							bind:value={question}
 							placeholder="What question does this scene explore?"
 						/>
-						<OracleDiceButton 
-							category="scene" 
-							onResult={(result) => { question = result; }}
+						<OracleDiceButton
+							category="scene"
+							onResult={(result) => {
+								question = result;
+							}}
 							title="Generate random scene question"
 						/>
 					</div>
@@ -378,5 +385,27 @@
 
 	.spacer {
 		flex: 1;
+	}
+
+	/* Modal responsive sizing and scrolling */
+	:global(.edit-modal) {
+		/* Use dvh (dynamic viewport height) for better mobile support, with vh as fallback */
+		max-height: calc(100vh - 2rem);
+		max-height: calc(100dvh - 2rem);
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	:global(.edit-modal) .edit-form {
+		overflow-y: auto;
+		flex: 1;
+		min-height: 0;
+	}
+
+	@media (max-width: 640px) {
+		:global(.edit-modal) {
+			max-width: calc(100vw - 2rem);
+		}
 	}
 </style>
