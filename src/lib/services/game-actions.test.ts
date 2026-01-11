@@ -523,6 +523,7 @@ describe('Game Actions Service', () => {
 				expect(game.anchorPlacements![0].periodId).toBe(periodId);
 				expect(result).not.toBeNull();
 				expect(result!.wasAlreadyPlaced).toBe(false);
+				expect(result!.action).toBeDefined();
 			});
 
 			it('should not duplicate placement if already placed on same period', () => {
@@ -536,6 +537,8 @@ describe('Game Actions Service', () => {
 
 				expect(game.anchorPlacements).toHaveLength(1);
 				expect(result!.wasAlreadyPlaced).toBe(true);
+				// No action because anchor is already placed and active
+				expect(result!.action).toBeUndefined();
 			});
 		});
 

@@ -2,7 +2,7 @@
  * Tests for action executor/reverser utility
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { applyAction, reverseAction } from './action-executor';
 import { createNewGame, createNewPeriod, createNewEvent, createNewScene, createNewAnchor, createAnchorPlacement } from '$lib/types';
 import type {
@@ -742,5 +742,3 @@ describe('Action Executor', () => {
 		});
 	});
 });
-
-import { vi } from 'vitest';

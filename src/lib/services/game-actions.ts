@@ -607,8 +607,10 @@ export function deleteAnchor(game: Game, anchorId: string): GameActionResult | n
 
 /**
  * Result of setting the current anchor
+ * When action is undefined, no state change occurred (anchor was already placed and active)
  */
-export interface SetCurrentAnchorResult extends GameActionResult {
+export interface SetCurrentAnchorResult {
+	action?: GameAction;
 	wasAlreadyPlaced: boolean;
 }
 
@@ -643,7 +645,8 @@ export function setCurrentAnchor(
 			game.currentAnchorId = anchorId;
 			return { action, wasAlreadyPlaced: true };
 		}
-		return { action: null as unknown as GameAction, wasAlreadyPlaced: true };
+		// Anchor is already placed on this period and is already active - no action needed
+		return { wasAlreadyPlaced: true };
 	}
 
 	// Remove any existing placements for this anchor (1-to-1 relationship)
