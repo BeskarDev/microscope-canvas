@@ -7,3 +7,4 @@ export * from './persistence';
 export * from './autosave';
 export * from './snapshot-persistence';
 export * from './import-export';
+export * from './game-actions';

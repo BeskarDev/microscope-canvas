@@ -28,6 +28,19 @@ export default [
 		}
 	},
 	{
+		// Svelte 5 runes files need special handling
+		files: ['**/*.svelte.ts', '**/*.svelte.js'],
+		languageOptions: {
+			parserOptions: {
+				parser: ts.parser
+			}
+		},
+		rules: {
+			// Disable no-undef for runes like $state, $derived, $effect
+			'no-undef': 'off'
+		}
+	},
+	{
 		ignores: ['build/', '.svelte-kit/', 'dist/']
 	}
 ];

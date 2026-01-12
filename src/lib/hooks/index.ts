@@ -1,6 +1,2 @@
-/**
- * Hooks barrel file
- * Re-export all hooks from here for easy imports
- */
-
-// Hooks will be exported here as they are created
+// Hooks barrel file - hooks have been migrated to Svelte 5 state files
+// See src/routes/game/[id]/state/ for runes-based state management
