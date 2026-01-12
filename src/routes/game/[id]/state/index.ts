@@ -5,3 +5,4 @@
 
 export * from './game-state.svelte';
 export * from './ui-state.svelte';
+export * from './game-actions.svelte';

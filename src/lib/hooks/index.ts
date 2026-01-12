@@ -1,7 +1,2 @@
-/**
- * Hooks barrel file
- * Re-export all hooks from here for easy imports
- */
-
-export { createGameActionHandlers, type GameActionHandlers, type UseGameActionsOptions } from './useGameActions';
-export { createAnchorActionHandlers, type AnchorActionHandlers, type UseAnchorActionsOptions } from './useAnchorActions';
+// Hooks barrel file - hooks have been migrated to Svelte 5 state files
+// See src/routes/game/[id]/state/ for runes-based state management
