@@ -2,26 +2,10 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { page } from '$app/stores';
 	import { Button } from '$lib/components/ui/button';
-	import ArrowLeft from 'lucide-svelte/icons/arrow-left';
 	import Loader2 from 'lucide-svelte/icons/loader-2';
 	import AlertTriangle from 'lucide-svelte/icons/alert-triangle';
-	import Settings from 'lucide-svelte/icons/settings';
-	import Undo2 from 'lucide-svelte/icons/undo-2';
-	import Redo2 from 'lucide-svelte/icons/redo-2';
-	import History from 'lucide-svelte/icons/history';
-	import Bookmark from 'lucide-svelte/icons/bookmark';
-	import ArrowLeftToLine from 'lucide-svelte/icons/arrow-left-to-line';
-	import Menu from 'lucide-svelte/icons/menu';
-	import FileJson from 'lucide-svelte/icons/file-json';
-	import FileText from 'lucide-svelte/icons/file-text';
-	import ChevronLeft from 'lucide-svelte/icons/chevron-left';
-	import ChevronRight from 'lucide-svelte/icons/chevron-right';
-	import User from 'lucide-svelte/icons/user';
-	import Target from 'lucide-svelte/icons/target';
-	import Palette from 'lucide-svelte/icons/palette';
-	import BookMarked from 'lucide-svelte/icons/book-marked';
-	import AnchorIcon from 'lucide-svelte/icons/anchor';
 	import { resolve } from '$app/paths';
+	import { GameHeader, HeaderActions, MobileInfoBar } from './components';
 	import {
 		loadGame,
 		DatabaseUnavailableError,
@@ -95,7 +79,6 @@
 		DeleteConfirmModal,
 		HistoryModal,
 		PublishVersionModal,
-		ExportMenu,
 		PaletteSheet,
 		PlayersSheet,
 		FocusesSheet,
@@ -157,9 +140,6 @@
 	let publishModalOpen = $state(false);
 	let isPublishing = $state(false);
 	let lastPublishedGame = $state<Game | null>(null);
-
-	// Mobile menu state
-	let mobileMenuOpen = $state(false);
 
 	// Palette sheet state
 	let paletteSheetOpen = $state(false);
@@ -973,14 +953,9 @@
 		currentSnapshotId = null;
 	}
 
-	// Mobile menu handlers
-	function closeMobileMenu() {
-		mobileMenuOpen = false;
-	}
-
-	async function handleMobileExportJSON() {
+	// Export handlers for HeaderActions component
+	async function handleExportJSON() {
 		if (!game) return;
-		closeMobileMenu();
 		try {
 			const history = await loadAllSnapshotsForGame(game.id);
 			downloadGameAsJSON(game, history);
@@ -999,9 +974,8 @@
 		}
 	}
 
-	function handleMobileExportMarkdown() {
+	function handleExportMarkdown() {
 		if (!game) return;
-		closeMobileMenu();
 		try {
 			downloadGameAsMarkdown(game);
 			toast.success('Export complete', {
@@ -1013,41 +987,6 @@
 				description: 'Could not export the history. Please try again.'
 			});
 		}
-	}
-
-	function handleMobilePublish() {
-		closeMobileMenu();
-		openPublishModal();
-	}
-
-	function handleMobileHistory() {
-		closeMobileMenu();
-		openHistoryModal();
-	}
-
-	function handleMobileSettings() {
-		closeMobileMenu();
-		settingsModalOpen = true;
-	}
-
-	function handleMobilePalette() {
-		closeMobileMenu();
-		paletteSheetOpen = true;
-	}
-
-	function handleMobilePlayers() {
-		closeMobileMenu();
-		playersSheetOpen = true;
-	}
-
-	function handleMobileFocuses() {
-		closeMobileMenu();
-		focusesSheetOpen = true;
-	}
-
-	function handleMobileLegacies() {
-		closeMobileMenu();
-		legaciesSheetOpen = true;
 	}
 
 	// Palette handler
@@ -1246,8 +1185,8 @@
 		anchorsSheetOpen = true;
 	}
 
-	function handleMobileAnchors() {
-		closeMobileMenu();
+	// Handler for opening anchors sheet (used by HeaderActions)
+	function handleOpenAnchorsSheet() {
 		selectedAnchorIdForSheet = null;
 		anchorsSheetOpen = true;
 	}
@@ -1299,411 +1238,52 @@
 <div class="canvas-page">
 	<div class="canvas-header">
 		<div class="canvas-header-content">
-			<div class="header-left">
-				{#if isViewingHistory}
-					<Button variant="ghost" size="sm" onclick={exitHistoryView}>
-						<ArrowLeftToLine class="h-4 w-4" />
-						<span class="back-text">Return to Current</span>
-					</Button>
-				{:else}
-					<a href={homeUrl}>
-						<Button variant="ghost" size="sm">
-							<ArrowLeft class="h-4 w-4" />
-							<span class="back-text">Back</span>
-						</Button>
-					</a>
-				{/if}
-				{#if isViewingHistory && historicalGame}
-					<span class="game-title">{historicalGame.name}</span>
-					<span class="history-indicator"> Viewing History </span>
-				{:else if game}
-					<span class="game-title">{game.name}</span>
-				{/if}
-			</div>
+			<GameHeader
+				{game}
+				{isViewingHistory}
+				{historicalGame}
+				onExitHistoryView={exitHistoryView}
+				onPreviousPlayer={handlePreviousPlayer}
+				onNextPlayer={handleNextPlayer}
+				onPreviousFocus={handlePreviousFocus}
+				onNextFocus={handleNextFocus}
+			/>
 
-			<!-- Player and Focus navigation (center section) -->
-			{#if !isViewingHistory && game}
-				<div class="header-center">
-					<!-- Active Player -->
-					{#if game.players && game.players.length > 0}
-						<div class="nav-control player-control" title="Active Player">
-							<Button
-								variant="ghost"
-								size="icon"
-								class="nav-btn"
-								onclick={handlePreviousPlayer}
-								aria-label="Previous player"
-								title="Previous player"
-								disabled={game.players.length <= 1}
-							>
-								<ChevronLeft class="h-3.5 w-3.5" />
-							</Button>
-							<div class="nav-label">
-								<User class="h-3.5 w-3.5 nav-icon" />
-								<span class="nav-text">
-									{game.activePlayerIndex >= 0 && game.players[game.activePlayerIndex]
-										? game.players[game.activePlayerIndex].name
-										: 'No player'}
-								</span>
-							</div>
-							<Button
-								variant="ghost"
-								size="icon"
-								class="nav-btn"
-								onclick={handleNextPlayer}
-								aria-label="Next player"
-								title="Next player"
-								disabled={game.players.length <= 1}
-							>
-								<ChevronRight class="h-3.5 w-3.5" />
-							</Button>
-						</div>
-					{/if}
-
-					<!-- Current Focus -->
-					{#if game.focuses && game.focuses.length > 0}
-						<div class="nav-control focus-control" title="Current Focus">
-							<Button
-								variant="ghost"
-								size="icon"
-								class="nav-btn"
-								onclick={handlePreviousFocus}
-								aria-label="Previous focus"
-								title="Previous focus"
-								disabled={game.focuses.length <= 1}
-							>
-								<ChevronLeft class="h-3.5 w-3.5" />
-							</Button>
-							<div class="nav-label">
-								<Target class="h-3.5 w-3.5 nav-icon" />
-								<span class="nav-text">
-									{game.currentFocusIndex >= 0 && game.focuses[game.currentFocusIndex]
-										? game.focuses[game.currentFocusIndex].name
-										: 'No focus'}
-								</span>
-							</div>
-							<Button
-								variant="ghost"
-								size="icon"
-								class="nav-btn"
-								onclick={handleNextFocus}
-								aria-label="Next focus"
-								title="Next focus"
-								disabled={game.focuses.length <= 1}
-							>
-								<ChevronRight class="h-3.5 w-3.5" />
-							</Button>
-						</div>
-					{:else if game.focus}
-						<!-- Fallback for legacy focus field -->
-						<div class="focus-indicator" title="Current Focus: {game.focus.name}">
-							<Target class="h-3.5 w-3.5" />
-							{game.focus.name}
-						</div>
-					{/if}
-				</div>
-			{/if}
-
-			<div class="header-right">
-				{#if isViewingHistory && currentSnapshotId}
-					<Button
-						variant="default"
-						size="sm"
-						onclick={() => handleRestoreSnapshot(currentSnapshotId!)}
-					>
-						Restore This Version
-					</Button>
-				{:else if game}
-					<!-- Undo/Redo buttons (always visible) -->
-					<div class="undo-redo-controls">
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={handleUndo}
-							disabled={!canUndoAction}
-							aria-label="Undo"
-							title="Undo (Ctrl+Z)"
-						>
-							<Undo2 class="h-4 w-4" />
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={handleRedo}
-							disabled={!canRedoAction}
-							aria-label="Redo"
-							title="Redo (Ctrl+Shift+Z)"
-						>
-							<Redo2 class="h-4 w-4" />
-						</Button>
-					</div>
-
-					<!-- Desktop controls (hidden on mobile) -->
-					<div class="desktop-controls">
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={() => (paletteSheetOpen = true)}
-							aria-label="Palette"
-							title="Palette - Yes/No list"
-							class="icon-button-with-badge"
-						>
-							<Palette class="h-4 w-4" />
-							{#if paletteCount > 0}
-								<span class="count-badge">{paletteCount}</span>
-							{/if}
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={() => (playersSheetOpen = true)}
-							aria-label="Players"
-							title="Players - Turn order"
-							class="icon-button-with-badge"
-						>
-							<User class="h-4 w-4" />
-							{#if playersCount > 0}
-								<span class="count-badge">{playersCount}</span>
-							{/if}
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={() => (focusesSheetOpen = true)}
-							aria-label="Focuses"
-							title="Focuses - Themes to explore"
-							class="icon-button-with-badge"
-						>
-							<Target class="h-4 w-4" />
-							{#if focusesCount > 0}
-								<span class="count-badge">{focusesCount}</span>
-							{/if}
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={() => (legaciesSheetOpen = true)}
-							aria-label="Legacies"
-							title="Legacies - Recurring elements"
-							class="icon-button-with-badge"
-						>
-							<BookMarked class="h-4 w-4" />
-							{#if legaciesCount > 0}
-								<span class="count-badge">{legaciesCount}</span>
-							{/if}
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={() => {
-								selectedAnchorIdForSheet = null;
-								anchorsSheetOpen = true;
-							}}
-							aria-label="Anchors"
-							title="Anchors - Chronicle characters"
-							class="icon-button-with-badge"
-						>
-							<AnchorIcon class="h-4 w-4" />
-							{#if anchorsCount > 0}
-								<span class="count-badge">{anchorsCount}</span>
-							{/if}
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={openPublishModal}
-							aria-label="Publish version"
-							title="Publish version"
-						>
-							<Bookmark class="h-4 w-4" />
-						</Button>
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={openHistoryModal}
-							aria-label="Version history"
-							title="Version history"
-						>
-							<History class="h-4 w-4" />
-						</Button>
-						<ExportMenu {game} />
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={() => (settingsModalOpen = true)}
-							aria-label="History settings"
-							title="History settings"
-						>
-							<Settings class="h-4 w-4" />
-						</Button>
-					</div>
-
-					<!-- Mobile menu button (hidden on desktop) -->
-					<div class="mobile-menu-container">
-						<Button
-							variant="ghost"
-							size="sm"
-							onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
-							aria-label="Menu"
-							aria-haspopup="menu"
-							aria-expanded={mobileMenuOpen}
-						>
-							<Menu class="h-4 w-4" />
-						</Button>
-
-						{#if mobileMenuOpen}
-							<!-- svelte-ignore a11y_no_static_element_interactions -->
-							<div
-								class="mobile-menu-backdrop"
-								onclick={closeMobileMenu}
-								onkeydown={(e) => e.key === 'Escape' && closeMobileMenu()}
-							></div>
-							<div class="mobile-dropdown" role="menu">
-								<button
-									type="button"
-									class="mobile-menu-item"
-									onclick={handleMobilePalette}
-									role="menuitem"
-								>
-									<Palette class="h-4 w-4" />
-									<span>Palette</span>
-									{#if paletteCount > 0}
-										<span class="count-badge">{paletteCount}</span>
-									{/if}
-								</button>
-								<button
-									type="button"
-									class="mobile-menu-item"
-									onclick={handleMobilePlayers}
-									role="menuitem"
-								>
-									<User class="h-4 w-4" />
-									<span>Players</span>
-									{#if playersCount > 0}
-										<span class="count-badge">{playersCount}</span>
-									{/if}
-								</button>
-								<button
-									type="button"
-									class="mobile-menu-item"
-									onclick={handleMobileFocuses}
-									role="menuitem"
-								>
-									<Target class="h-4 w-4" />
-									<span>Focuses</span>
-									{#if focusesCount > 0}
-										<span class="count-badge">{focusesCount}</span>
-									{/if}
-								</button>
-								<button
-									type="button"
-									class="mobile-menu-item"
-									onclick={handleMobileLegacies}
-									role="menuitem"
-								>
-									<BookMarked class="h-4 w-4" />
-									<span>Legacies</span>
-									{#if legaciesCount > 0}
-										<span class="count-badge">{legaciesCount}</span>
-									{/if}
-								</button>
-								<button
-									type="button"
-									class="mobile-menu-item"
-									onclick={handleMobileAnchors}
-									role="menuitem"
-								>
-									<AnchorIcon class="h-4 w-4" />
-									<span>Anchors</span>
-									{#if anchorsCount > 0}
-										<span class="count-badge">{anchorsCount}</span>
-									{/if}
-								</button>
-								<div class="mobile-menu-divider"></div>
-								<button
-									type="button"
-									class="mobile-menu-item"
-									onclick={handleMobilePublish}
-									role="menuitem"
-								>
-									<Bookmark class="h-4 w-4" />
-									<span>Publish Version</span>
-								</button>
-								<button
-									type="button"
-									class="mobile-menu-item"
-									onclick={handleMobileHistory}
-									role="menuitem"
-								>
-									<History class="h-4 w-4" />
-									<span>Version History</span>
-								</button>
-								<div class="mobile-menu-divider"></div>
-								<button
-									type="button"
-									class="mobile-menu-item"
-									onclick={handleMobileExportJSON}
-									role="menuitem"
-								>
-									<FileJson class="h-4 w-4" />
-									<span>Export as JSON</span>
-								</button>
-								<button
-									type="button"
-									class="mobile-menu-item"
-									onclick={handleMobileExportMarkdown}
-									role="menuitem"
-								>
-									<FileText class="h-4 w-4" />
-									<span>Export as Markdown</span>
-								</button>
-								<div class="mobile-menu-divider"></div>
-								<button
-									type="button"
-									class="mobile-menu-item"
-									onclick={handleMobileSettings}
-									role="menuitem"
-								>
-									<Settings class="h-4 w-4" />
-									<span>History Settings</span>
-								</button>
-							</div>
-						{/if}
-					</div>
-				{/if}
-			</div>
+			<HeaderActions
+				{game}
+				canUndo={canUndoAction}
+				canRedo={canRedoAction}
+				{isViewingHistory}
+				{currentSnapshotId}
+				{paletteCount}
+				{playersCount}
+				{focusesCount}
+				{legaciesCount}
+				{anchorsCount}
+				onUndo={handleUndo}
+				onRedo={handleRedo}
+				onRestoreSnapshot={() => handleRestoreSnapshot(currentSnapshotId!)}
+				onOpenPalette={() => (paletteSheetOpen = true)}
+				onOpenPlayers={() => (playersSheetOpen = true)}
+				onOpenFocuses={() => (focusesSheetOpen = true)}
+				onOpenLegacies={() => (legaciesSheetOpen = true)}
+				onOpenAnchors={handleOpenAnchorsSheet}
+				onOpenPublish={openPublishModal}
+				onOpenHistory={openHistoryModal}
+				onOpenSettings={() => (settingsModalOpen = true)}
+				onExportJSON={handleExportJSON}
+				onExportMarkdown={handleExportMarkdown}
+			/>
 		</div>
 	</div>
 
 	<!-- Mobile floating indicators for player and focus -->
 	{#if !isViewingHistory && game}
-		<div class="mobile-info-bar">
-			{#if game.players && game.players.length > 0}
-				<button type="button" class="mobile-info-item player-info" onclick={handleNextPlayer}>
-					<User class="h-3.5 w-3.5" />
-					<span class="info-label">
-						{game.activePlayerIndex >= 0 && game.players[game.activePlayerIndex]
-							? game.players[game.activePlayerIndex].name
-							: 'No player'}
-					</span>
-				</button>
-			{/if}
-			{#if game.focuses && game.focuses.length > 0}
-				<button type="button" class="mobile-info-item focus-info" onclick={handleNextFocus}>
-					<Target class="h-3.5 w-3.5" />
-					<span class="info-label">
-						{game.currentFocusIndex >= 0 && game.focuses[game.currentFocusIndex]
-							? game.focuses[game.currentFocusIndex].name
-							: 'No focus'}
-					</span>
-				</button>
-			{:else if game.focus}
-				<div class="mobile-info-item focus-info">
-					<Target class="h-3.5 w-3.5" />
-					<span class="info-label">{game.focus.name}</span>
-				</div>
-			{/if}
-		</div>
+		<MobileInfoBar
+			{game}
+			onNextPlayer={handleNextPlayer}
+			onNextFocus={handleNextFocus}
+		/>
 	{/if}
 
 	<div class="canvas-area" class:historical-view={isViewingHistory}>
@@ -1934,176 +1514,6 @@
 		padding: 0.5rem 0;
 	}
 
-	.header-left {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-	}
-
-	.header-right {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.undo-redo-controls {
-		display: flex;
-		align-items: center;
-		gap: 0.125rem;
-		padding-right: 0.5rem;
-		border-right: 1px solid var(--color-border);
-		margin-right: 0.25rem;
-	}
-
-	.desktop-controls {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	/* Center section with player/focus navigation */
-	.header-center {
-		display: flex;
-		align-items: center;
-		gap: 1rem;
-	}
-
-	.nav-control {
-		display: flex;
-		align-items: center;
-		gap: 0.125rem;
-		background-color: var(--color-muted);
-		border-radius: var(--radius);
-		padding: 0.125rem;
-	}
-
-	.nav-control :global(.nav-btn) {
-		width: 1.5rem;
-		height: 1.5rem;
-		padding: 0;
-	}
-
-	.nav-label {
-		display: flex;
-		align-items: center;
-		gap: 0.375rem;
-		padding: 0.25rem 0.5rem;
-		min-width: 0;
-	}
-
-	.nav-label :global(.nav-icon) {
-		flex-shrink: 0;
-		color: var(--color-muted-foreground);
-	}
-
-	.player-control :global(.nav-icon) {
-		color: oklch(70% 0.15 200);
-	}
-
-	.focus-control :global(.nav-icon) {
-		color: oklch(70% 0.15 50);
-	}
-
-	.nav-text {
-		font-size: 0.75rem;
-		font-weight: 500;
-		color: var(--color-foreground);
-		max-width: 100px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
-	.mobile-menu-container {
-		display: none;
-		position: relative;
-	}
-
-	.mobile-menu-backdrop {
-		position: fixed;
-		inset: 0;
-		z-index: 40;
-	}
-
-	.mobile-dropdown {
-		position: absolute;
-		top: 100%;
-		right: 0;
-		margin-top: 0.25rem;
-		min-width: 200px;
-		background-color: var(--color-popover);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius);
-		box-shadow: 0 4px 12px oklch(0% 0 0 / 0.3);
-		z-index: 50;
-		overflow: hidden;
-	}
-
-	.mobile-menu-item {
-		display: flex;
-		align-items: center;
-		gap: 0.75rem;
-		width: 100%;
-		padding: 0.75rem 1rem;
-		background: none;
-		border: none;
-		text-align: left;
-		color: var(--color-popover-foreground);
-		font-size: 0.875rem;
-		cursor: pointer;
-		transition: background-color 0.15s;
-	}
-
-	.mobile-menu-item:hover {
-		background-color: var(--color-accent);
-	}
-
-	.mobile-menu-item :global(svg) {
-		flex-shrink: 0;
-		color: var(--color-muted-foreground);
-	}
-
-	.mobile-menu-divider {
-		height: 1px;
-		background-color: var(--color-border);
-		margin: 0.25rem 0;
-	}
-
-	.game-title {
-		font-size: 0.9375rem;
-		font-weight: 600;
-		color: var(--color-foreground);
-	}
-
-	.focus-indicator {
-		display: flex;
-		align-items: center;
-		gap: 0.375rem;
-		font-size: 0.75rem;
-		color: var(--color-muted-foreground);
-		padding: 0.25rem 0.5rem;
-		background-color: var(--color-muted);
-		border-radius: var(--radius);
-	}
-
-	.focus-indicator :global(svg) {
-		flex-shrink: 0;
-		color: oklch(70% 0.15 50);
-	}
-
-	.history-indicator {
-		font-size: 0.75rem;
-		color: oklch(85% 0.15 50);
-		padding: 0.125rem 0.5rem;
-		background-color: oklch(45% 0.15 50 / 0.2);
-		border: 1px solid oklch(45% 0.15 50 / 0.4);
-		border-radius: var(--radius);
-	}
-
-	.back-text {
-		display: none;
-	}
-
 	.canvas-area {
 		flex: 1;
 		position: relative;
@@ -2203,12 +1613,6 @@
 		z-index: 10;
 	}
 
-	/* Mobile info bar for player/focus - hidden on desktop */
-	.mobile-info-bar {
-		display: none;
-		flex-shrink: 0;
-	}
-
 	/* Animation for spinner */
 	:global(.animate-spin) {
 		animation: spin 1s linear infinite;
@@ -2223,81 +1627,9 @@
 		}
 	}
 
-	@media (min-width: 640px) {
-		.back-text {
-			display: inline;
-		}
-	}
-
 	@media (max-width: 640px) {
 		.canvas-header {
 			padding: 0.5rem 0.75rem;
-		}
-
-		.game-title {
-			font-size: 0.8125rem;
-		}
-
-		.focus-indicator {
-			display: none;
-		}
-
-		.header-center {
-			display: none;
-		}
-
-		.desktop-controls {
-			display: none;
-		}
-
-		.mobile-menu-container {
-			display: block;
-		}
-
-		.mobile-info-bar {
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			gap: 0.5rem;
-			padding: 0.5rem 0.75rem;
-			background-color: oklch(10% 0.02 265 / 0.8);
-			backdrop-filter: blur(8px);
-			border-bottom: 1px solid var(--color-border);
-			flex-shrink: 0;
-		}
-
-		.mobile-info-item {
-			display: flex;
-			align-items: center;
-			gap: 0.375rem;
-			padding: 0.375rem 0.625rem;
-			background-color: var(--color-muted);
-			border: none;
-			border-radius: var(--radius);
-			font-size: 0.75rem;
-			font-weight: 500;
-			color: var(--color-foreground);
-			cursor: pointer;
-			transition: background-color 0.15s;
-		}
-
-		.mobile-info-item:hover {
-			background-color: var(--color-accent);
-		}
-
-		.mobile-info-item.player-info :global(svg) {
-			color: oklch(70% 0.15 200);
-		}
-
-		.mobile-info-item.focus-info :global(svg) {
-			color: oklch(70% 0.15 50);
-		}
-
-		.info-label {
-			max-width: 100px;
-			overflow: hidden;
-			text-overflow: ellipsis;
-			white-space: nowrap;
 		}
 
 		.zoom-controls-container {
@@ -2314,52 +1646,5 @@
 		.error-actions :global(a) {
 			width: 100%;
 		}
-	}
-
-	/* Show header center on tablets */
-	@media (min-width: 768px) {
-		.header-center {
-			display: flex;
-		}
-
-		.nav-text {
-			max-width: 120px;
-		}
-	}
-
-	@media (min-width: 1024px) {
-		.nav-text {
-			max-width: 160px;
-		}
-	}
-
-	/* Count badges for icon buttons */
-	:global(.icon-button-with-badge) {
-		position: relative;
-	}
-
-	.count-badge {
-		position: absolute;
-		top: -4px;
-		right: -4px;
-		min-width: 16px;
-		height: 16px;
-		padding: 0 4px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background-color: var(--color-muted);
-		color: var(--color-muted-foreground);
-		border-radius: 8px;
-		font-size: 0.625rem;
-		font-weight: 600;
-		line-height: 1;
-		pointer-events: none;
-		border: 1px solid var(--color-border);
-	}
-
-	.mobile-menu-item .count-badge {
-		position: static;
-		margin-left: auto;
 	}
 </style>
