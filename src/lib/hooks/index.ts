@@ -3,4 +3,5 @@
  * Re-export all hooks from here for easy imports
  */
 
-// Hooks will be exported here as they are created
+export { createGameActionHandlers, type GameActionHandlers, type UseGameActionsOptions } from './useGameActions';
+export { createAnchorActionHandlers, type AnchorActionHandlers, type UseAnchorActionsOptions } from './useAnchorActions';
