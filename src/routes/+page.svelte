@@ -1,18 +1,13 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
-	import { Textarea } from '$lib/components/ui/textarea';
-	import * as Dialog from '$lib/components/ui/dialog';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import { toast } from '$lib/components/ui/sonner';
 	import Plus from 'lucide-svelte/icons/plus';
 	import Upload from 'lucide-svelte/icons/upload';
 	import Sparkles from 'lucide-svelte/icons/sparkles';
-	import Trash2 from 'lucide-svelte/icons/trash-2';
 	import Loader2 from 'lucide-svelte/icons/loader-2';
 	import FileJson from 'lucide-svelte/icons/file-json';
-	import Dices from 'lucide-svelte/icons/dices';
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import {
@@ -29,7 +24,7 @@
 		createSnapshotRecord
 	} from '$lib/services';
 	import { createNewGame, type GameMetadata } from '$lib/types';
-	import { generateNameInspiration, generateHistorySeed } from '$lib/utils/oracle/index';
+	import { GamesList, CreateGameDialog } from './components';
 
 	// State
 	let games: GameMetadata[] = $state([]);
@@ -38,8 +33,6 @@
 
 	// Create game dialog state
 	let createDialogOpen = $state(false);
-	let newGameName = $state('');
-	let newBigPicture = $state('');
 	let isCreating = $state(false);
 
 	// Delete confirmation state
@@ -79,14 +72,11 @@
 	}
 
 	function openCreateDialog() {
-		newGameName = '';
-		newBigPicture = '';
 		createDialogOpen = true;
 	}
 
-	async function handleCreateGame() {
-		const trimmedName = newGameName.trim();
-		if (!trimmedName) {
+	async function handleCreateGame(name: string, bigPicture: string) {
+		if (!name) {
 			toast.error('Please enter a history name');
 			return;
 		}
@@ -94,20 +84,19 @@
 		isCreating = true;
 
 		try {
-			const game = createNewGame(trimmedName);
-			
+			const game = createNewGame(name);
+
 			// Add Big Picture if provided
-			const trimmedBigPicture = newBigPicture.trim();
-			if (trimmedBigPicture) {
+			if (bigPicture) {
 				game.bigPicture = {
-					premise: trimmedBigPicture
+					premise: bigPicture
 				};
 			}
-			
+
 			await persistCreateGame(game);
 
 			toast.success('History created!', {
-				description: `"${trimmedName}" is ready for worldbuilding.`
+				description: `"${name}" is ready for worldbuilding.`
 			});
 
 			createDialogOpen = false;
@@ -120,14 +109,6 @@
 		} finally {
 			isCreating = false;
 		}
-	}
-
-	function handleGenerateName() {
-		newGameName = generateNameInspiration();
-	}
-
-	function handleGenerateBigPicture() {
-		newBigPicture = generateHistorySeed();
 	}
 
 	function handleImportGame() {
@@ -272,14 +253,6 @@
 		}
 	}
 
-	function formatDate(isoString: string): string {
-		const date = new Date(isoString);
-		return date.toLocaleDateString(undefined, {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric'
-		});
-	}
 </script>
 
 <svelte:head>
@@ -355,69 +328,13 @@
 		</Button>
 	</section>
 
-	<section class="games-section">
-		<h2 class="section-title">Your Histories</h2>
-
-		{#if isLoading}
-			<div class="loading-state">
-				<Loader2 class="h-8 w-8 animate-spin" />
-				<p>Loading your histories...</p>
-			</div>
-		{:else if loadError}
-			<div class="error-state">
-				<p class="error-text">{loadError}</p>
-				<Button onclick={loadGames} variant="secondary" size="sm">Try Again</Button>
-			</div>
-		{:else if games.length === 0}
-			<div class="empty-state">
-				<div class="empty-icon">
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="1.5"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						class="h-16 w-16"
-					>
-						<circle cx="12" cy="12" r="10" opacity="0.3" />
-						<path d="M8 12h8" />
-						<path d="M12 8v8" />
-					</svg>
-				</div>
-				<p class="empty-text">No histories yet</p>
-				<p class="empty-subtext">Create a new history to begin your worldbuilding journey</p>
-			</div>
-		{:else}
-			<ul class="games-list">
-				{#each games as game (game.id)}
-					<li class="game-item">
-						<a href={resolve('/game/[id]', { id: game.id })} class="game-card">
-							<span class="game-name">{game.name}</span>
-							<span class="game-date">
-								{formatDate(game.updatedAt)}
-							</span>
-						</a>
-						<Button
-							variant="ghost"
-							size="icon"
-							class="delete-button"
-							onclick={(e: MouseEvent) => {
-								e.preventDefault();
-								e.stopPropagation();
-								openDeleteDialog(game);
-							}}
-							aria-label={`Delete ${game.name}`}
-							title={`Delete ${game.name}`}
-						>
-							<Trash2 class="h-4 w-4" />
-						</Button>
-					</li>
-				{/each}
-			</ul>
-		{/if}
-	</section>
+	<GamesList
+		{games}
+		{isLoading}
+		{loadError}
+		onRetry={loadGames}
+		onDeleteGame={openDeleteDialog}
+	/>
 
 	<!-- Footer -->
 	<footer class="home-footer">
@@ -438,81 +355,12 @@
 </div>
 
 <!-- Create History Dialog -->
-<Dialog.Root bind:open={createDialogOpen}>
-	<Dialog.Content>
-		<Dialog.Header>
-			<Dialog.Title>Create New History</Dialog.Title>
-			<Dialog.Description>Give your Microscope history a name to get started.</Dialog.Description>
-		</Dialog.Header>
-		<div class="create-form">
-			<div class="form-field">
-				<div class="form-label-row">
-					<label for="game-name" class="form-label">History Name</label>
-					<Button
-						variant="ghost"
-						size="icon"
-						class="oracle-btn"
-						onclick={handleGenerateName}
-						disabled={isCreating}
-						title="Generate random name"
-						type="button"
-					>
-						<Dices class="h-4 w-4" />
-					</Button>
-				</div>
-				<Input
-					id="game-name"
-					bind:value={newGameName}
-					placeholder="e.g., Rise and Fall of the Star Empire"
-					disabled={isCreating}
-					onkeydown={(e: KeyboardEvent) => {
-						if (e.key === 'Enter' && !isCreating) {
-							handleCreateGame();
-						}
-					}}
-				/>
-			</div>
-
-			<div class="form-field">
-				<div class="form-label-row">
-					<label for="big-picture" class="form-label">Big Picture</label>
-					<Button
-						variant="ghost"
-						size="icon"
-						class="oracle-btn"
-						onclick={handleGenerateBigPicture}
-						disabled={isCreating}
-						title="Generate random concept"
-						type="button"
-					>
-						<Dices class="h-4 w-4" />
-					</Button>
-				</div>
-				<Textarea
-					id="big-picture"
-					bind:value={newBigPicture}
-					placeholder="The rise and fall of a galactic civilization..."
-					disabled={isCreating}
-					rows={3}
-				/>
-				<p class="form-hint">What is this history about? What is the overarching theme?</p>
-			</div>
-		</div>
-		<Dialog.Footer>
-			<Button variant="secondary" onclick={() => (createDialogOpen = false)} disabled={isCreating}>
-				Cancel
-			</Button>
-			<Button onclick={handleCreateGame} disabled={isCreating || !newGameName.trim()}>
-				{#if isCreating}
-					<Loader2 class="h-4 w-4 animate-spin" />
-					Creating...
-				{:else}
-					Create History
-				{/if}
-			</Button>
-		</Dialog.Footer>
-	</Dialog.Content>
-</Dialog.Root>
+<CreateGameDialog
+	open={createDialogOpen}
+	{isCreating}
+	onOpenChange={(open) => (createDialogOpen = open)}
+	onCreate={handleCreateGame}
+/>
 
 <!-- Delete Confirmation Dialog -->
 <AlertDialog.Root bind:open={deleteDialogOpen}>
@@ -646,172 +494,6 @@
 		min-width: 180px;
 	}
 
-	.games-section {
-		width: 100%;
-	}
-
-	.section-title {
-		font-size: 1.25rem;
-		font-weight: 600;
-		margin-bottom: 1.5rem;
-		text-align: center;
-		color: var(--color-foreground);
-	}
-
-	.loading-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		justify-content: center;
-		padding: 3rem 2rem;
-		gap: 1rem;
-		color: var(--color-muted-foreground);
-	}
-
-	.loading-state :global(svg) {
-		color: var(--color-primary);
-	}
-
-	.error-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		padding: 2rem;
-		gap: 1rem;
-		border: 1px solid var(--color-destructive);
-		border-radius: var(--radius);
-		background-color: oklch(from var(--color-destructive) l c h / 0.1);
-	}
-
-	.error-text {
-		color: var(--color-destructive);
-		text-align: center;
-	}
-
-	.empty-state {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		padding: 3rem 2rem;
-		border: 1px dashed var(--color-border);
-		border-radius: var(--radius);
-		background-color: var(--color-card);
-		text-align: center;
-	}
-
-	.empty-icon {
-		color: var(--color-muted-foreground);
-		margin-bottom: 1rem;
-		opacity: 0.5;
-	}
-
-	.empty-text {
-		font-size: 1.125rem;
-		font-weight: 500;
-		color: var(--color-foreground);
-		margin-bottom: 0.5rem;
-	}
-
-	.empty-subtext {
-		font-size: 0.875rem;
-		color: var(--color-muted-foreground);
-	}
-
-	.games-list {
-		list-style: none;
-		padding: 0;
-		margin: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	.game-item {
-		display: flex;
-		align-items: stretch;
-		gap: 0.5rem;
-	}
-
-	.game-card {
-		flex: 1;
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 1rem 1.25rem;
-		background-color: var(--color-card);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius);
-		text-decoration: none;
-		color: var(--color-card-foreground);
-		transition:
-			border-color 0.2s,
-			background-color 0.2s;
-	}
-
-	.game-card:hover {
-		border-color: var(--color-primary);
-		background-color: var(--color-accent);
-	}
-
-	.game-name {
-		font-weight: 500;
-	}
-
-	.game-date {
-		font-size: 0.875rem;
-		color: var(--color-muted-foreground);
-	}
-
-	.game-item :global(.delete-button) {
-		flex-shrink: 0;
-		color: var(--color-muted-foreground);
-	}
-
-	.game-item :global(.delete-button:hover) {
-		color: var(--color-destructive);
-	}
-
-	.create-form {
-		display: flex;
-		flex-direction: column;
-		gap: 1rem;
-		padding: 1rem 0;
-	}
-
-	.form-field {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.form-label-row {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-
-	.form-label {
-		font-size: 0.875rem;
-		font-weight: 500;
-		color: var(--color-foreground);
-	}
-
-	.form-hint {
-		font-size: 0.75rem;
-		color: var(--color-muted-foreground);
-		margin: 0;
-	}
-
-	.create-form :global(.oracle-btn) {
-		width: 1.75rem;
-		height: 1.75rem;
-		color: var(--color-muted-foreground);
-	}
-
-	.create-form :global(.oracle-btn:hover) {
-		color: var(--color-primary);
-	}
-
 	/* Footer */
 	.home-footer {
 		display: flex;
@@ -877,12 +559,6 @@
 
 		.actions-section :global(.action-button) {
 			width: 100%;
-		}
-
-		.game-card {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 0.25rem;
 		}
 	}
 </style>
