@@ -53,20 +53,33 @@ export const anchorsState = $state({
 
 // Zoom mutations
 export function setZoom(zoom: number) {
-	canvasState.zoom = zoom;
+	// Clamp zoom to valid bounds
+	canvasState.zoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom));
 }
 
 export function zoomIn() {
 	const currentIndex = ZOOM_LEVELS.indexOf(canvasState.zoom);
 	if (currentIndex > 0) {
 		canvasState.zoom = ZOOM_LEVELS[currentIndex - 1];
+	} else if (currentIndex === -1) {
+		// If current zoom isn't in levels, find nearest level that's higher
+		const higherLevel = ZOOM_LEVELS.find(level => level > canvasState.zoom);
+		if (higherLevel !== undefined) {
+			canvasState.zoom = higherLevel;
+		}
 	}
 }
 
 export function zoomOut() {
 	const currentIndex = ZOOM_LEVELS.indexOf(canvasState.zoom);
-	if (currentIndex < ZOOM_LEVELS.length - 1) {
+	if (currentIndex >= 0 && currentIndex < ZOOM_LEVELS.length - 1) {
 		canvasState.zoom = ZOOM_LEVELS[currentIndex + 1];
+	} else if (currentIndex === -1) {
+		// If current zoom isn't in levels, find nearest level that's lower
+		const lowerLevel = [...ZOOM_LEVELS].reverse().find(level => level < canvasState.zoom);
+		if (lowerLevel !== undefined) {
+			canvasState.zoom = lowerLevel;
+		}
 	}
 }
 
