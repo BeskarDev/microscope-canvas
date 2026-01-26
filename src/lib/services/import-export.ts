@@ -89,11 +89,12 @@ function formatTone(tone: 'light' | 'dark'): string {
 }
 
 /**
- * Formats tone using circle symbols for PDF rendering
- * Light = ○ (hollow circle), Dark = ● (filled circle)
+ * Formats tone using text labels for PDF rendering
+ * jsPDF's default Helvetica font doesn't support Unicode circle symbols,
+ * so we use text labels instead: (Light) and (Dark)
  */
 function formatTonePDF(tone: 'light' | 'dark'): string {
-	return tone === 'light' ? '○' : '●';
+	return tone === 'light' ? '(Light)' : '(Dark)';
 }
 
 /**
