@@ -95,6 +95,12 @@ function formatTone(tone: 'light' | 'dark'): string {
 const ZAPF_HOLLOW_CIRCLE = 'm'; // Character 'm' in ZapfDingbats renders as a hollow circle (❍)
 const ZAPF_FILLED_CIRCLE = 'l'; // Character 'l' in ZapfDingbats renders as a filled circle (●)
 
+/** Gap after tone symbol before text continues */
+const TONE_SYMBOL_GAP = 2;
+
+/** Width reserved for tone symbol in list items */
+const TONE_SYMBOL_WIDTH = 10;
+
 /**
  * Gets the ZapfDingbats character for the tone
  */
@@ -467,7 +473,7 @@ function addPDFSubsectionHeader(state: PDFRenderState, header: string, tone?: 'l
 	// Render tone symbol first if provided
 	if (tone) {
 		const symbolWidth = renderToneSymbol(state, tone, xPos, state.y, fontSize);
-		xPos += symbolWidth + 2; // Add small gap after symbol
+		xPos += symbolWidth + TONE_SYMBOL_GAP;
 	}
 	
 	// Render the header text
@@ -562,14 +568,14 @@ function addPDFListItem(
 	// Render tone symbol if provided
 	if (tone) {
 		const symbolWidth = renderToneSymbol(state, tone, xPos, state.y, fontSize);
-		xPos += symbolWidth + 2; // Add small gap after symbol
+		xPos += symbolWidth + TONE_SYMBOL_GAP;
 	}
 
 	// Render the text
 	state.doc.setFontSize(fontSize);
 	state.doc.setFont('helvetica', bold ? 'bold' : 'normal');
-	const textStartX = state.marginLeft + indent + bulletWidth + (tone ? 10 : 0); // Account for tone symbol space
-	const textLines = state.doc.splitTextToSize(text, state.contentWidth - indent - bulletWidth - (tone ? 10 : 0));
+	const textStartX = state.marginLeft + indent + bulletWidth + (tone ? TONE_SYMBOL_WIDTH : 0);
+	const textLines = state.doc.splitTextToSize(text, state.contentWidth - indent - bulletWidth - (tone ? TONE_SYMBOL_WIDTH : 0));
 
 	for (let i = 0; i < textLines.length; i++) {
 		if (i > 0) {
