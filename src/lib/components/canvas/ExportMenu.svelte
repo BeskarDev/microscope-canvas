@@ -3,9 +3,11 @@
 	import Download from 'lucide-svelte/icons/download';
 	import FileJson from 'lucide-svelte/icons/file-json';
 	import FileText from 'lucide-svelte/icons/file-text';
+	import File from 'lucide-svelte/icons/file';
 	import {
 		downloadGameAsJSON,
 		downloadGameAsMarkdown,
+		downloadGameAsPDF,
 		loadAllSnapshotsForGame
 	} from '$lib/services';
 	import { toast } from '$lib/components/ui/sonner';
@@ -46,6 +48,21 @@
 			downloadGameAsMarkdown(game);
 			toast.success('Export complete', {
 				description: 'Your history has been exported as Markdown.'
+			});
+		} catch (error) {
+			console.error('Export failed:', error);
+			toast.error('Export failed', {
+				description: 'Could not export the history. Please try again.'
+			});
+		}
+		menuOpen = false;
+	}
+
+	function handleExportPDF() {
+		try {
+			downloadGameAsPDF(game);
+			toast.success('Export complete', {
+				description: 'Your history has been exported as PDF.'
 			});
 		} catch (error) {
 			console.error('Export failed:', error);
@@ -100,6 +117,11 @@
 				<FileText class="h-4 w-4" />
 				<span>Export as Markdown</span>
 				<span class="item-hint">For reading</span>
+			</button>
+			<button type="button" class="dropdown-item" onclick={handleExportPDF} role="menuitem">
+				<File class="h-4 w-4" />
+				<span>Export as PDF</span>
+				<span class="item-hint">For sharing</span>
 			</button>
 		</div>
 	{/if}

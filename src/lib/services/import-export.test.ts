@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	exportGameToJSON,
 	exportGameToMarkdown,
+	exportGameToPDF,
 	parseGameJSON,
 	parseGameExportJSON,
 	createGameFromImport,
@@ -129,31 +130,31 @@ describe('Import/Export', () => {
 			expect(markdown).toContain('# Test History');
 		});
 
-		it('should include big picture', () => {
+		it('should include big picture as subtitle', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Big Picture');
-			expect(markdown).toContain('A test premise');
+			// Big Picture is now a blockquote right after the title
+			expect(markdown).toContain('> A test premise');
 		});
 
-		it('should include palette', () => {
+		it('should include palette in overview', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Palette');
+			expect(markdown).toContain('### Palette');
 			expect(markdown).toContain('Magic');
 			expect(markdown).toContain('Guns');
 		});
 
-		it('should include legacies', () => {
+		it('should include legacies in overview', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Legacies');
+			expect(markdown).toContain('### Legacies');
 			expect(markdown).toContain('The Order');
 		});
 
@@ -183,30 +184,30 @@ describe('Import/Export', () => {
 			expect(markdown).toContain('Peace');
 		});
 
-		it('should include players', () => {
+		it('should include players in overview', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Players');
+			expect(markdown).toContain('### Players');
 			expect(markdown).toContain('Alice');
 		});
 
-		it('should include focuses', () => {
+		it('should include focuses in overview', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Focuses');
+			expect(markdown).toContain('### Focuses');
 			expect(markdown).toContain('Power');
 		});
 
-		it('should include anchors', () => {
+		it('should include anchors in overview', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Anchors');
+			expect(markdown).toContain('### Anchors');
 			expect(markdown).toContain('The Hero');
 		});
 
@@ -216,6 +217,110 @@ describe('Import/Export', () => {
 			const markdown = exportGameToMarkdown(game);
 
 			expect(markdown).toContain('Exported from Microscope Canvas');
+		});
+
+		it('should have overview section', () => {
+			const game = createPopulatedGame();
+
+			const markdown = exportGameToMarkdown(game);
+
+			expect(markdown).toContain('## Overview');
+		});
+
+		it('should have timeline section', () => {
+			const game = createPopulatedGame();
+
+			const markdown = exportGameToMarkdown(game);
+
+			expect(markdown).toContain('## Timeline');
+		});
+
+		it('should include section separators', () => {
+			const game = createPopulatedGame();
+
+			const markdown = exportGameToMarkdown(game);
+
+			// Check for horizontal rules (separators)
+			expect(markdown).toContain('---');
+		});
+
+		it('should format scene questions and answers with labels', () => {
+			const game = createPopulatedGame();
+
+			const markdown = exportGameToMarkdown(game);
+
+			expect(markdown).toContain('**Question:**');
+			expect(markdown).toContain('**Answer:**');
+		});
+	});
+
+	describe('exportGameToPDF', () => {
+		it('should create a valid PDF document', () => {
+			const game = createPopulatedGame();
+
+			const doc = exportGameToPDF(game);
+
+			// Verify it returns a jsPDF instance
+			expect(doc).toBeDefined();
+			expect(typeof doc.save).toBe('function');
+		});
+
+		it('should handle empty game', () => {
+			const game = createNewGame('Empty Game');
+
+			const doc = exportGameToPDF(game);
+
+			expect(doc).toBeDefined();
+		});
+
+		it('should handle game with multiple periods', () => {
+			const game = createPopulatedGame();
+			
+			// Add a second period
+			const period2 = createNewPeriod('The Middle', 'dark');
+			const event2 = createNewEvent('Major Battle', 'dark');
+			event2.description = 'A great battle was fought';
+			period2.events.push(event2);
+			game.periods.push(period2);
+
+			const doc = exportGameToPDF(game);
+
+			expect(doc).toBeDefined();
+		});
+
+		it('should handle game with all optional fields', () => {
+			const game = createPopulatedGame();
+			
+			// Add more optional data
+			game.bigPicture = {
+				premise: 'Test premise',
+				bookendStart: 'In the beginning...',
+				bookendEnd: 'In the end...'
+			};
+			
+			// Add more players
+			game.players.push({ id: 'player-2', name: 'Bob' });
+			
+			// Add more focuses with descriptions
+			game.focuses.push({ id: 'focus-2', name: 'Legacy', description: 'What we leave behind' });
+			
+			// Add more legacies with descriptions
+			game.legacies.push({ id: 'legacy-2', name: 'The Artifact', description: 'A powerful relic' });
+			
+			// Add anchor placements
+			if (game.periods.length > 0) {
+				game.anchorPlacements = [{
+					id: 'placement-1',
+					anchorId: 'anchor-1',
+					periodId: game.periods[0].id,
+					roundNumber: 1,
+					createdAt: new Date().toISOString()
+				}];
+			}
+
+			const doc = exportGameToPDF(game);
+
+			expect(doc).toBeDefined();
 		});
 	});
 
