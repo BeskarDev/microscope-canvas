@@ -130,31 +130,31 @@ describe('Import/Export', () => {
 			expect(markdown).toContain('# Test History');
 		});
 
-		it('should include big picture', () => {
+		it('should include big picture as subtitle', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Big Picture');
-			expect(markdown).toContain('A test premise');
+			// Big Picture is now a blockquote right after the title
+			expect(markdown).toContain('> A test premise');
 		});
 
-		it('should include palette', () => {
+		it('should include palette in overview', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Palette');
+			expect(markdown).toContain('### Palette');
 			expect(markdown).toContain('Magic');
 			expect(markdown).toContain('Guns');
 		});
 
-		it('should include legacies', () => {
+		it('should include legacies in overview', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Legacies');
+			expect(markdown).toContain('### Legacies');
 			expect(markdown).toContain('The Order');
 		});
 
@@ -184,30 +184,30 @@ describe('Import/Export', () => {
 			expect(markdown).toContain('Peace');
 		});
 
-		it('should include players', () => {
+		it('should include players in overview', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Players');
+			expect(markdown).toContain('### Players');
 			expect(markdown).toContain('Alice');
 		});
 
-		it('should include focuses', () => {
+		it('should include focuses in overview', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Focuses');
+			expect(markdown).toContain('### Focuses');
 			expect(markdown).toContain('Power');
 		});
 
-		it('should include anchors', () => {
+		it('should include anchors in overview', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Anchors');
+			expect(markdown).toContain('### Anchors');
 			expect(markdown).toContain('The Hero');
 		});
 
@@ -219,24 +219,20 @@ describe('Import/Export', () => {
 			expect(markdown).toContain('Exported from Microscope Canvas');
 		});
 
-		it('should include tone legend', () => {
+		it('should have overview section', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('Tone Legend');
-			expect(markdown).toContain('○ = Light');
-			expect(markdown).toContain('● = Dark');
+			expect(markdown).toContain('## Overview');
 		});
 
-		it('should include table of contents', () => {
+		it('should have timeline section', () => {
 			const game = createPopulatedGame();
 
 			const markdown = exportGameToMarkdown(game);
 
-			expect(markdown).toContain('## Table of Contents');
-			expect(markdown).toContain('- [Big Picture](#big-picture)');
-			expect(markdown).toContain('- [Timeline](#timeline)');
+			expect(markdown).toContain('## Timeline');
 		});
 
 		it('should include section separators', () => {

@@ -89,10 +89,11 @@ function formatTone(tone: 'light' | 'dark'): string {
 }
 
 /**
- * Formats tone as text label for accessibility and PDF rendering
+ * Formats tone using circle symbols for PDF rendering
+ * Light = ○ (hollow circle), Dark = ● (filled circle)
  */
-function formatToneText(tone: 'light' | 'dark'): string {
-	return tone === 'light' ? '[Light]' : '[Dark]';
+function formatTonePDF(tone: 'light' | 'dark'): string {
+	return tone === 'light' ? 'o' : '●';
 }
 
 /**
@@ -185,40 +186,6 @@ function formatPeriod(period: Period): string[] {
 }
 
 /**
- * Generates a table of contents for a game based on available sections
- */
-function generateTableOfContents(game: Game): string[] {
-	const lines: string[] = [];
-	lines.push('## Table of Contents');
-	lines.push('');
-
-	if (game.bigPicture) {
-		lines.push('- [Big Picture](#big-picture)');
-	}
-	if (game.players && game.players.length > 0) {
-		lines.push('- [Players](#players)');
-	}
-	if ((game.focuses && game.focuses.length > 0) || game.focus) {
-		lines.push('- [Focuses](#focuses)');
-	}
-	if (game.legacies.length > 0) {
-		lines.push('- [Legacies](#legacies)');
-	}
-	if (game.anchors && game.anchors.length > 0) {
-		lines.push('- [Anchors (Chronicle)](#anchors-chronicle)');
-	}
-	if (game.palette && (game.palette.yes.length > 0 || game.palette.no.length > 0)) {
-		lines.push('- [Palette](#palette)');
-	}
-	if (game.periods.length > 0) {
-		lines.push('- [Timeline](#timeline)');
-	}
-
-	lines.push('');
-	return lines;
-}
-
-/**
  * Exports a game to Markdown format with improved structure and organization
  */
 export function exportGameToMarkdown(game: Game): string {
@@ -228,127 +195,126 @@ export function exportGameToMarkdown(game: Game): string {
 	lines.push(`# ${escapeMarkdown(game.name)}`);
 	lines.push('');
 
-	// Legend for tone indicators
-	lines.push('> **Tone Legend:** ○ = Light (positive/hopeful) | ● = Dark (negative/tragic)');
-	lines.push('');
-
-	// Table of Contents
-	lines.push(...generateTableOfContents(game));
-
-	// Separator
-	lines.push('---');
-	lines.push('');
-
-	// Big Picture
-	if (game.bigPicture) {
-		lines.push('## Big Picture');
+	// Big Picture as subtitle (right after title)
+	if (game.bigPicture?.premise) {
+		lines.push(`> ${escapeMarkdown(game.bigPicture.premise)}`);
 		lines.push('');
-		if (game.bigPicture.premise) {
-			lines.push(`**Premise:** ${escapeMarkdown(game.bigPicture.premise)}`);
-			lines.push('');
-		}
-		if (game.bigPicture.bookendStart) {
-			lines.push(`**Beginning:** ${escapeMarkdown(game.bigPicture.bookendStart)}`);
-			lines.push('');
-		}
-		if (game.bigPicture.bookendEnd) {
-			lines.push(`**End:** ${escapeMarkdown(game.bigPicture.bookendEnd)}`);
+		if (game.bigPicture.bookendStart || game.bigPicture.bookendEnd) {
+			const bookends: string[] = [];
+			if (game.bigPicture.bookendStart) {
+				bookends.push(`**Start:** ${escapeMarkdown(game.bigPicture.bookendStart)}`);
+			}
+			if (game.bigPicture.bookendEnd) {
+				bookends.push(`**End:** ${escapeMarkdown(game.bigPicture.bookendEnd)}`);
+			}
+			lines.push(bookends.join(' | '));
 			lines.push('');
 		}
 	}
 
-	// Players
-	if (game.players && game.players.length > 0) {
-		lines.push('## Players');
-		lines.push('');
-		game.players.forEach((player, idx) => {
-			const isActive = idx === game.activePlayerIndex;
-			lines.push(`${idx + 1}. ${escapeMarkdown(player.name)}${isActive ? ' *(active)*' : ''}`);
-		});
-		lines.push('');
-	}
+	// Check if we have any overview content
+	const hasPlayers = game.players && game.players.length > 0;
+	const hasFocuses = (game.focuses && game.focuses.length > 0) || game.focus;
+	const hasLegacies = game.legacies.length > 0;
+	const hasAnchors = game.anchors && game.anchors.length > 0;
+	const hasPalette = game.palette && (game.palette.yes.length > 0 || game.palette.no.length > 0);
 
-	// Focuses
-	if (game.focuses && game.focuses.length > 0) {
-		lines.push('## Focuses');
+	if (hasPlayers || hasFocuses || hasLegacies || hasAnchors || hasPalette) {
+		lines.push('## Overview');
 		lines.push('');
-		game.focuses.forEach((focus, idx) => {
-			const isCurrent = idx === game.currentFocusIndex;
-			lines.push(`- **${escapeMarkdown(focus.name)}**${isCurrent ? ' *(current)*' : ''}`);
-			if (focus.description) {
-				lines.push(`  - ${escapeMarkdown(focus.description)}`);
-			}
-		});
-		lines.push('');
-	} else if (game.focus) {
-		// Fallback for legacy focus field
-		lines.push('## Focuses');
-		lines.push('');
-		lines.push(`**Current Focus:** ${escapeMarkdown(game.focus.name)}`);
-		if (game.focus.description) {
-			lines.push(`> ${escapeMarkdown(game.focus.description)}`);
+
+		// Players as compact table
+		if (hasPlayers) {
+			lines.push('### Players');
+			lines.push('');
+			lines.push('| # | Name | Status |');
+			lines.push('|---|------|--------|');
+			game.players!.forEach((player, idx) => {
+				const status = idx === game.activePlayerIndex ? 'Active' : '';
+				lines.push(`| ${idx + 1} | ${escapeMarkdown(player.name)} | ${status} |`);
+			});
+			lines.push('');
 		}
-		lines.push('');
-	}
 
-	// Legacies
-	if (game.legacies.length > 0) {
-		lines.push('## Legacies');
-		lines.push('');
-		for (const legacy of game.legacies) {
-			lines.push(`- **${escapeMarkdown(legacy.name)}**`);
-			if (legacy.description) {
-				lines.push(`  - ${escapeMarkdown(legacy.description)}`);
+		// Focuses as compact list
+		if (game.focuses && game.focuses.length > 0) {
+			lines.push('### Focuses');
+			lines.push('');
+			game.focuses.forEach((focus, idx) => {
+				const isCurrent = idx === game.currentFocusIndex;
+				const marker = isCurrent ? '**→**' : '•';
+				let line = `${marker} **${escapeMarkdown(focus.name)}**`;
+				if (focus.description) {
+					line += ` — ${escapeMarkdown(focus.description)}`;
+				}
+				lines.push(line);
+			});
+			lines.push('');
+		} else if (game.focus) {
+			lines.push('### Focuses');
+			lines.push('');
+			let line = `**→** **${escapeMarkdown(game.focus.name)}**`;
+			if (game.focus.description) {
+				line += ` — ${escapeMarkdown(game.focus.description)}`;
 			}
+			lines.push(line);
+			lines.push('');
 		}
-		lines.push('');
-	}
 
-	// Anchors (Chronicle)
-	if (game.anchors && game.anchors.length > 0) {
-		lines.push('## Anchors (Chronicle)');
-		lines.push('');
-		for (const anchor of game.anchors) {
-			const isActive = game.currentAnchorId === anchor.id;
-			lines.push(`- **${escapeMarkdown(anchor.name)}**${isActive ? ' *(active)*' : ''}`);
-			if (anchor.description) {
-				lines.push(`  - ${escapeMarkdown(anchor.description)}`);
+		// Legacies as compact list
+		if (hasLegacies) {
+			lines.push('### Legacies');
+			lines.push('');
+			for (const legacy of game.legacies) {
+				let line = `• **${escapeMarkdown(legacy.name)}**`;
+				if (legacy.description) {
+					line += ` — ${escapeMarkdown(legacy.description)}`;
+				}
+				lines.push(line);
 			}
-			// Show placements for this anchor
-			const placements = (game.anchorPlacements || []).filter((p) => p.anchorId === anchor.id);
-			if (placements.length > 0) {
-				for (const placement of placements) {
-					const period = game.periods.find((p) => p.id === placement.periodId);
-					if (period) {
-						let placementInfo = `  - Anchor placed on: ${escapeMarkdown(period.name)}`;
-						if (placement.roundNumber) {
-							placementInfo += ` (Round ${placement.roundNumber})`;
-						}
-						lines.push(placementInfo);
+			lines.push('');
+		}
+
+		// Anchors as compact list
+		if (hasAnchors) {
+			lines.push('### Anchors');
+			lines.push('');
+			for (const anchor of game.anchors!) {
+				const isActive = game.currentAnchorId === anchor.id;
+				const marker = isActive ? '**→**' : '•';
+				let line = `${marker} **${escapeMarkdown(anchor.name)}**`;
+				if (anchor.description) {
+					line += ` — ${escapeMarkdown(anchor.description)}`;
+				}
+				// Show placements inline
+				const placements = (game.anchorPlacements || []).filter((p) => p.anchorId === anchor.id);
+				if (placements.length > 0) {
+					const placementNames = placements
+						.map((p) => {
+							const period = game.periods.find((per) => per.id === p.periodId);
+							return period ? escapeMarkdown(period.name) : null;
+						})
+						.filter(Boolean);
+					if (placementNames.length > 0) {
+						line += ` *(placed: ${placementNames.join(', ')})*`;
 					}
 				}
+				lines.push(line);
 			}
+			lines.push('');
 		}
-		lines.push('');
-	}
 
-	// Palette
-	if (game.palette && (game.palette.yes.length > 0 || game.palette.no.length > 0)) {
-		lines.push('## Palette');
-		lines.push('');
-		if (game.palette.yes.length > 0) {
-			lines.push('### Yes (Allowed)');
+		// Palette as two-column table
+		if (hasPalette) {
+			lines.push('### Palette');
 			lines.push('');
-			for (const item of game.palette.yes) {
-				lines.push(`- ${escapeMarkdown(item)}`);
-			}
-			lines.push('');
-		}
-		if (game.palette.no.length > 0) {
-			lines.push('### No (Banned)');
-			lines.push('');
-			for (const item of game.palette.no) {
-				lines.push(`- ${escapeMarkdown(item)}`);
+			lines.push('| ✓ Yes (Allowed) | ✗ No (Banned) |');
+			lines.push('|-----------------|---------------|');
+			const maxLen = Math.max(game.palette!.yes.length, game.palette!.no.length);
+			for (let i = 0; i < maxLen; i++) {
+				const yesItem = game.palette!.yes[i] ? escapeMarkdown(game.palette!.yes[i]) : '';
+				const noItem = game.palette!.no[i] ? escapeMarkdown(game.palette!.no[i]) : '';
+				lines.push(`| ${yesItem} | ${noItem} |`);
 			}
 			lines.push('');
 		}
@@ -356,6 +322,8 @@ export function exportGameToMarkdown(game: Game): string {
 
 	// Timeline
 	if (game.periods.length > 0) {
+		lines.push('---');
+		lines.push('');
 		lines.push('## Timeline');
 		lines.push('');
 
@@ -475,7 +443,7 @@ function addPDFSubsectionHeader(state: PDFRenderState, header: string, tone?: 'l
 	state.y += 3;
 	state.doc.setFontSize(13);
 	state.doc.setFont('helvetica', 'bold');
-	const toneIndicator = tone ? ` ${formatToneText(tone)}` : '';
+	const toneIndicator = tone ? ` ${formatTonePDF(tone)}` : '';
 	state.doc.text(`${header}${toneIndicator}`, state.marginLeft, state.y);
 	state.y += 7;
 }
@@ -582,8 +550,8 @@ function addPDFSeparator(state: PDFRenderState): void {
  * Adds a scene to the PDF
  */
 function addPDFScene(state: PDFRenderState, scene: Scene, indent: number): void {
-	// Scene name with tone
-	addPDFListItem(state, `${scene.name} ${formatToneText(scene.tone)}`, { indent, bullet: '◦' });
+	// Scene name with tone symbol
+	addPDFListItem(state, `${formatTonePDF(scene.tone)} ${scene.name}`, { indent, bullet: '' });
 
 	if (scene.description) {
 		addPDFParagraph(state, scene.description, { indent: indent + 10, italic: true });
@@ -603,8 +571,8 @@ function addPDFScene(state: PDFRenderState, scene: Scene, indent: number): void 
  * Adds an event to the PDF
  */
 function addPDFEvent(state: PDFRenderState, event: Event, indent: number): void {
-	// Event name with tone
-	addPDFListItem(state, `${event.name} ${formatToneText(event.tone)}`, { indent, bold: true });
+	// Event name with tone symbol
+	addPDFListItem(state, `${formatTonePDF(event.tone)} ${event.name}`, { indent, bold: true });
 
 	if (event.description) {
 		addPDFParagraph(state, event.description, { indent: indent + 5 });
@@ -664,126 +632,181 @@ export function exportGameToPDF(game: Game): jsPDF {
 	// Title
 	addPDFTitle(state, game.name);
 
-	// Legend
-	state.doc.setFontSize(9);
-	state.doc.setFont('helvetica', 'italic');
-	state.doc.text('Tone Legend: [Light] = positive/hopeful | [Dark] = negative/tragic', state.marginLeft, state.y);
-	state.y += 8;
-
-	addPDFSeparator(state);
-
-	// Big Picture
-	if (game.bigPicture) {
-		addPDFSectionHeader(state, 'Big Picture');
-		if (game.bigPicture.premise) {
-			addPDFLabeledField(state, 'Premise', game.bigPicture.premise);
+	// Big Picture as subtitle (right after title)
+	if (game.bigPicture?.premise) {
+		state.doc.setFontSize(11);
+		state.doc.setFont('helvetica', 'italic');
+		const premiseLines = state.doc.splitTextToSize(game.bigPicture.premise, state.contentWidth);
+		for (const line of premiseLines) {
+			checkPageBreak(state, state.lineHeight);
+			state.doc.text(line, state.marginLeft, state.y);
+			state.y += state.lineHeight;
 		}
-		if (game.bigPicture.bookendStart) {
-			addPDFLabeledField(state, 'Beginning', game.bigPicture.bookendStart);
-		}
-		if (game.bigPicture.bookendEnd) {
-			addPDFLabeledField(state, 'End', game.bigPicture.bookendEnd);
-		}
-		state.y += 4;
-	}
-
-	// Players
-	if (game.players && game.players.length > 0) {
-		addPDFSectionHeader(state, 'Players');
-		game.players.forEach((player, idx) => {
-			const isActive = idx === game.activePlayerIndex;
-			const activeText = isActive ? ' (active)' : '';
-			addPDFListItem(state, `${player.name}${activeText}`, { bullet: `${idx + 1}.` });
-		});
-		state.y += 4;
-	}
-
-	// Focuses
-	if (game.focuses && game.focuses.length > 0) {
-		addPDFSectionHeader(state, 'Focuses');
-		game.focuses.forEach((focus, idx) => {
-			const isCurrent = idx === game.currentFocusIndex;
-			const currentText = isCurrent ? ' (current)' : '';
-			addPDFListItem(state, `${focus.name}${currentText}`, { bold: true });
-			if (focus.description) {
-				addPDFParagraph(state, focus.description, { indent: 10, italic: true });
+		state.y += 2;
+		if (game.bigPicture.bookendStart || game.bigPicture.bookendEnd) {
+			state.doc.setFontSize(9);
+			state.doc.setFont('helvetica', 'normal');
+			const bookends: string[] = [];
+			if (game.bigPicture.bookendStart) {
+				bookends.push(`Start: ${game.bigPicture.bookendStart}`);
 			}
-		});
-		state.y += 4;
-	} else if (game.focus) {
-		addPDFSectionHeader(state, 'Focuses');
-		addPDFLabeledField(state, 'Current Focus', game.focus.name);
-		if (game.focus.description) {
-			addPDFParagraph(state, game.focus.description, { indent: 5, italic: true });
-		}
-		state.y += 4;
-	}
-
-	// Legacies
-	if (game.legacies.length > 0) {
-		addPDFSectionHeader(state, 'Legacies');
-		for (const legacy of game.legacies) {
-			addPDFListItem(state, legacy.name, { bold: true });
-			if (legacy.description) {
-				addPDFParagraph(state, legacy.description, { indent: 10, italic: true });
+			if (game.bigPicture.bookendEnd) {
+				bookends.push(`End: ${game.bigPicture.bookendEnd}`);
+			}
+			const bookendText = bookends.join(' | ');
+			const bookendLines = state.doc.splitTextToSize(bookendText, state.contentWidth);
+			for (const line of bookendLines) {
+				checkPageBreak(state, state.lineHeight);
+				state.doc.text(line, state.marginLeft, state.y);
+				state.y += state.lineHeight;
 			}
 		}
 		state.y += 4;
 	}
 
-	// Anchors
-	if (game.anchors && game.anchors.length > 0) {
-		addPDFSectionHeader(state, 'Anchors (Chronicle)');
-		for (const anchor of game.anchors) {
-			const isActive = game.currentAnchorId === anchor.id;
-			const activeText = isActive ? ' (active)' : '';
-			addPDFListItem(state, `${anchor.name}${activeText}`, { bold: true });
-			if (anchor.description) {
-				addPDFParagraph(state, anchor.description, { indent: 10, italic: true });
+	// Check if we have any overview content
+	const hasPlayers = game.players && game.players.length > 0;
+	const hasFocuses = (game.focuses && game.focuses.length > 0) || game.focus;
+	const hasLegacies = game.legacies.length > 0;
+	const hasAnchors = game.anchors && game.anchors.length > 0;
+	const hasPalette = game.palette && (game.palette.yes.length > 0 || game.palette.no.length > 0);
+
+	if (hasPlayers || hasFocuses || hasLegacies || hasAnchors || hasPalette) {
+		addPDFSectionHeader(state, 'Overview');
+
+		// Players
+		if (hasPlayers) {
+			state.doc.setFontSize(11);
+			state.doc.setFont('helvetica', 'bold');
+			state.doc.text('Players', state.marginLeft, state.y);
+			state.y += state.lineHeight;
+			game.players!.forEach((player, idx) => {
+				const isActive = idx === game.activePlayerIndex;
+				const activeText = isActive ? ' (active)' : '';
+				addPDFListItem(state, `${player.name}${activeText}`, { bullet: `${idx + 1}.`, indent: 5 });
+			});
+			state.y += 3;
+		}
+
+		// Focuses
+		if (game.focuses && game.focuses.length > 0) {
+			state.doc.setFontSize(11);
+			state.doc.setFont('helvetica', 'bold');
+			state.doc.text('Focuses', state.marginLeft, state.y);
+			state.y += state.lineHeight;
+			game.focuses.forEach((focus, idx) => {
+				const isCurrent = idx === game.currentFocusIndex;
+				const marker = isCurrent ? '→' : '•';
+				let focusText = focus.name;
+				if (focus.description) {
+					focusText += ` — ${focus.description}`;
+				}
+				addPDFListItem(state, focusText, { bold: isCurrent, bullet: marker, indent: 5 });
+			});
+			state.y += 3;
+		} else if (game.focus) {
+			state.doc.setFontSize(11);
+			state.doc.setFont('helvetica', 'bold');
+			state.doc.text('Focuses', state.marginLeft, state.y);
+			state.y += state.lineHeight;
+			let focusText = game.focus.name;
+			if (game.focus.description) {
+				focusText += ` — ${game.focus.description}`;
 			}
-			// Show placements
-			const placements = (game.anchorPlacements || []).filter((p) => p.anchorId === anchor.id);
-			for (const placement of placements) {
-				const period = game.periods.find((p) => p.id === placement.periodId);
-				if (period) {
-					let placementText = `Placed on: ${period.name}`;
-					if (placement.roundNumber) {
-						placementText += ` (Round ${placement.roundNumber})`;
+			addPDFListItem(state, focusText, { bold: true, bullet: '→', indent: 5 });
+			state.y += 3;
+		}
+
+		// Legacies
+		if (hasLegacies) {
+			state.doc.setFontSize(11);
+			state.doc.setFont('helvetica', 'bold');
+			state.doc.text('Legacies', state.marginLeft, state.y);
+			state.y += state.lineHeight;
+			for (const legacy of game.legacies) {
+				let legacyText = legacy.name;
+				if (legacy.description) {
+					legacyText += ` — ${legacy.description}`;
+				}
+				addPDFListItem(state, legacyText, { indent: 5 });
+			}
+			state.y += 3;
+		}
+
+		// Anchors
+		if (hasAnchors) {
+			state.doc.setFontSize(11);
+			state.doc.setFont('helvetica', 'bold');
+			state.doc.text('Anchors', state.marginLeft, state.y);
+			state.y += state.lineHeight;
+			for (const anchor of game.anchors!) {
+				const isActive = game.currentAnchorId === anchor.id;
+				const marker = isActive ? '→' : '•';
+				let anchorText = anchor.name;
+				if (anchor.description) {
+					anchorText += ` — ${anchor.description}`;
+				}
+				// Show placements inline
+				const placements = (game.anchorPlacements || []).filter((p) => p.anchorId === anchor.id);
+				if (placements.length > 0) {
+					const placementNames = placements
+						.map((p) => {
+							const period = game.periods.find((per) => per.id === p.periodId);
+							return period ? period.name : null;
+						})
+						.filter(Boolean);
+					if (placementNames.length > 0) {
+						anchorText += ` (placed: ${placementNames.join(', ')})`;
 					}
-					addPDFParagraph(state, placementText, { indent: 15, fontSize: 9 });
+				}
+				addPDFListItem(state, anchorText, { bold: isActive, bullet: marker, indent: 5 });
+			}
+			state.y += 3;
+		}
+
+		// Palette
+		if (hasPalette) {
+			state.doc.setFontSize(11);
+			state.doc.setFont('helvetica', 'bold');
+			state.doc.text('Palette', state.marginLeft, state.y);
+			state.y += state.lineHeight;
+			if (game.palette!.yes.length > 0) {
+				state.doc.setFontSize(10);
+				state.doc.setFont('helvetica', 'bold');
+				state.doc.text('Yes:', state.marginLeft + 5, state.y);
+				state.doc.setFont('helvetica', 'normal');
+				const yesText = game.palette!.yes.join(', ');
+				const yesWidth = state.doc.getTextWidth('Yes: ');
+				const yesLines = state.doc.splitTextToSize(yesText, state.contentWidth - 5 - yesWidth);
+				state.doc.text(yesLines[0], state.marginLeft + 5 + yesWidth, state.y);
+				state.y += state.lineHeight;
+				for (let i = 1; i < yesLines.length; i++) {
+					state.doc.text(yesLines[i], state.marginLeft + 5 + yesWidth, state.y);
+					state.y += state.lineHeight;
 				}
 			}
-		}
-		state.y += 4;
-	}
-
-	// Palette
-	if (game.palette && (game.palette.yes.length > 0 || game.palette.no.length > 0)) {
-		addPDFSectionHeader(state, 'Palette');
-		if (game.palette.yes.length > 0) {
-			state.doc.setFontSize(11);
-			state.doc.setFont('helvetica', 'bold');
-			state.doc.text('Yes (Allowed):', state.marginLeft, state.y);
-			state.y += state.lineHeight;
-			for (const item of game.palette.yes) {
-				addPDFListItem(state, item, { indent: 5 });
+			if (game.palette!.no.length > 0) {
+				state.doc.setFontSize(10);
+				state.doc.setFont('helvetica', 'bold');
+				state.doc.text('No:', state.marginLeft + 5, state.y);
+				state.doc.setFont('helvetica', 'normal');
+				const noText = game.palette!.no.join(', ');
+				const noWidth = state.doc.getTextWidth('No: ');
+				const noLines = state.doc.splitTextToSize(noText, state.contentWidth - 5 - noWidth);
+				state.doc.text(noLines[0], state.marginLeft + 5 + noWidth, state.y);
+				state.y += state.lineHeight;
+				for (let i = 1; i < noLines.length; i++) {
+					state.doc.text(noLines[i], state.marginLeft + 5 + noWidth, state.y);
+					state.y += state.lineHeight;
+				}
 			}
+			state.y += 3;
 		}
-		if (game.palette.no.length > 0) {
-			state.y += 2;
-			state.doc.setFontSize(11);
-			state.doc.setFont('helvetica', 'bold');
-			state.doc.text('No (Banned):', state.marginLeft, state.y);
-			state.y += state.lineHeight;
-			for (const item of game.palette.no) {
-				addPDFListItem(state, item, { indent: 5 });
-			}
-		}
-		state.y += 4;
 	}
 
 	// Timeline
 	if (game.periods.length > 0) {
+		addPDFSeparator(state);
 		addPDFSectionHeader(state, 'Timeline');
 
 		for (let i = 0; i < game.periods.length; i++) {
