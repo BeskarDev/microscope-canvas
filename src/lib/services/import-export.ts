@@ -93,7 +93,7 @@ function formatTone(tone: 'light' | 'dark'): string {
  * Light = ○ (hollow circle), Dark = ● (filled circle)
  */
 function formatTonePDF(tone: 'light' | 'dark'): string {
-	return tone === 'light' ? 'o' : '●';
+	return tone === 'light' ? '○' : '●';
 }
 
 /**
