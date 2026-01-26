@@ -89,12 +89,30 @@ function formatTone(tone: 'light' | 'dark'): string {
 }
 
 /**
- * Formats tone using text labels for PDF rendering
- * jsPDF's default Helvetica font doesn't support Unicode circle symbols,
- * so we use text labels instead: (Light) and (Dark)
+ * ZapfDingbats character codes for tone symbols
+ * These are the character codes that map to circle symbols in the ZapfDingbats font
  */
-function formatTonePDF(tone: 'light' | 'dark'): string {
-	return tone === 'light' ? '(Light)' : '(Dark)';
+const ZAPF_HOLLOW_CIRCLE = 'm'; // Character 'm' in ZapfDingbats renders as a hollow circle (❍)
+const ZAPF_FILLED_CIRCLE = 'l'; // Character 'l' in ZapfDingbats renders as a filled circle (●)
+
+/**
+ * Gets the ZapfDingbats character for the tone
+ */
+function getToneSymbolChar(tone: 'light' | 'dark'): string {
+	return tone === 'light' ? ZAPF_HOLLOW_CIRCLE : ZAPF_FILLED_CIRCLE;
+}
+
+/**
+ * Renders a tone symbol at the current position using ZapfDingbats font
+ * Returns the width of the symbol so text can continue after it
+ */
+function renderToneSymbol(state: PDFRenderState, tone: 'light' | 'dark', x: number, y: number, fontSize: number): number {
+	const char = getToneSymbolChar(tone);
+	state.doc.setFont('zapfdingbats', 'normal');
+	state.doc.setFontSize(fontSize);
+	const symbolWidth = state.doc.getTextWidth(char);
+	state.doc.text(char, x, y);
+	return symbolWidth;
 }
 
 /**
@@ -437,15 +455,25 @@ function addPDFSectionHeader(state: PDFRenderState, header: string): void {
 }
 
 /**
- * Adds a subsection header (H3) to the PDF
+ * Adds a subsection header (H3) to the PDF with optional tone symbol
  */
 function addPDFSubsectionHeader(state: PDFRenderState, header: string, tone?: 'light' | 'dark'): void {
 	checkPageBreak(state, 12);
 	state.y += 3;
-	state.doc.setFontSize(13);
+	const fontSize = 13;
+	
+	let xPos = state.marginLeft;
+	
+	// Render tone symbol first if provided
+	if (tone) {
+		const symbolWidth = renderToneSymbol(state, tone, xPos, state.y, fontSize);
+		xPos += symbolWidth + 2; // Add small gap after symbol
+	}
+	
+	// Render the header text
+	state.doc.setFontSize(fontSize);
 	state.doc.setFont('helvetica', 'bold');
-	const toneIndicator = tone ? ` ${formatTonePDF(tone)}` : '';
-	state.doc.text(`${header}${toneIndicator}`, state.marginLeft, state.y);
+	state.doc.text(header, xPos, state.y);
 	state.y += 7;
 }
 
@@ -508,29 +536,46 @@ function addPDFLabeledField(state: PDFRenderState, label: string, value: string,
 }
 
 /**
- * Adds a list item to the PDF
+ * Adds a list item to the PDF with optional tone symbol
  */
 function addPDFListItem(
 	state: PDFRenderState,
 	text: string,
-	options: { bullet?: string; indent?: number; bold?: boolean } = {}
+	options: { bullet?: string; indent?: number; bold?: boolean; tone?: 'light' | 'dark' } = {}
 ): void {
-	const { bullet = '•', indent = 0, bold = false } = options;
+	const { bullet = '•', indent = 0, bold = false, tone } = options;
 
 	checkPageBreak(state, state.lineHeight);
-	state.doc.setFontSize(10);
-	state.doc.setFont('helvetica', 'normal');
-	state.doc.text(bullet, state.marginLeft + indent, state.y);
+	const fontSize = 10;
+	let xPos = state.marginLeft + indent;
+	
+	// Render bullet (if not empty)
+	if (bullet) {
+		state.doc.setFontSize(fontSize);
+		state.doc.setFont('helvetica', 'normal');
+		state.doc.text(bullet, xPos, state.y);
+	}
+	
+	const bulletWidth = bullet ? 5 : 0;
+	xPos += bulletWidth;
+	
+	// Render tone symbol if provided
+	if (tone) {
+		const symbolWidth = renderToneSymbol(state, tone, xPos, state.y, fontSize);
+		xPos += symbolWidth + 2; // Add small gap after symbol
+	}
 
+	// Render the text
+	state.doc.setFontSize(fontSize);
 	state.doc.setFont('helvetica', bold ? 'bold' : 'normal');
-	const bulletWidth = 5;
-	const textLines = state.doc.splitTextToSize(text, state.contentWidth - indent - bulletWidth);
+	const textStartX = state.marginLeft + indent + bulletWidth + (tone ? 10 : 0); // Account for tone symbol space
+	const textLines = state.doc.splitTextToSize(text, state.contentWidth - indent - bulletWidth - (tone ? 10 : 0));
 
 	for (let i = 0; i < textLines.length; i++) {
 		if (i > 0) {
 			checkPageBreak(state, state.lineHeight);
 		}
-		state.doc.text(textLines[i], state.marginLeft + indent + bulletWidth, state.y);
+		state.doc.text(textLines[i], i === 0 ? xPos : textStartX, state.y);
 		state.y += state.lineHeight;
 	}
 }
@@ -552,7 +597,7 @@ function addPDFSeparator(state: PDFRenderState): void {
  */
 function addPDFScene(state: PDFRenderState, scene: Scene, indent: number): void {
 	// Scene name with tone symbol
-	addPDFListItem(state, `${formatTonePDF(scene.tone)} ${scene.name}`, { indent, bullet: '' });
+	addPDFListItem(state, scene.name, { indent, bullet: '', tone: scene.tone });
 
 	if (scene.description) {
 		addPDFParagraph(state, scene.description, { indent: indent + 10, italic: true });
@@ -573,7 +618,7 @@ function addPDFScene(state: PDFRenderState, scene: Scene, indent: number): void 
  */
 function addPDFEvent(state: PDFRenderState, event: Event, indent: number): void {
 	// Event name with tone symbol
-	addPDFListItem(state, `${formatTonePDF(event.tone)} ${event.name}`, { indent, bold: true });
+	addPDFListItem(state, event.name, { indent, bold: true, bullet: '•', tone: event.tone });
 
 	if (event.description) {
 		addPDFParagraph(state, event.description, { indent: indent + 5 });
